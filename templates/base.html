@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VerifyMe Technologies | Secure Background Screening</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<nav class="navbar">
+    <div class="nav-container">
+        <a href="/" class="logo-group">
+            <img src="{{ url_for('static', filename='images/VM_Icon.png') }}" alt="VerifyMe" class="nav-logo-icon">
+            <div class="logo-text-stack">
+                <span class="logo-main">VerifyMe</span>
+                <span class="logo-sub">Technologies</span>
+            </div>
+        </a>
+
+        <!-- Desktop links -->
+        <div class="nav-links">
+            <a href="#about">About</a>
+            <a href="#services">Services</a>
+            <a href="#contact">Contact</a>
+            <a href="tel:+27114635540" class="nav-cta">Call Us</a>
+        </div>
+
+        <!-- Hamburger (mobile only) -->
+        <button class="nav-hamburger" id="navHamburger" aria-label="Toggle menu">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+    </div>
+</nav>
+
+<!-- Mobile drawer (sits outside navbar, inside body) -->
+<div class="nav-mobile-drawer" id="navMobileDrawer">
+    <a href="#about"    onclick="closeMenu()">About</a>
+    <a href="#services" onclick="closeMenu()">Services</a>
+    <a href="#contact"  onclick="closeMenu()">Contact</a>
+    <a href="tel:+27114635540" class="mobile-cta">📞 Call Us</a>
+</div>
+
+<script>
+    const hamburger = document.getElementById('navHamburger');
+    const drawer    = document.getElementById('navMobileDrawer');
+
+    hamburger.addEventListener('click', () => {
+        hamburger.classList.toggle('open');
+        drawer.classList.toggle('open');
+    });
+
+    function closeMenu() {
+        hamburger.classList.remove('open');
+        drawer.classList.remove('open');
+    }
+
+    // Close drawer when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!hamburger.contains(e.target) && !drawer.contains(e.target)) {
+            closeMenu();
+        }
+    });
+</script>
+
+
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="footer">
+        <p>&copy; 2026 VerifyMe Technologies. Powered by InspHired Recruitment Solutions. All Rights Reserved.</p>
+    </footer>
+
+</body>
+</html>

@@ -1,0 +1,354 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<section class="hero-video-banner">
+    <video autoplay loop muted playsinline class="banner-video-bg" id="heroBgVideo"
+        ontimeupdate="if(this.currentTime >= 3) this.currentTime = 0;">
+        <source src="{{ url_for('static', filename='videos/VerifyMe-vid.mp4') }}" type="video/mp4">
+    </video>
+
+    <div class="banner-video-overlay"></div>
+
+    <div class="hero-banner-content">
+
+
+        <h1 class="hero-banner-title">Trust Through<br><span class="highlight-text-olive">Transparency</span></h1>
+
+        <p class="hero-banner-lead">We provide reliable and transparent verification services, ensuring every
+            recruitment decision is backed by accuracy and integrity. Let us help you streamline your hiring process
+            with confidence.</p>
+
+        <div class="hero-banner-actions">
+            <a href="tel:+27114635540" class="btn-premium-solid">Give us a Call</a>
+            <a href="#services" class="btn-premium-outline-dark">View Our Services</a>
+        </div>
+    </div>
+</section>
+
+<section id="about" class="corporate-profile-section">
+    <div class="profile-layout-container">
+        <div class="profile-narrative">
+            <span class="section-meta-tag">CORPORATE OVERVIEW</span>
+            <h2>Trailblazers in Data-Driven Verification</h2>
+            <p class="accent-paragraph">VerifyMe Technologies is a trusted digital verification service proudly powered
+                by InspHired Recruitment Solutions.</p>
+            <p>Built to enhance hiring confidence, VerifyMe helps employers make faster, safer hiring decisions through
+                secure, streamlined background checks and candidate verification processes.</p>
+            <p>We are dedicated to empowering businesses across Africa with reliable and secure solutions for background
+                screening, identity validation, and regulatory compliance. Our platform addresses the complex challenges
+                of risk management, enabling organizations to make informed, confident decisions about potential hires.
+            </p>
+        </div>
+
+        <div class="profile-objectives">
+            <div class="objective-panel vision">
+                <h3>Our Vision</h3>
+                <p>To be Africa’s most trusted partner in building secure, transparent, and compliant ecosystems through
+                    innovative verification and identity solutions.</p>
+            </div>
+            <div class="objective-panel mission">
+                <h3>Our Mission</h3>
+                <p>To empower businesses and individuals with reliable, data-driven verification services that enhance
+                    trust, reduce risks, and ensure compliance. By leveraging cutting-edge technology and local
+                    expertise, we aim to deliver seamless and accurate identity validation and background screening
+                    solutions.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="premium-values-section">
+    <div class="center-heading-block">
+        <span class="section-meta-tag">OPERATIONAL STANDARDS</span>
+        <h2>Our Core Values</h2>
+    </div>
+
+    <div class="premium-values-layout">
+        <div class="value-metric-card">
+            <div class="metric-top">
+                <span class="metric-index">01</span>
+                <h3>Integrity</h3>
+            </div>
+            <p>We verify with honesty, transparency, and strong ethics.</p>
+        </div>
+        <div class="value-metric-card">
+            <div class="metric-top">
+                <span class="metric-index">02</span>
+                <h3>Innovation</h3>
+            </div>
+            <p>We use cutting-edge tech to stay ahead and solve real challenges.</p>
+        </div>
+        <div class="value-metric-card">
+            <div class="metric-top">
+                <span class="metric-index">03</span>
+                <h3>Accuracy</h3>
+            </div>
+            <p>We deliver precise, reliable results—every time.</p>
+        </div>
+        <div class="value-metric-card">
+            <div class="metric-top">
+                <span class="metric-index">04</span>
+                <h3>Customer-Centricity</h3>
+            </div>
+            <p>Our clients come first, always. Solutions that fit, service that delivers.</p>
+        </div>
+        <div class="value-metric-card">
+            <div class="metric-top">
+                <span class="metric-index">05</span>
+                <h3>Compliance</h3>
+            </div>
+            <p>We follow all legal and industry standards—no shortcuts.</p>
+        </div>
+        <div class="value-metric-card">
+            <div class="metric-top">
+                <span class="metric-index">06</span>
+                <h3>Collaboration</h3>
+            </div>
+            <p>We work with partners to build a safer, more trusted world.</p>
+        </div>
+    </div>
+</section>
+
+<section id="services" class="premium-services-section">
+    <div class="center-heading-block">
+        <span class="section-meta-tag">RISK MANAGEMENT ARCHITECTURE</span>
+        <h2>Our Verification Services</h2>
+        <p class="sub-lead">Enterprise screening tools designed to protect your organization and enhance placement
+            metrics.</p>
+    </div>
+
+    <div class="premium-services-grid">
+        <div class="premium-service-box">
+            <div class="vector-icon-shield">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                </svg>
+            </div>
+            <h3>Identity Verification & Validation</h3>
+            <p>We confirm candidate identities through rigorous document authentication and biometric checks, ensuring
+                legitimacy across digital and physical spaces.</p>
+        </div>
+        <div class="premium-service-box">
+            <div class="vector-icon-shield">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 14l9-5-9-5-9 5 9 5z" />
+                    <path d="M12 14v7" />
+                    <path d="M22.5 10v6M1.5 10v6" />
+                </svg>
+            </div>
+            <h3>Criminal Record Background Screening</h3>
+            <p>Conduct national and international criminal record searches, check global watchlists, and seamlessly
+                verify employment and education history.</p>
+        </div>
+        <div class="premium-service-box">
+            <div class="vector-icon-shield">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
+                    <line x1="1" y1="10" x2="23" y2="10" />
+                </svg>
+            </div>
+            <h3>Credit & Financial Checks</h3>
+            <p>We provide credit reports and financial history checks for roles that require financial responsibility,
+                helping you assess risk and reliability.</p>
+        </div>
+        <div class="premium-service-box">
+            <div class="vector-icon-shield">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+                </svg>
+            </div>
+            <h3>Professional License Verification</h3>
+            <p>We verify that professional licenses and certifications are valid, up-to-date, and relevant for the
+                specific role.</p>
+        </div>
+        <div class="premium-service-box">
+            <div class="vector-icon-shield">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="2" y1="12" x2="22" y2="12" />
+                    <path
+                        d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                </svg>
+            </div>
+            <h3>Global Compliance Screening</h3>
+            <p>We screen candidates against sanctions, PEP, and AML databases to ensure full compliance with
+                international regulations.</p>
+        </div>
+        <div class="premium-service-box">
+            <div class="vector-icon-shield">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
+            </div>
+            <h3>Social Media Footprint Analysis</h3>
+            <p>We offer reputational screening through digital footprint and public profile analysis to help you
+                identify potential online risks.</p>
+        </div>
+    </div>
+</section>
+
+<section class="premium-portal-feature">
+    <div class="portal-feature-container">
+        <div class="portal-feature-visual">
+            <div class="abstract-secure-card">
+                <div class="secure-badge-row">🛡️ SECURE PIPELINE</div>
+                <div class="metric-large-display">70%</div>
+                <div class="metric-caption">Reduction in Corporate Candidate Screening Timelines</div>
+            </div>
+        </div>
+        <div class="portal-feature-text">
+            <span class="section-meta-tag">POWERED BY INSPHIRED SOLUTIONS</span>
+            <h2>Accelerate Placement with Video Recruitment</h2>
+            <p>Why spend days filtering through static CVs? Our integrated Video Recruitment Portal allows candidates to
+                show their authentic fit early in the screening pipeline.</p>
+
+            <div class="corporate-bullet-list">
+                <div class="bullet-item-node">
+                    <strong>Optimized Pipeline Screening</strong>
+                    <p>Filter out incompatible matches in the first 5 minutes before booking standard interviews.</p>
+                </div>
+                <div class="bullet-item-node">
+                    <strong>Asynchronous Review Panel Matrix</strong>
+                    <p>Review recorded submissions on mobile devices or share profiles directly with cross-functional
+                        executive teams.</p>
+                </div>
+                <div class="bullet-item-node">
+                    <strong>Unvetted Cultural Evaluation</strong>
+                    <p>Observe true cultural and behavioral fit based on instinctive answers captured before candidate
+                        pre-conditioning.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="contact" class="corporate-enquiry-section">
+    <div class="enquiry-grid-container">
+        <div class="enquiry-corporate-info">
+            <span class="section-meta-tag">REGIONAL OFFICE FOOTPRINT</span>
+            <h2>Where We Operate</h2>
+            <p>Our secure verification matrix operates across Africa, directly monitored from our regional
+                administrative corporate headquarters.</p>
+
+            <div class="clean-directory-list">
+                <div class="directory-node">
+                    <h5>Headquarters Location</h5>
+                    <p>Bryanston Gate Office Park, Corner Main Road & Homestead Avenue, Bryanston, Sandton, 2191</p>
+                </div>
+                <div class="directory-node">
+                    <h5>Telephone Switchboard</h5>
+                    <p><a href="tel:0114635540">011 463 5540</a></p>
+                </div>
+                <div class="directory-node">
+                    <h5>Corporate Enquiries</h5>
+                    <p><a href="mailto:info@insphired.co.za">info@insphired.co.za</a></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="enquiry-form-card">
+            <h4>Request a Verification</h4>
+
+            <!-- Applicant Type Toggle -->
+            <div class="applicant-type-toggle">
+                <button class="toggle-btn active" id="btn-individual"
+                    onclick="switchType('individual')">Individual</button>
+                <button class="toggle-btn" id="btn-company" onclick="switchType('company')">Company</button>
+            </div>
+
+<form class="premium-form" action="{{ url_for('submit_verification') }}" method="POST">
+
+    <div id="fields-individual" style="display:flex; flex-direction:column; gap:1.5rem;">
+        <div class="input-field-row">
+            <label for="ind_name">Full Name</label>
+            <input type="text" id="ind_name" name="individual_name" placeholder="e.g., John Doe">
+        </div>
+        <div class="input-field-row">
+            <label for="ind_email">Email Address</label>
+            <input type="email" id="ind_email" name="individual_email" placeholder="john@email.com">
+        </div>
+        <div class="input-field-row">
+            <label for="ind_id">ID Number</label>
+            <input type="text" id="ind_id" name="individual_id" placeholder="South African ID Number">
+        </div>
+    </div>
+
+    <div id="fields-company" style="display:none; flex-direction:column; gap:1.5rem;">
+        <div class="input-field-row">
+            <label for="comp_name">Company Name</label>
+            <input type="text" id="comp_name" name="company_name" placeholder="e.g., Enterprise Holdings Group">
+        </div>
+        <div class="input-field-row">
+            <label for="comp_email">Official Company Email</label>
+            <input type="email" id="comp_email" name="company_email" placeholder="management@company.co.za">
+        </div>
+        <div class="input-field-row">
+            <label for="comp_contact">Contact Person</label>
+            <input type="text" id="comp_contact" name="company_contact" placeholder="Full name of contact">
+        </div>
+    </div>
+
+    <input type="hidden" id="applicant_type_field" name="applicant_type" value="individual">
+
+    <div class="input-field-row">
+        <label for="v_type">Verification Type</label>
+        <select id="v_type" name="verification_type" required>
+            <option value="Identity Verification">Identity Verification & Validation</option>
+            <option value="Criminal Record Screening">Criminal Record Background Screening</option>
+            <option value="Credit Check">Credit & Financial Checks</option>
+            <option value="License Verification">Professional License Verification</option>
+            <option value="Global Compliance">Global Compliance Screening</option>
+            <option value="Social Media Footprint">Social Media Footprint Analysis</option>
+        </select>
+    </div>
+
+    <div class="input-field-row">
+        <label for="v_volume">Verification Volume</label>
+        <select id="v_volume" name="verification_volume" required>
+            <option value="Once-off">Once-off (Single Verification)</option>
+            <option value="Small Batch">Small Batch (2 – 10 Verifications)</option>
+            <option value="Medium Batch">Medium Batch (11 – 50 Verifications)</option>
+            <option value="Enterprise">Ongoing / Enterprise (50+ Verifications)</option>
+        </select>
+    </div>
+
+    <div class="input-field-row">
+        <label for="v_notes">Additional Notes</label>
+        <textarea id="v_notes" name="additional_notes"
+            placeholder="Any specific requirements or context..." rows="3"></textarea>
+    </div>
+
+    <button type="submit" class="btn-premium-solid-block">Submit Verification Request</button>
+</form>
+        </div>
+    </div>
+</section>
+<script>
+    function switchType(type) {
+        document.getElementById('fields-individual').style.display = type === 'individual' ? 'flex' : 'none';
+        document.getElementById('fields-company').style.display = type === 'company' ? 'flex' : 'none';
+        document.getElementById('btn-individual').classList.toggle('active', type === 'individual');
+        document.getElementById('btn-company').classList.toggle('active', type === 'company');
+    }
+
+    // Ensure individual fields use column flex layout
+    document.getElementById('fields-individual').style.flexDirection = 'column';
+    document.getElementById('fields-individual').style.gap = '1.5rem';
+    document.getElementById('fields-company').style.flexDirection = 'column';
+    document.getElementById('fields-company').style.gap = '1.5rem';
+</script>
+<div class="whatsapp-floating-container">
+    <div class="whatsapp-premium-tooltip">Chat with a Verification Expert</div>
+
+    <a href="https://wa.me/694652340?text=Hi%20VerifyMe%20Technologies,%20I'd%20like%20to%20enquire%20about%20your%20corporate%20verification%20services."
+        target="_blank" rel="noopener noreferrer" class="whatsapp-floating-action-button"
+        aria-label="Chat with VerifyMe on WhatsApp">
+
+        <svg viewBox="0 0 24 24" fill="currentColor" class="whatsapp-vector-mark">
+            <path
+                d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.717-1.456L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436 0 9.86-4.413 9.863-9.832.002-2.623-1.023-5.09-2.885-6.951C16.526 1.961 14.06 .936 11.44.934c-5.443 0-9.866 4.415-9.869 9.834-.001 1.742.476 3.442 1.381 4.935L1.87 21.03l5.513-1.446c-.244-.136-.48-.282-.736-.43zM16.598 13.662c-.272-.136-1.614-.797-1.863-.888-.249-.091-.43-.136-.612.136-.182.271-.703.888-.861 1.07-.159.182-.317.204-.589.068-.272-.136-1.15-.424-2.19-1.354-.809-.723-1.356-1.617-1.514-1.889-.159-.272-.017-.419.119-.554.122-.121.272-.317.408-.475.136-.159.182-.272.272-.453.091-.182.045-.339-.023-.475-.068-.136-.612-1.474-.838-2.019-.221-.53-.443-.459-.612-.468-.159-.008-.339-.01-.519-.01s-.475.068-.724.339c-.249.271-.951.929-.951 2.264 0 1.335.974 2.624 1.11 2.805.136.182 1.917 2.926 4.646 4.103.649.28 1.157.447 1.552.573.652.208 1.246.179 1.715.109.523-.078 1.614-.659 1.841-1.295.227-.636.227-1.181.159-1.295-.068-.113-.249-.182-.521-.317z" />
+        </svg>
+    </a>
+</div>
+{% endblock %}
