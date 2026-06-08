@@ -10,7 +10,7 @@ app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USE_SSL'] = False
 app.config['MAIL_USERNAME'] = 'nokulungabembe@gmail.com'
-app.config['MAIL_PASSWORD'] = 'mxio exxl lngw bbfi'        # Your 16-char app password
+app.config['MAIL_PASSWORD'] = 'mxio exxl lngw bbfi'        # 16-char app password
 app.config['MAIL_DEFAULT_SENDER'] = ('VerifyMe Portal', 'nokulungabembe@gmail.com')
 
 mail = Mail(app)
@@ -19,15 +19,15 @@ mail = Mail(app)
 def index():
     return render_template('index.html')
 
-# --- Form Processing ---
+
+# --- Form Processing (Inquiry Form) ---
 @app.route('/submit-verification', methods=['POST'])
 def submit_verification():
-
     # 1. Applicant type from hidden field
-    applicant_type    = request.form.get('applicant_type')
-    verification_type = request.form.get('verification_type')
+    applicant_type      = request.form.get('applicant_type')
+    verification_type   = request.form.get('verification_type')
     verification_volume = request.form.get('verification_volume')
-    additional_notes  = request.form.get('additional_notes') or 'No additional notes provided.'
+    additional_notes    = request.form.get('additional_notes') or 'No additional notes provided.'
 
     # 2. Pull fields based on individual vs company toggle
     if applicant_type == 'individual':
@@ -49,17 +49,14 @@ def submit_verification():
     # 4. HTML email body
     html_content = f"""
     <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e3e7e4; border-radius: 8px; background-color: #ffffff;">
-        
         <div style="background-color: #2a312c; padding: 24px 20px; text-align: center; border-radius: 6px 6px 0 0;">
             <h2 style="color: #ffffff; margin: 0; font-size: 22px; letter-spacing: 1px;">VerifyMe Technologies</h2>
             <p style="color: #4eb637; margin: 6px 0 0 0; font-size: 11px; text-transform: uppercase; letter-spacing: 2px;">New Verification Request</p>
         </div>
-
         <div style="padding: 24px 20px;">
             <p style="font-size: 15px; color: #2a312c; line-height: 1.6; margin-bottom: 20px;">
                 A new verification request has been submitted via the VerifyMe portal. Details below:
             </p>
-
             <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
                 <tr style="background-color: #f8faf9;">
                     <td style="padding: 12px 14px; font-weight: bold; border-bottom: 1px solid #e3e7e4; color: #2a312c; width: 38%;">Account Type</td>
@@ -88,19 +85,16 @@ def submit_verification():
                     <td style="padding: 12px 14px; border-bottom: 1px solid #e3e7e4; color: #555;">{verification_volume}</td>
                 </tr>
             </table>
-
             <div style="margin-top: 24px; padding: 16px; background-color: #f0f4f2; border-left: 4px solid #4eb637; border-radius: 4px;">
                 <p style="margin: 0 0 6px 0; font-weight: bold; color: #2a312c; font-size: 13px;">Additional Notes</p>
                 <p style="margin: 0; color: #555; font-size: 14px; line-height: 1.6; font-style: italic;">"{additional_notes}"</p>
             </div>
-
             <div style="margin-top: 24px; padding: 14px; background-color: #eef8e8; border-radius: 6px; text-align: center;">
                 <p style="margin: 0; font-size: 13px; color: #2a312c;">
                     Reply directly to this email or click the address above to contact <strong>{client_name}</strong>.
                 </p>
             </div>
         </div>
-
         <div style="border-top: 1px solid #e3e7e4; padding: 16px 20px; text-align: center; color: #aaa; font-size: 11px;">
             <p style="margin: 0;">Powered by InspHired Recruitment Solutions</p>
             <p style="margin: 4px 0 0 0;">CONFIDENTIAL — This message contains private candidate screening information.</p>
@@ -113,8 +107,8 @@ def submit_verification():
         msg = Message(
             subject=subject,
             sender=('VerifyMe Portal', 'nokulungabembe@gmail.com'),
-            recipients=['nokulungabembe@gmail.com'],   # you receive it
-            reply_to=client_email                       # replying goes to the client
+            recipients=['nokulungabembe@gmail.com'],
+            reply_to=client_email
         )
         msg.html = html_content
         mail.send(msg)
@@ -124,6 +118,41 @@ def submit_verification():
         flash('Something went wrong sending your request. Please try calling us directly.', 'error')
 
     return redirect(url_for('index'))
+
+
+# --- Mocked Frontend Authentication Channels ---
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        # Simulate registration logic with forms passing validation
+        flash('Account simulation created successfully! Please log in to view portal layouts.', 'success')
+        return redirect(url_for('login'))
+
+    # Adjusted to follow layout folder architectures usually placed under /templates/auth/
+    return render_template('auth/register.html')
+
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        # Simulate successful validation transition
+        flash('Authentication verified successfully! Welcome to your corporate workspace.', 'success')
+        
+        # CHANGED: Redirect straight to the corporate dashboard instead of index
+        return redirect(url_for('dashboard_corporate'))
+
+    return render_template('auth/login.html')
+
+@app.route('/dashboard/corporate')
+def dashboard_corporate():
+    # Mock data representing candidate screening records
+    mock_candidates = [
+        {"name": "Sipho Khumalo", "id": "940823XXXXXXX", "type": "Criminal + Credit", "status": "Cleared", "date": "2026-06-08"},
+        {"name": "Amara Okafor", "id": "910312XXXXXXX", "type": "Qualification Audit", "status": "Pending", "date": "2026-06-07"},
+        {"name": "Liam Naidoo", "id": "881105XXXXXXX", "type": "Full Matrix Screen", "status": "Flagged", "date": "2026-06-05"},
+    ]
+    return render_template('dashboard_corporate.html', candidates=mock_candidates)
 
 
 if __name__ == '__main__':

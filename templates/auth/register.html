@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="auth-wrapper">
+    <div class="auth-card">
+        <div class="auth-header">
+            <span class="matrix-requirements-tag">Account Registration</span>
+            <h2>Create Workspace</h2>
+            <p class="auth-subtitle">Select your operational role profile below.</p>
+        </div>
+
+        <div class="auth-role-selector">
+            <button class="auth-role-btn active" id="btn-individual" type="button" onclick="switchAuthRole('individual')">Individual</button>
+            <button class="auth-role-btn" id="btn-company" type="button" onclick="switchAuthRole('company')">Corporate</button>
+        </div>
+
+        <form action="{{ url_for('register') }}" method="POST">
+            <input type="hidden" id="applicant_type_field" name="applicant_type" value="individual">
+
+            <div class="form-group">
+                <label for="reg_email">Email Address</label>
+                <input type="email" id="reg_email" name="email" class="form-control" placeholder="management@company.co.za" required>
+            </div>
+
+            <div class="form-group">
+                <label for="reg_password">Password</label>
+                <input type="password" id="reg_password" name="password" class="form-control" placeholder="Minimum 8 characters" required>
+            </div>
+
+            <div id="fields-individual" style="display: block;">
+                <div class="form-group">
+                    <label for="ind_name">Full Legal Name</label>
+                    <input type="text" id="ind_name" name="individual_name" class="form-control" placeholder="Jane Doe">
+                </div>
+                <div class="form-group">
+                    <label for="ind_id">National ID Number</label>
+                    <input type="text" id="ind_id" name="individual_id" class="form-control" placeholder="South African 13-Digit ID">
+                </div>
+            </div>
+
+            <div id="fields-company" style="display: none;">
+                <div class="form-group">
+                    <label for="comp_name">Registered Entity Name</label>
+                    <input type="text" id="comp_name" name="company_name" class="form-control" placeholder="DevCorp Pty Ltd">
+                </div>
+                <div class="form-group">
+                    <label for="comp_contact">Authorized Representative</label>
+                    <input type="text" id="comp_contact" name="company_contact" class="form-control" placeholder="Full name of authority officer">
+                </div>
+            </div>
+
+            <button type="submit" class="btn-portal-primary">Complete Verification Setup</button>
+        </form>
+
+        <div class="auth-footer-note">
+            Already have a secure slot? <a href="{{ url_for('login') }}">Sign In</a>
+        </div>
+    </div>
+</div>
+
+<script>
+    function switchAuthRole(roleType) {
+        const individualBlock = document.getElementById('fields-individual');
+        const companyBlock = document.getElementById('fields-company');
+        const hiddenField = document.getElementById('applicant_type_field');
+        const btnInd = document.getElementById('btn-individual');
+        const btnComp = document.getElementById('btn-company');
+
+        if (roleType === 'individual') {
+            individualBlock.style.display = 'block';
+            companyBlock.style.display = 'none';
+            btnInd.classList.add('active');
+            btnComp.classList.remove('active');
+            hiddenField.value = 'individual';
+        } else {
+            individualBlock.style.display = 'none';
+            companyBlock.style.display = 'block';
+            btnInd.classList.remove('active');
+            btnComp.classList.add('active');
+            hiddenField.value = 'company';
+        }
+    }
+</script>
+{% endblock %}

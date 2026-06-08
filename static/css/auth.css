@@ -1,0 +1,145 @@
+/* ==========================================================================
+   VERIFYME TECHNOLOGIES — PORTAL AUTHENTICATION STYLES (Burgundy & Cyan)
+   ========================================================================== */
+
+/* Full viewport background container */
+.auth-wrapper {
+    min-height: calc(100vh - 72px - 64px); 
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 1.5rem;
+    background-color: #181c19; /* Deep matte base canvas */
+}
+
+/* Auth Container Card */
+.auth-card {
+    background-color: #252b27; /* Dark card surface */
+    border: 1px solid #2e3830;
+    border-top: 4px solid #6b1d2f; /* Premium Burgundy Accent Top Border */
+    width: 100%;
+    max-width: 480px;
+    padding: 3.5rem 2.5rem;
+    border-radius: 16px;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.5);
+}
+
+/* Header Elements */
+.auth-header {
+    text-align: center;
+    margin-bottom: 2.25rem;
+}
+
+.matrix-requirements-tag {
+    display: inline-block;
+    color: #00e5ff; /* High-visibility Cyan */
+    font-weight: 700;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    font-family: 'DM Mono', monospace;
+    margin-bottom: 0.5rem;
+}
+
+.auth-header h2 {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: #eef2ef;
+    letter-spacing: -0.03em;
+}
+
+.auth-subtitle {
+    font-size: 0.9rem; 
+    color: #8a9e8d; 
+    margin-top: 0.35rem;
+}
+
+/* Input Form Controls */
+.auth-card .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    margin-bottom: 1.5rem; /* Even spacing layout */
+}
+
+.auth-card .form-group label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: #8a9e8d;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.auth-card .form-control {
+    width: 100%;
+    background-color: #1f2521; /* Input field panel */
+    border: 1px solid #2e3830;
+    padding: 0.85rem 1.1rem;
+    color: #eef2ef;
+    border-radius: 6px;
+    outline: none;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem;
+    transition: border-color 0.2s ease;
+    -webkit-appearance: none;
+}
+
+/* Focus animation transitions to your accent Cyan */
+.auth-card .form-control:focus {
+    border-color: #00e5ff; 
+}
+
+.auth-card .form-control::placeholder {
+    color: #8a9e8d;
+    opacity: 0.35;
+}
+
+/* Primary Authentication Action Button (Burgundy Brand Accent) */
+.auth-card .btn-portal-primary {
+    background-color: #6b1d2f; /* Premium deep burgundy */
+    color: #ffffff;
+    border: none;
+    width: 100%;
+    padding: 1rem;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    border-radius: 6px;
+    cursor: pointer;
+    margin-top: 0.5rem;
+    transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.auth-card .btn-portal-primary:hover {
+    background-color: #822439; /* Slight brightness increase on hover */
+    transform: translateY(-1px);
+}
+
+/* Interactive Footer Switch Links */
+.auth-footer-note {
+    text-align: center;
+    margin-top: 1.75rem;
+    font-size: 0.88rem;
+    color: #8a9e8d;
+}
+
+.auth-footer-note a {
+    color: #00e5ff; /* Sleek Cyan Link */
+    text-decoration: none;
+    font-weight: 600;
+    transition: text-decoration 0.2s;
+}
+
+.auth-footer-note a:hover {
+    text-decoration: underline;
+}
+
+/* Responsive Structural Breakpoints */
+@media (max-width: 480px) {
+    .auth-wrapper { padding: 2.5rem 1rem; }
+    .auth-card { padding: 2.5rem 1.5rem; }
+}

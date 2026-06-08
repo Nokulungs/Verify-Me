@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="auth-wrapper">
+    <div class="auth-card">
+        <div class="auth-header">
+            <span class="matrix-requirements-tag">Secure Gateway</span>
+            <h2>VerifyMe Portal</h2>
+            <p class="auth-subtitle">Access your background screening nodes.</p>
+        </div>
+
+        <form action="{{ url_for('login') }}" method="POST">
+            <div class="form-group">
+                <label for="login_email">Official Email</label>
+                <input type="email" id="login_email" name="email" class="form-control" placeholder="name@company.co.za" required autocomplete="username">
+            </div>
+
+            <div class="form-group">
+                <label for="login_password">Password</label>
+                <input type="password" id="login_password" name="password" class="form-control" placeholder="••••••••••••" required autocomplete="current-password">
+            </div>
+
+            <button type="submit" class="btn-portal-primary">Authenticate Session</button>
+        </form>
+
+        <div class="auth-footer-note">
+            New platform applicant? <a href="{{ url_for('register') }}">Initialize Account</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

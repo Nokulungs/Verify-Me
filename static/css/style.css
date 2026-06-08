@@ -887,3 +887,726 @@ body {
     .enquiry-form-card { padding: 1.5rem 1rem; }
     .navbar { padding: 0 1rem; }
 }
+/* ==========================================================================
+   AUTHENTICATION GATEWAY ENTRIES
+   ========================================================================== */
+
+.auth-wrapper {
+    min-height: calc(100vh - 72px - 64px); /* Accounts for Nav and Footer */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 1.5rem;
+    background-color: var(--bg-dark-base);
+}
+
+.auth-card {
+    background-color: var(--bg-card-dark);
+    border: 1px solid var(--border);
+    border-top: 4px solid var(--brand-lime);
+    width: 100%;
+    max-width: 480px;
+    padding: 3rem 2.5rem;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-elevated);
+}
+
+.auth-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.auth-header h2 {
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: var(--brand-white);
+    letter-spacing: -0.03em;
+    margin-top: 0.25rem;
+}
+
+.auth-footer-note {
+    text-align: center;
+    margin-top: 1.5rem;
+    font-size: 0.88rem;
+    color: var(--brand-muted);
+}
+
+.auth-footer-note a {
+    color: var(--brand-lime);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.auth-footer-note a:hover {
+    text-decoration: underline;
+}
+
+@media (max-width: 480px) {
+    .auth-card {
+        padding: 2rem 1.25rem;
+    }
+}
+/* ==========================================================================
+   VERIFYME PORTAL — AUTHENTICATION STYLES (Direct Mapping System)
+   ========================================================================== */
+
+/* Full viewport background container */
+.auth-wrapper {
+    min-height: calc(100vh - 72px - 64px); 
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 1.5rem;
+    background-color: #181c19;
+    box-sizing: border-box;
+}
+
+/* Auth Container Card */
+.auth-card {
+    background-color: #252b27;
+    border: 1px solid #2e3830;
+    border-top: 4px solid #4eb637; /* Premium Burgundy Top Accent */
+    width: 100%;
+    max-width: 480px;
+    padding: 3.5rem 2.5rem;
+    border-radius: 16px;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.5);
+    box-sizing: border-box;
+}
+
+/* Header Stack formatting */
+.auth-header {
+    text-align: center;
+    margin-bottom: 2.25rem;
+}
+
+.matrix-requirements-tag {
+    display: inline-block;
+    color: #4eb637; /* Sleek Cyan Tag */
+    font-weight: 700;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    font-family: 'DM Mono', monospace;
+    margin-bottom: 0.5rem;
+}
+
+.auth-header h2 {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: #eef2ef;
+    letter-spacing: -0.03em;
+    margin: 0;
+}
+
+.auth-subtitle {
+    font-size: 0.9rem; 
+    color: #8a9e8d; 
+    margin-top: 0.35rem;
+}
+
+/* --- ROLE SELECTOR PILL SYSTEM --- */
+.auth-role-selector {
+    display: flex;
+    margin-bottom: 1.75rem;
+    background: #1f2521;
+    border: 1px solid #2e3830;
+    border-radius: 6px;
+    padding: 4px;
+    gap: 4px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.auth-role-btn {
+    flex: 1;
+    padding: 0.65rem 1rem;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border: none;
+    background: transparent;
+    color: #8a9e8d;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.auth-role-btn.active {
+    background-color: #4eb637; /* Active state Burgundy */
+    color: #ffffff;
+}
+
+/* --- FORM ARCHITECTURE --- */
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    margin-bottom: 1.5rem;
+    width: 100%;
+    text-align: left;
+    box-sizing: border-box;
+}
+
+.form-group label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: #8a9e8d;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.form-control {
+    width: 100%;
+    background-color: #1f2521;
+    border: 1px solid #2e3830;
+    padding: 0.85rem 1.1rem;
+    color: #eef2ef;
+    border-radius: 6px;
+    outline: none;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem;
+    transition: border-color 0.2s ease;
+    box-sizing: border-box;
+    -webkit-appearance: none;
+}
+
+.form-control:focus {
+    border-color: #00e5ff; /* Cyan Focus Glow */
+}
+
+.form-control::placeholder {
+    color: #8a9e8d;
+    opacity: 0.35;
+}
+
+/* --- SUBMIT ACTION BUTTON --- */
+.btn-portal-primary {
+    background-color: #4eb637; /* Deep Burgundy */
+    color: #ffffff;
+    border: none;
+    width: 100%;
+    padding: 1rem;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    border-radius: 6px;
+    cursor: pointer;
+    margin-top: 0.5rem;
+    transition: background-color 0.2s ease, transform 0.2s ease;
+    box-sizing: border-box;
+    display: block;
+}
+
+.btn-portal-primary:hover {
+    background-color:#4eb637;
+    transform: translateY(-1px);
+}
+
+/* --- BASE FOOTER TEXT --- */
+.auth-footer-note {
+    text-align: center;
+    margin-top: 1.75rem;
+    font-size: 0.88rem;
+    color: #8a9e8d;
+}
+
+.auth-footer-note a {
+    color: #4eb637; /* Cyan Anchor Link */
+    text-decoration: none;
+    font-weight: 600;
+    transition: text-decoration 0.2s;
+}
+
+.auth-footer-note a:hover {
+    text-decoration: underline;
+}
+
+/* Responsive Structural Breakpoints */
+@media (max-width: 480px) {
+    .auth-wrapper { padding: 2.5rem 1rem; }
+    .auth-card { padding: 2.5rem 1.5rem; }
+}
+
+/* ==========================================================================
+   VERIFYME PORTAL — CORPORATE DASHBOARD STYLES (Burgundy & Cyan)
+   ========================================================================== */
+
+.dashboard-container {
+    display: flex;
+    min-height: calc(100vh - 72px);
+    background-color: #181c19; /* Matte dark canvas base */
+    color: #eef2ef;
+    font-family: 'DM Sans', sans-serif;
+}
+
+/* --- SIDEBAR ARCHITECTURE --- */
+.dashboard-sidebar {
+    width: 260px;
+    background-color: #1f2521;
+    border-right: 1px solid #2e3830;
+    display: flex;
+    flex-direction: column;
+    padding: 2rem 1.5rem;
+}
+
+.sidebar-brand {
+    margin-bottom: 2.5rem;
+}
+
+.matrix-tag {
+    color: #00e5ff; /* High-viz Cyan */
+    font-family: 'DM Mono', monospace;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    font-size: 0.85rem;
+}
+
+.sidebar-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.menu-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.85rem 1rem;
+    color: #8a9e8d;
+    text-decoration: none;
+    font-weight: 500;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.menu-item:hover, .menu-item.active {
+    background-color: #252b27;
+    color: #ffffff;
+}
+
+.menu-item.active {
+    border-left: 3px solid #6b1d2f; /* Burgundy active node border */
+}
+
+/* --- MAIN CONTENT FRAME --- */
+.dashboard-main {
+    flex: 1;
+    padding: 3rem 2.5rem;
+    box-sizing: border-box;
+    overflow-y: auto;
+}
+
+.workspace-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2.5rem;
+}
+
+.workspace-header h1 {
+    font-size: 2rem;
+    font-weight: 800;
+    margin: 0;
+    letter-spacing: -0.02em;
+}
+
+.subtitle {
+    color: #8a9e8d;
+    margin-top: 0.25rem;
+    font-size: 0.95rem;
+}
+
+/* --- ACTION BUTTONS --- */
+.btn-action-cyan {
+    background-color: transparent;
+    border: 1px solid #00e5ff;
+    color: #00e5ff;
+    padding: 0.75rem 1.5rem;
+    font-weight: 700;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.88rem;
+    transition: all 0.2s ease;
+}
+
+.btn-action-cyan:hover {
+    background-color: #00e5ff;
+    color: #181c19;
+    box-shadow: 0 0 15px rgba(0, 229, 255, 0.3);
+}
+
+/* --- ANALYTICS RIBBON CARDS --- */
+.analytics-ribbon {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 3rem;
+}
+
+.analytics-card {
+    background-color: #252b27;
+    border: 1px solid #2e3830;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+}
+
+.analytics-card.flagged-border {
+    border-left: 4px solid #6b1d2f;
+}
+
+.card-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    color: #8a9e8d;
+    letter-spacing: 1px;
+}
+
+.card-value {
+    font-size: 2.5rem;
+    font-weight: 800;
+    margin: 0.5rem 0;
+    line-height: 1;
+}
+
+.cyan-text { color: #00e5ff; }
+.burgundy-text { color: #ff3366; } /* Amplified burgundy variant for alerts */
+
+.card-trend {
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+.card-trend.upward { color: #4eb637; }
+.card-subtext { font-size: 0.78rem; color: #667e6c; }
+
+/* --- DATA TABLE CONTAINER --- */
+.table-container {
+    background-color: #252b27;
+    border: 1px solid #2e3830;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+}
+
+.table-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid #2e3830;
+}
+
+.table-header h3 { margin: 0; font-size: 1.1rem; font-weight: 700; }
+
+.matrix-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 0.92rem;
+}
+
+.matrix-table th {
+    background-color: #1f2521;
+    color: #8a9e8d;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #2e3830;
+}
+
+.matrix-table td {
+    padding: 1.2rem 1.5rem;
+    border-bottom: 1px solid #2e3830;
+    color: #cdd6ce;
+}
+
+.matrix-table tr:last-child td { border-bottom: none; }
+
+.mono-text { font-family: 'DM Mono', monospace; font-size: 0.85rem; }
+.text-white { color: #ffffff; }
+
+/* --- STATUS STATUS BADGES --- */
+.status-badge {
+    display: inline-block;
+    padding: 0.35rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.badge-cleared { background-color: rgba(78, 182, 55, 0.15); color: #4eb637; }
+.badge-pending { background-color: rgba(255, 193, 7, 0.15); color: #ffc107; }
+.badge-flagged { background-color: rgba(107, 29, 47, 0.3); color: #ff5252; border: 1px solid #6b1d2f; }
+
+.btn-table-row {
+    background-color: #1f2521;
+    border: 1px solid #2e3830;
+    color: #eef2ef;
+    padding: 0.45rem 0.85rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: all 0.2s;
+}
+
+.btn-table-row:hover {
+    border-color: #6b1d2f;
+    color: #ffffff;
+    background-color: #6b1d2f;
+}
+
+/* --- RESPONSIVE STRUCTURAL SCALING --- */
+@media (max-width: 992px) {
+    .dashboard-container { flex-direction: column; }
+    .dashboard-sidebar { width: 100%; border-right: none; border-bottom: 1px solid #2e3830; }
+    .matrix-table { display: block; overflow-x: auto; }
+}
+
+/* --- EXTENDED FRONTEND WORKFLOW LAYOUT MODULES --- */
+
+/* Tab System Display States */
+.tab-content {
+    display: none;
+}
+.tab-content.active-content {
+    display: block;
+}
+
+/* Modal Overlay Framework */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+    z-index: 2000;
+}
+
+.modal-overlay.open {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* Modal Surface Card */
+.modal-card {
+    background-color: #252b27;
+    border: 1px solid #2e3830;
+    border-top: 4px solid #6b1d2f; /* Burgundy Design Core Accent */
+    width: 100%;
+    max-width: 460px;
+    padding: 2.5rem 2rem;
+    border-radius: 12px;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.6);
+    transform: translateY(15px);
+    transition: transform 0.25s ease;
+}
+
+.modal-overlay.open .modal-card {
+    transform: translateY(0);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 800;
+}
+
+.close-modal-btn {
+    background: transparent;
+    border: none;
+    color: #8a9e8d;
+    font-size: 1.75rem;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.close-modal-btn:hover {
+    color: #ffffff;
+}
+
+/* Form refinement properties inside menus */
+.sidebar-menu button.menu-item {
+    background: transparent;
+    border: none;
+    text-align: left;
+    width: 100%;
+    cursor: pointer;
+}
+/* --- MULTI-STEP WIZARD ENGINE INTERACTION ARCHITECTURE --- */
+
+.wizard-progress-bar {
+    width: 100%;
+    height: 6px;
+    background-color: #1f2521;
+    border-radius: 3px;
+    margin-bottom: 2rem;
+    overflow: hidden;
+}
+
+.wizard-progress-fill {
+    height: 100%;
+    background-color: #00e5ff; /* High-viz Cyan tracking bar */
+    transition: width 0.3s ease;
+}
+
+.wizard-step-block {
+    display: none;
+}
+
+.wizard-step-block.active-step {
+    display: block;
+}
+
+/* CSV & PoP Dropzone styling profiles */
+.csv-upload-dropzone {
+    border: 2px dashed #2e3830;
+    background-color: #1f2521;
+    padding: 2rem;
+    text-align: center;
+    border-radius: 8px;
+    position: relative;
+    cursor: pointer;
+    transition: border-color 0.2s;
+}
+
+.csv-upload-dropzone:hover {
+    border-color: #6b1d2f;
+}
+
+.csv-upload-dropzone input[type="file"] {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.csv-upload-dropzone span {
+    color: #8a9e8d;
+    font-size: 0.9rem;
+}
+
+/* Instruction Custom Alerts Panels */
+.alert-notice-box {
+    background-color: rgba(107, 29, 47, 0.15);
+    border: 1px solid #6b1d2f;
+    padding: 1rem;
+    border-radius: 6px;
+    color: #eef2ef;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    margin-top: 1.25rem;
+}
+
+.instruction-badge {
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.instruction-badge.postnet {
+    background-color: rgba(0, 229, 255, 0.1);
+    color: #00e5ff;
+    border: 1px solid rgba(0, 229, 255, 0.2);
+}
+
+/* Step Layout Action Footers */
+.wizard-footer-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid #2e3830;
+}
+
+/* Cost Calculation and Billing Breakdowns */
+.billing-summary-card {
+    background-color: #1f2521;
+    border: 1px solid #2e3830;
+    padding: 1.25rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+}
+
+.billing-summary-card h4 {
+    margin: 0 0 0.75rem 0;
+    font-size: 1rem;
+    color: #ffffff;
+}
+
+.billing-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9rem;
+    color: #8a9e8d;
+    margin-bottom: 0.5rem;
+}
+
+.billing-row.total-row {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid #2e3830;
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #00e5ff;
+}
+
+/* Banking presentation nodes */
+.banking-details-box {
+    background-color: #1c201d;
+    border-left: 3px solid #6b1d2f;
+    padding: 1.25rem;
+    border-radius: 0 8px 8px 0;
+    font-size: 0.88rem;
+}
+
+.banking-details-box h5 {
+    margin: 0 0 0.5rem 0;
+    color: #ffffff;
+    font-size: 0.95rem;
+}
+
+.banking-details-box p {
+    margin: 0 0 0.75rem 0;
+    color: #8a9e8d;
+}
+
+.banking-details-box ul {
+    margin: 0;
+    padding-left: 1.25rem;
+    color: #cdd6ce;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.text-cyan { color: #00e5ff; }

@@ -1,0 +1,353 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="dashboard-container">
+    
+    <aside class="dashboard-sidebar">
+        <div class="sidebar-brand">
+            <span class="matrix-tag">VerifyMe Pro</span>
+        </div>
+        <nav class="sidebar-menu">
+            <button class="menu-item active" onclick="switchTab('pipeline', this)">
+                <span class="icon">📊</span> Pipeline Overview
+            </button>
+            <button class="menu-item" onclick="openScreeningModal()">
+                <span class="icon">➕</span> New Screening
+            </button>
+            <button class="menu-item" onclick="switchTab('audit', this)">
+                <span class="icon">📜</span> Audit Logs
+            </button>
+            <button class="menu-item" onclick="switchTab('settings', this)">
+                <span class="icon">⚙️</span> Settings
+            </button>
+        </nav>
+    </aside>
+
+    <main class="dashboard-main">
+        
+        <div id="tab-pipeline" class="tab-content active-content">
+            <header class="workspace-header">
+                <div>
+                    <h1>Corporate Workspace</h1>
+                    <p class="subtitle">Monitor active candidate screening nodes in real-time.</p>
+                </div>
+                <button class="btn-action-cyan" onclick="openScreeningModal()">+ Initiate New Screening</button>
+            </header>
+
+            <section class="analytics-ribbon">
+                <div class="analytics-card">
+                    <span class="card-label">Active Tracked Pipelines</span>
+                    <div id="count-active" class="card-value">3</div>
+                    <span class="card-trend upward">↑ Real-time sync</span>
+                </div>
+                <div class="analytics-card">
+                    <span class="card-label">Verification Cleared</span>
+                    <div class="card-value cyan-text">2</div>
+                    <span class="card-subtext">Ready for HR processing</span>
+                </div>
+                <div class="analytics-card flagged-border">
+                    <span class="card-label">Attention Discrepancies</span>
+                    <div class="card-value burgundy-text">1</div>
+                    <span class="card-subtext">Immediate review advised</span>
+                </div>
+            </section>
+
+            <section class="table-container">
+                <div class="table-header">
+                    <h3>Candidate Screening Pipeline</h3>
+                </div>
+                <table class="matrix-table" id="pipeline-table">
+                    <thead>
+                        <tr>
+                            <th>Candidate Name</th>
+                            <th>Verification Vector</th>
+                            <th>Target Scope / Details</th>
+                            <th>Submission Date</th>
+                            <th>Verification Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="font-bold text-white">Sipho Khumalo</td>
+                            <td>Criminal Record Audit</td>
+                            <td><span class="instruction-badge postnet">PostNet Fingerprints Pending</span></td>
+                            <td>2026-06-08</td>
+                            <td><span class="status-badge badge-pending">Pending Info</span></td>
+                        </tr>
+                        <tr>
+                            <td class="font-bold text-white">Amara Okafor</td>
+                            <td>Academic Check</td>
+                            <td>Document Request Dispatched</td>
+                            <td>2026-06-07</td>
+                            <td><span class="status-badge badge-pending">Pending Info</span></td>
+                        </tr>
+                        <tr>
+                            <td class="font-bold text-white">Liam Naidoo</td>
+                            <td>Identity Verification</td>
+                            <td>System Match Verified</td>
+                            <td>2026-06-05</td>
+                            <td><span class="status-badge badge-cleared">Cleared</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+        </div>
+
+        <div id="tab-audit" class="tab-content">
+            <header class="workspace-header">
+                <div>
+                    <h1>Security Audit Logs</h1>
+                    <p class="subtitle">Cryptographic record of all background query hooks.</p>
+                </div>
+            </header>
+            <section class="table-container">
+                <table class="matrix-table">
+                    <thead>
+                        <tr><th>Timestamp</th><th>Action Node</th><th>Operator ID</th><th>Status</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td class="mono-text">2026-06-09 00:01</td><td>Session Authentication Approved</td><td>admin@verifyme.co.za</td><td><span style="color:#00e5ff;">SUCCESS</span></td></tr>
+                        <tr><td class="mono-text">2026-06-08 14:22</td><td>Criminal Record Registry Pinged</td><td>system-hook-04</td><td><span style="color:#4eb637;">CLEARED</span></td></tr>
+                    </tbody>
+                </table>
+            </section>
+        </div>
+
+        <div id="tab-settings" class="tab-content">
+            <header class="workspace-header">
+                <div>
+                    <h1>System Configurations</h1>
+                    <p class="subtitle">Manage webhook bindings and API keys.</p>
+                </div>
+            </header>
+            <section class="analytics-card" style="max-width: 600px;">
+                <h4 style="margin-top:0;">API Authorization Node</h4>
+                <div class="form-group">
+                    <label>Sandbox Environment Key</label>
+                    <input type="text" class="form-control" value="vfy_live_883aee1920bc741f028" readonly>
+                </div>
+                <button class="btn-portal-primary" style="max-width:200px; padding:0.6rem;" onclick="alert('Configuration Parameters Saved!')">Save Parameters</button>
+            </section>
+        </div>
+
+    </main>
+</div>
+
+<div id="screening-modal" class="modal-overlay">
+    <div class="modal-card" style="max-width: 550px;">
+        <div class="modal-header">
+            <h3 id="wizard-step-title">Initiate Background Run (Step 1/3)</h3>
+            <button class="close-modal-btn" onclick="closeScreeningModal()">×</button>
+        </div>
+
+        <div class="wizard-progress-bar">
+            <div id="wizard-progress" class="wizard-progress-fill" style="width: 33.3%;"></div>
+        </div>
+
+        <form id="multi-step-screening-form" onsubmit="handleWizardSubmit(event)">
+            
+            <div id="wizard-step-1" class="wizard-step-block active-step">
+                <div class="form-group">
+                    <label for="vector-select">Select Screening Vector Type</label>
+                    <select id="vector-select" class="form-control" onchange="calculateCost()" style="background:#1f2521; color:#fff;">
+                        <option value="Identity Check" data-price="85">Identity Verification — R85.00 / candidate</option>
+                        <option value="Academic Check" data-price="195">Academic Credentials Audit — R195.00 / candidate</option>
+                        <option value="Criminal Check" data-price="250">Criminal (Biometric Fingerprint) — R250.00 / candidate</option>
+                        <option value="Full Premium Screening" data-price="450">Full Matrix Combo — R450.00 / candidate</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="candidate-count">Number of Target Candidates</label>
+                    <input type="number" id="candidate-count" class="form-control" value="1" min="1" max="100" oninput="calculateCost()" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="csv-upload">Upload Candidate Registry (CSV Format)</label>
+                    <div class="csv-upload-dropzone">
+                        <input type="file" id="csv-upload" accept=".csv" required onchange="updateCSVLabel(this)">
+                        <span id="csv-label">📁 Drag & Drop or click to upload candidates.csv</span>
+                    </div>
+                </div>
+
+                <div id="fingerprint-notice" class="alert-notice-box" style="display: none;">
+                    <strong>ℹ️ Operational Protocol:</strong> Because this action handles biometric fingerprint records, candidate verification nodes will automatically direct users to visit their nearest local <b>PostNet</b> branch or designated regional head office to finalize digital capture scanning operations.
+                </div>
+
+                <div class="wizard-footer-actions">
+                    <div></div> <button type="button" class="btn-action-cyan" onclick="goToStep(2)">Proceed to Billing →</button>
+                </div>
+            </div>
+
+            <div id="wizard-step-2" class="wizard-step-block">
+                <div class="billing-summary-card">
+                    <h4>Cost Evaluation Summary</h4>
+                    <div class="billing-row">
+                        <span>Calculated Line Items:</span>
+                        <span id="summary-text">1 candidate × Identity Check</span>
+                    </div>
+                    <div class="billing-row total-row">
+                        <span>Total Due (ZAR):</span>
+                        <span id="total-price-display">R85.00</span>
+                    </div>
+                </div>
+
+                <div class="banking-details-box">
+                    <h5>Electronic Funds Transfer (EFT) Target Node</h5>
+                    <p>Please dispatch complete settlement to our banking terminal infrastructure below:</p>
+                    <ul>
+                        <li><strong>Bank Brand:</strong> FNB Corporate Banking SA</li>
+                        <li><strong>Account Name:</strong> VerifyMe Technologies (Pty) Ltd</li>
+                        <li><strong>Account Number:</strong> 62910488219</li>
+                        <li><strong>Branch Routing Code:</strong> 250655</li>
+                        <li><strong>Payment Reference Tag:</strong> <span class="mono-text text-cyan" id="payment-ref">VFY-TX-6009</span></li>
+                    </ul>
+                </div>
+
+                <div class="wizard-footer-actions">
+                    <button type="button" class="btn-table-row" onclick="goToStep(1)">← Back</button>
+                    <button type="button" class="btn-action-cyan" onclick="goToStep(3)">Proceed to Payment Upload →</button>
+                </div>
+            </div>
+
+            <div id="wizard-step-3" class="wizard-step-block">
+                <div class="form-group">
+                    <label for="pop-upload">Upload Bank Transfer Confirmation (PDF / Image)</label>
+                    <div class="csv-upload-dropzone" style="border-style: solid; border-color: var(--brand-cyan, #00e5ff);">
+                        <input type="file" id="pop-upload" accept=".pdf,image/*" required onchange="updatePOPLabel(this)">
+                        <span id="pop-label">📄 Attach Electronic Proof of Payment (PoP)</span>
+                    </div>
+                </div>
+
+                <p style="font-size: 0.8rem; color: #8a9e8d; line-height: 1.4;">
+                    Once finalized, the engine will instantly process the request, fire automated document collection emails to all designated target candidates, and render pending nodes into your analytics view tracking terminal.
+                </p>
+
+                <div class="wizard-footer-actions">
+                    <button type="button" class="btn-table-row" onclick="goToStep(2)">← Back</button>
+                    <button type="submit" class="btn-portal-primary" style="margin: 0; width: auto; padding: 0.75rem 1.5rem;">Deploy Core Request</button>
+                </div>
+            </div>
+
+        </form>
+    </div>
+</div>
+
+<script>
+    let currentStep = 1;
+
+    function switchTab(tabName, clickedBtn) {
+        document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active-content'));
+        document.querySelectorAll('.sidebar-menu .menu-item').forEach(btn => btn.classList.remove('active'));
+        
+        document.getElementById('tab-' + tabName).classList.add('active-content');
+        clickedBtn.classList.add('active');
+    }
+
+    function openScreeningModal() { 
+        currentStep = 1;
+        goToStep(1);
+        // Generate a random mock reference code
+        document.getElementById('payment-ref').innerText = "VFY-TX-" + Math.floor(1000 + Math.random() * 9000);
+        document.getElementById('screening-modal').classList.add('open'); 
+    }
+    
+    function closeScreeningModal() { 
+        document.getElementById('screening-modal').classList.remove('open'); 
+    }
+
+    function updateCSVLabel(input) {
+        if (input.files.length > 0) {
+            document.getElementById('csv-label').innerText = "✅ Loaded: " + input.files[0].name;
+        }
+    }
+
+    function updatePOPLabel(input) {
+        if (input.files.length > 0) {
+            document.getElementById('pop-label').innerText = "✅ Attached: " + input.files[0].name;
+        }
+    }
+
+    function calculateCost() {
+        const vectorSelect = document.getElementById('vector-select');
+        const countInput = document.getElementById('candidate-count');
+        
+        const pricePerUnit = parseFloat(vectorSelect.options[vectorSelect.selectedIndex].getAttribute('data-price'));
+        const totalUnits = parseInt(countInput.value) || 1;
+        const totalPrice = pricePerUnit * totalUnits;
+
+        // Show/Hide biometric instruction callouts based on selection choice
+        const noticeBox = document.getElementById('fingerprint-notice');
+        if (vectorSelect.value === "Criminal Check" || vectorSelect.value === "Full Premium Screening") {
+            noticeBox.style.display = "block";
+        } else {
+            noticeBox.style.display = "none";
+        }
+
+        // Apply dynamically to accounting templates
+        document.getElementById('summary-text').innerText = `${totalUnits} candidate(s) × ${vectorSelect.value}`;
+        document.getElementById('total-price-display').innerText = "R" + totalPrice.toFixed(2);
+    }
+
+    function goToStep(stepNumber) {
+        // Simple client form guard rails checking standard constraint parameters
+        if (stepNumber === 2 && currentStep === 1) {
+            if (!document.getElementById('csv-upload').files.length || !document.getElementById('candidate-count').value) {
+                alert("Please declare total candidate units and upload your background csv registry to proceed.");
+                return;
+            }
+        }
+        
+        currentStep = stepNumber;
+        
+        // Toggle blocks display status states
+        document.querySelectorAll('.wizard-step-block').forEach(block => block.classList.remove('active-step'));
+        document.getElementById('wizard-step-' + stepNumber).classList.add('active-step');
+
+        // Render bar percentage and title trackers
+        const barPercent = stepNumber === 1 ? '33.3%' : stepNumber === 2 ? '66.6%' : '100%';
+        document.getElementById('wizard-progress').style.width = barPercent;
+        document.getElementById('wizard-step-title').innerText = `Initiate Background Run (Step ${stepNumber}/3)`;
+    }
+
+    function handleWizardSubmit(event) {
+        event.preventDefault();
+        
+        const count = parseInt(document.getElementById('candidate-count').value) || 1;
+        const vector = document.getElementById('vector-select').value;
+        const today = new Date().toISOString().split('T')[0];
+        const tbody = document.querySelector('#pipeline-table tbody');
+
+        // Determine inline message block parameters based on biometric attributes
+        let detailNotice = "Document Request Dispatched";
+        let statusTag = '<span class="status-badge badge-pending">Pending Info</span>';
+        
+        if (vector === "Criminal Check" || vector === "Full Premium Screening") {
+            detailNotice = '<span class="instruction-badge postnet">PostNet Fingerprints Pending</span>';
+        }
+
+        // Insert mock row records representing simulation parameters
+        for (let i = 1; i <= count; i++) {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td class="font-bold text-white">Candidate Node #${Math.floor(100 + Math.random() * 900)}</td>
+                <td>\${vector}</td>
+                <td>\${detailNotice}</td>
+                <td>\${today}</td>
+                <td>\${statusTag}</td>
+            `;
+            tbody.prepend(row);
+        }
+
+        // Update main dashboard container statistics markers
+        const countEl = document.getElementById('count-active');
+        countEl.innerText = parseInt(countEl.innerText) + count;
+
+        alert(`Processing Action Complete!\n\nSimulated pipeline deployed successfully: ${count} candidate records ingested. Notifications dispatched successfully.`);
+        document.getElementById('multi-step-screening-form').reset();
+        document.getElementById('csv-label').innerText = "📁 Drag & Drop or click to upload candidates.csv";
+        document.getElementById('pop-label').innerText = "📄 Attach Electronic Proof of Payment (PoP)";
+        closeScreeningModal();
+    }
+</script>
+{% endblock %}

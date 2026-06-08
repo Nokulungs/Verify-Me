@@ -10,8 +10,6 @@
     <div class="banner-video-overlay"></div>
 
     <div class="hero-banner-content">
-
-
         <h1 class="hero-banner-title">Trust Through<br><span class="highlight-text-olive">Transparency</span></h1>
 
         <p class="hero-banner-lead">We provide reliable and transparent verification services, ensuring every
@@ -19,7 +17,7 @@
             with confidence.</p>
 
         <div class="hero-banner-actions">
-            <a href="tel:+27114635540" class="btn-premium-solid">Give us a Call</a>
+            <a href="{{ url_for('register') }}" class="btn-premium-solid">Get Started</a>
             <a href="#services" class="btn-premium-outline-dark">View Our Services</a>
         </div>
     </div>
@@ -166,8 +164,7 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <circle cx="12" cy="12" r="10" />
                     <line x1="2" y1="12" x2="22" y2="12" />
-                    <path
-                        d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
                 </svg>
             </div>
             <h3>Global Compliance Screening</h3>
@@ -188,41 +185,6 @@
     </div>
 </section>
 
-<section class="premium-portal-feature">
-    <div class="portal-feature-container">
-        <div class="portal-feature-visual">
-            <div class="abstract-secure-card">
-                <div class="secure-badge-row">🛡️ SECURE PIPELINE</div>
-                <div class="metric-large-display">70%</div>
-                <div class="metric-caption">Reduction in Corporate Candidate Screening Timelines</div>
-            </div>
-        </div>
-        <div class="portal-feature-text">
-            <span class="section-meta-tag">POWERED BY INSPHIRED SOLUTIONS</span>
-            <h2>Accelerate Placement with Video Recruitment</h2>
-            <p>Why spend days filtering through static CVs? Our integrated Video Recruitment Portal allows candidates to
-                show their authentic fit early in the screening pipeline.</p>
-
-            <div class="corporate-bullet-list">
-                <div class="bullet-item-node">
-                    <strong>Optimized Pipeline Screening</strong>
-                    <p>Filter out incompatible matches in the first 5 minutes before booking standard interviews.</p>
-                </div>
-                <div class="bullet-item-node">
-                    <strong>Asynchronous Review Panel Matrix</strong>
-                    <p>Review recorded submissions on mobile devices or share profiles directly with cross-functional
-                        executive teams.</p>
-                </div>
-                <div class="bullet-item-node">
-                    <strong>Unvetted Cultural Evaluation</strong>
-                    <p>Observe true cultural and behavioral fit based on instinctive answers captured before candidate
-                        pre-conditioning.</p>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
 <section id="contact" class="corporate-enquiry-section">
     <div class="enquiry-grid-container">
         <div class="enquiry-corporate-info">
@@ -238,7 +200,7 @@
                 </div>
                 <div class="directory-node">
                     <h5>Telephone Switchboard</h5>
-                    <p><a href="tel:0114635540">011 463 5540</a></p>
+                    <p><a href="tel:+27114635540">011 463 5540</a></p>
                 </div>
                 <div class="directory-node">
                     <h5>Corporate Enquiries</h5>
@@ -247,107 +209,25 @@
             </div>
         </div>
 
-        <div class="enquiry-form-card">
-            <h4>Request a Verification</h4>
-
-            <!-- Applicant Type Toggle -->
-            <div class="applicant-type-toggle">
-                <button class="toggle-btn active" id="btn-individual"
-                    onclick="switchType('individual')">Individual</button>
-                <button class="toggle-btn" id="btn-company" onclick="switchType('company')">Company</button>
-            </div>
-
-<form class="premium-form" action="{{ url_for('submit_verification') }}" method="POST">
-
-    <div id="fields-individual" style="display:flex; flex-direction:column; gap:1.5rem;">
-        <div class="input-field-row">
-            <label for="ind_name">Full Name</label>
-            <input type="text" id="ind_name" name="individual_name" placeholder="e.g., John Doe">
-        </div>
-        <div class="input-field-row">
-            <label for="ind_email">Email Address</label>
-            <input type="email" id="ind_email" name="individual_email" placeholder="john@email.com">
-        </div>
-        <div class="input-field-row">
-            <label for="ind_id">ID Number</label>
-            <input type="text" id="ind_id" name="individual_id" placeholder="South African ID Number">
-        </div>
-    </div>
-
-    <div id="fields-company" style="display:none; flex-direction:column; gap:1.5rem;">
-        <div class="input-field-row">
-            <label for="comp_name">Company Name</label>
-            <input type="text" id="comp_name" name="company_name" placeholder="e.g., Enterprise Holdings Group">
-        </div>
-        <div class="input-field-row">
-            <label for="comp_email">Official Company Email</label>
-            <input type="email" id="comp_email" name="company_email" placeholder="management@company.co.za">
-        </div>
-        <div class="input-field-row">
-            <label for="comp_contact">Contact Person</label>
-            <input type="text" id="comp_contact" name="company_contact" placeholder="Full name of contact">
-        </div>
-    </div>
-
-    <input type="hidden" id="applicant_type_field" name="applicant_type" value="individual">
-
-    <div class="input-field-row">
-        <label for="v_type">Verification Type</label>
-        <select id="v_type" name="verification_type" required>
-            <option value="Identity Verification">Identity Verification & Validation</option>
-            <option value="Criminal Record Screening">Criminal Record Background Screening</option>
-            <option value="Credit Check">Credit & Financial Checks</option>
-            <option value="License Verification">Professional License Verification</option>
-            <option value="Global Compliance">Global Compliance Screening</option>
-            <option value="Social Media Footprint">Social Media Footprint Analysis</option>
-        </select>
-    </div>
-
-    <div class="input-field-row">
-        <label for="v_volume">Verification Volume</label>
-        <select id="v_volume" name="verification_volume" required>
-            <option value="Once-off">Once-off (Single Verification)</option>
-            <option value="Small Batch">Small Batch (2 – 10 Verifications)</option>
-            <option value="Medium Batch">Medium Batch (11 – 50 Verifications)</option>
-            <option value="Enterprise">Ongoing / Enterprise (50+ Verifications)</option>
-        </select>
-    </div>
-
-    <div class="input-field-row">
-        <label for="v_notes">Additional Notes</label>
-        <textarea id="v_notes" name="additional_notes"
-            placeholder="Any specific requirements or context..." rows="3"></textarea>
-    </div>
-
-    <button type="submit" class="btn-premium-solid-block">Submit Verification Request</button>
-</form>
+        <div class="enquiry-form-card" style="display: flex; flex-direction: column; justify-content: center; align-items: flex-start; gap: 1.5rem;">
+            <span class="section-meta-tag" style="color: var(--brand-cyan, #00a8b5);">DIGITAL PIPELINE ACCESS</span>
+            <h3 style="margin: 0; font-size: 1.8rem; color: var(--text-charcoal, #2a312c); font-weight: 700;">Ready to Run Checks?</h3>
+            <p style="margin: 0; color: #666e68; font-size: 0.95rem; line-height: 1.6;"> Initialize vetting or bulk candidate verifications instantly. Create an account to securely capture data, track order status updates, and download compliance reports.</p>
+            
+            <a href="{{ url_for('register') }}" class="btn-premium-solid-block" style="text-align: center; text-decoration: none; margin-top: 1rem;">Initialize Verification Hub</a>
         </div>
     </div>
 </section>
-<script>
-    function switchType(type) {
-        document.getElementById('fields-individual').style.display = type === 'individual' ? 'flex' : 'none';
-        document.getElementById('fields-company').style.display = type === 'company' ? 'flex' : 'none';
-        document.getElementById('btn-individual').classList.toggle('active', type === 'individual');
-        document.getElementById('btn-company').classList.toggle('active', type === 'company');
-    }
 
-    // Ensure individual fields use column flex layout
-    document.getElementById('fields-individual').style.flexDirection = 'column';
-    document.getElementById('fields-individual').style.gap = '1.5rem';
-    document.getElementById('fields-company').style.flexDirection = 'column';
-    document.getElementById('fields-company').style.gap = '1.5rem';
-</script>
 <div class="whatsapp-floating-container">
     <div class="whatsapp-premium-tooltip">Chat with a Verification Expert</div>
 
-    <a href="https://wa.me/694652340?text=Hi%20VerifyMe%20Technologies,%20I'd%20like%20to%20enquire%20about%20your%20corporate%20verification%20services."
+    <a href="https://wa.me/27833393583?text=Hi%20VerifyMe%20Technologies,%20I'd%20like%20to%20enquire%20about%20your%20corporate%20verification%20services."
         target="_blank" rel="noopener noreferrer" class="whatsapp-floating-action-button"
         aria-label="Chat with VerifyMe on WhatsApp">
 
         <svg viewBox="0 0 24 24" fill="currentColor" class="whatsapp-vector-mark">
-            <path
-                d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.717-1.456L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436 0 9.86-4.413 9.863-9.832.002-2.623-1.023-5.09-2.885-6.951C16.526 1.961 14.06 .936 11.44.934c-5.443 0-9.866 4.415-9.869 9.834-.001 1.742.476 3.442 1.381 4.935L1.87 21.03l5.513-1.446c-.244-.136-.48-.282-.736-.43zM16.598 13.662c-.272-.136-1.614-.797-1.863-.888-.249-.091-.43-.136-.612.136-.182.271-.703.888-.861 1.07-.159.182-.317.204-.589.068-.272-.136-1.15-.424-2.19-1.354-.809-.723-1.356-1.617-1.514-1.889-.159-.272-.017-.419.119-.554.122-.121.272-.317.408-.475.136-.159.182-.272.272-.453.091-.182.045-.339-.023-.475-.068-.136-.612-1.474-.838-2.019-.221-.53-.443-.459-.612-.468-.159-.008-.339-.01-.519-.01s-.475.068-.724.339c-.249.271-.951.929-.951 2.264 0 1.335.974 2.624 1.11 2.805.136.182 1.917 2.926 4.646 4.103.649.28 1.157.447 1.552.573.652.208 1.246.179 1.715.109.523-.078 1.614-.659 1.841-1.295.227-.636.227-1.181.159-1.295-.068-.113-.249-.182-.521-.317z" />
+            <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.717-1.456L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436 0 9.86-4.413 9.863-9.832.002-2.623-1.023-5.09-2.885-6.951C16.526 1.961 14.06 .936 11.44.934c-5.443 0-9.866 4.415-9.869 9.834-.001 1.742.476 3.442 1.381 4.935L1.87 21.03l5.513-1.446c-.244-.136-.48-.282-.736-.43zM16.598 13.662c-.272-.136-1.614-.797-1.863-.888-.249-.091-.43-.136-.612.136-.182.271-.703.888-.861 1.07-.159.182-.317.204-.589.068-.272-.136-1.15-.424-2.19-1.354-.809-.723-1.356-1.617-1.514-1.889-.159-.272-.017-.419.119-.554.122-.121.272-.317.408-.475.136-.159.182-.272.272-.453.091-.182.045-.339-.023-.475-.068-.136-.612-1.474-.838-2.019-.221-.53-.443-.459-.612-.468-.159-.008-.339-.01-.519-.01s-.475.068-.724.339c-.249.271-.951.929-.951 2.264 0 1.335.974 2.624 1.11 2.805.136.182 1.917 2.926 4.646 4.103.649.28 1.157.447 1.552.573.652.208 1.246.179 1.715.109.523-.078 1.614-.659 1.841-1.295.227-.636.227-1.181.159-1.295-.068-.113-.249-.182-.521-.317z" />
         </svg>
     </a>
 </div>
