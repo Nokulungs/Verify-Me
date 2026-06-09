@@ -1,132 +1,291 @@
 {% extends 'base.html' %}
+{% set hide_navbar = True %}
+
+{% block head %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}?v=2.2">
+{% endblock %}
 
 {% block content %}
 <div class="dashboard-container">
-    
-    <aside class="dashboard-sidebar">
-        <div class="sidebar-brand">
-            <span class="matrix-tag">VerifyMe Pro</span>
+
+    <aside class="dashboard-sidebar" style="display: flex; flex-direction: column; justify-content: space-between; height: 100vh;">
+        <div>
+            <div class="sidebar-brand" style="margin-bottom: 2.5rem;">
+                <span class="matrix-tag" style="display: flex; align-items: center; gap: 0.75rem; font-size: 1.15rem; letter-spacing: 0.5px;">
+                    <img src="{{ url_for('static', filename='images/VM_Icon.png') }}" alt="VM" style="height: 32px; width: auto; object-fit: contain;">
+                    VerifyMe
+                </span>
+            </div>
+            <nav class="sidebar-menu">
+                <button class="menu-item active" onclick="switchTab('overview', this)">
+                    <i class="fa-solid fa-chart-pie menu-icon"></i> Overview
+                </button>
+                <button class="menu-item" onclick="switchTab('candidates', this)">
+                    <i class="fa-solid fa-users menu-icon"></i> Candidates
+                </button>
+                <button class="menu-item" onclick="switchTab('requests', this)">
+                    <i class="fa-solid fa-file-invoice-dollar menu-icon"></i> Requests
+                </button>
+                <button class="menu-item" onclick="switchTab('settings', this)">
+                    <i class="fa-solid fa-sliders menu-icon"></i> Settings
+                </button>
+                <button class="menu-item" onclick="switchTab('profile', this)">
+                    <i class="fa-solid fa-building menu-icon"></i> Company Profile
+                </button>
+            </nav>
         </div>
-        <nav class="sidebar-menu">
-            <button class="menu-item active" onclick="switchTab('pipeline', this)">
-                <span class="icon">📊</span> Pipeline Overview
-            </button>
-            <button class="menu-item" onclick="openScreeningModal()">
-                <span class="icon">➕</span> New Screening
-            </button>
-            <button class="menu-item" onclick="switchTab('audit', this)">
-                <span class="icon">📜</span> Audit Logs
-            </button>
-            <button class="menu-item" onclick="switchTab('settings', this)">
-                <span class="icon">⚙️</span> Settings
-            </button>
-        </nav>
+
+        <div class="sidebar-footer" style="padding: 1.25rem; border-top: 1px solid rgba(255,255,255,0.05);">
+            <a href="{{ url_for('logout') }}" class="menu-item logout-btn"
+                style="display: flex; align-items: center; width: 100%; padding: 0.75rem 1rem; color: #ff4a4a; text-decoration: none; border-radius: 6px; transition: background 0.2s;">
+                <i class="fa-solid fa-right-from-bracket menu-icon" style="margin-right: 0.75rem;"></i> Logout
+            </a>
+        </div>
     </aside>
 
     <main class="dashboard-main">
-        
-        <div id="tab-pipeline" class="tab-content active-content">
-            <header class="workspace-header">
-                <div>
-                    <h1>Corporate Workspace</h1>
-                    <p class="subtitle">Monitor active candidate screening nodes in real-time.</p>
+
+        <div class="top-utility-ribbon"
+            style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.05);">
+            <div class="ribbon-left-context">
+                <span style="color: #a3a3a3; font-size: 0.95rem;">
+                    <i class="fa-solid fa-building text-cyan"></i> Enterprise Client: 
+                    <b style="color: #ffffff;">{{ session['display_name'] }}</b>
+                </span>
+            </div>
+
+            <div class="notification-wrapper" onclick="toggleNotificationDropdown()" style="position: relative; cursor: pointer;">
+                <i class="fa-solid fa-bell utility-bell"></i>
+                <span class="notification-badge-dot"></span>
+
+                <div id="notification-dropdown" class="notification-dropdown-panel">
+                    <div class="dropdown-header">System Notifications</div>
+                    <div class="dropdown-item">
+                        <i class="fa-solid fa-circle text-cyan micro-dot"></i>
+                        <div>
+                            <p class="notif-text">Verification pipeline metrics synchronized.</p>
+                            <span class="notif-time">Just now</span>
+                        </div>
+                    </div>
                 </div>
-                <button class="btn-action-cyan" onclick="openScreeningModal()">+ Initiate New Screening</button>
+            </div>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert-notice-box {% if category == 'error' %}flagged-border{% endif %}" style="margin-bottom: 1.5rem; display: block;">
+                        <strong><i class="fa-solid fa-circle-info"></i> System:</strong> {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div id="tab-overview" class="tab-content active-content">
+            <header class="workspace-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                <div>
+                    <h1 style="margin: 0; font-size: 1.75rem;">{{ session['display_name'] }} Workspace</h1>
+                    <p class="subtitle" style="margin: 0.25rem 0 0 0; color: #a3a3a3;">Monitor high-level background screening metrics.</p>
+                </div>
+                <button class="btn-action-cyan" onclick="openScreeningModal()">
+                    <i class="fa-solid fa-plus-circle"></i> Initiate New Screening
+                </button>
             </header>
 
             <section class="analytics-ribbon">
                 <div class="analytics-card">
-                    <span class="card-label">Active Tracked Pipelines</span>
-                    <div id="count-active" class="card-value">3</div>
-                    <span class="card-trend upward">↑ Real-time sync</span>
+                    <span class="card-label"><i class="fa-solid fa-network-wired"></i> Total Pipeline Entries</span>
+                    <div class="card-value shared-count-value">{{ candidates|length }}</div>
+                    <span class="card-trend upward"><i class="fa-solid fa-rotate"></i> Live SQL Database Synced</span>
                 </div>
                 <div class="analytics-card">
-                    <span class="card-label">Verification Cleared</span>
-                    <div class="card-value cyan-text">2</div>
+                    <span class="card-label"><i class="fa-solid fa-circle-check text-cyan"></i> Verification Cleared</span>
+                    <div class="card-value cyan-text">
+                        {{ candidates|selectattr('status', 'equalto', 'Cleared')|list|length }}
+                    </div>
                     <span class="card-subtext">Ready for HR processing</span>
                 </div>
                 <div class="analytics-card flagged-border">
-                    <span class="card-label">Attention Discrepancies</span>
-                    <div class="card-value burgundy-text">1</div>
-                    <span class="card-subtext">Immediate review advised</span>
+                    <span class="card-label"><i class="fa-solid fa-triangle-exclamation text-burgundy"></i> Attention Required</span>
+                    <div class="card-value burgundy-text">
+                        {{ candidates|selectattr('status', 'equalto', 'Flagged')|list|length }}
+                    </div>
+                    <span class="card-subtext">Discrepancy review advised</span>
                 </div>
             </section>
 
             <section class="table-container">
                 <div class="table-header">
-                    <h3>Candidate Screening Pipeline</h3>
+                    <h3>Active Pipeline Node Stream</h3>
                 </div>
-                <table class="matrix-table" id="pipeline-table">
+                <table class="matrix-table">
                     <thead>
                         <tr>
                             <th>Candidate Name</th>
+                            <th>Candidate Email Address</th>
                             <th>Verification Vector</th>
-                            <th>Target Scope / Details</th>
                             <th>Submission Date</th>
                             <th>Verification Status</th>
                         </tr>
                     </thead>
                     <tbody>
+                        {% for candidate in candidates %}
                         <tr>
-                            <td class="font-bold text-white">Sipho Khumalo</td>
-                            <td>Criminal Record Audit</td>
-                            <td><span class="instruction-badge postnet">PostNet Fingerprints Pending</span></td>
-                            <td>2026-06-08</td>
-                            <td><span class="status-badge badge-pending">Pending Info</span></td>
+                            <td class="font-bold text-white">{{ candidate.name }}</td>
+                            <td class="mono-text">{{ candidate.email }}</td>
+                            <td>{{ candidate.type }}</td>
+                            <td>{{ candidate.date }}</td>
+                            <td>
+                                {% if candidate.status == 'Cleared' %}
+                                    <span class="status-badge badge-cleared"><i class="fa-solid fa-circle-check"></i> Cleared</span>
+                                {% elif candidate.status == 'Flagged' %}
+                                    <span class="status-badge badge-flagged" style="color:#ff4a4a;"><i class="fa-solid fa-triangle-exclamation"></i> Flagged</span>
+                                {% elif candidate.status == 'Processing' %}
+                                    <span class="status-badge badge-processing"><i class="fa-solid fa-spinner fa-spin"></i> Processing</span>
+                                {% else %}
+                                    <span class="status-badge badge-pending"><i class="fa-solid fa-hourglass-half"></i> Pending Input</span>
+                                {% endif %}
+                            </td>
                         </tr>
+                        {% else %}
                         <tr>
-                            <td class="font-bold text-white">Amara Okafor</td>
-                            <td>Academic Check</td>
-                            <td>Document Request Dispatched</td>
-                            <td>2026-06-07</td>
-                            <td><span class="status-badge badge-pending">Pending Info</span></td>
+                            <td colspan="5" style="text-align: center; color: #a3a3a3; padding: 2rem;">No active candidate background track nodes initiated yet.</td>
                         </tr>
-                        <tr>
-                            <td class="font-bold text-white">Liam Naidoo</td>
-                            <td>Identity Verification</td>
-                            <td>System Match Verified</td>
-                            <td>2026-06-05</td>
-                            <td><span class="status-badge badge-cleared">Cleared</span></td>
-                        </tr>
+                        {% endfor %}
                     </tbody>
                 </table>
             </section>
         </div>
 
-        <div id="tab-audit" class="tab-content">
-            <header class="workspace-header">
+        <div id="tab-candidates" class="tab-content">
+            <header class="workspace-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
                 <div>
-                    <h1>Security Audit Logs</h1>
-                    <p class="subtitle">Cryptographic record of all background query hooks.</p>
+                    <h1 style="margin: 0; font-size: 1.75rem;">Candidate Registry</h1>
+                    <p class="subtitle" style="margin: 0.25rem 0 0 0; color: #a3a3a3;">Individual verification matrix trace.</p>
+                </div>
+                <button class="btn-action-cyan" onclick="openScreeningModal()">
+                    <i class="fa-solid fa-plus-circle"></i> Initiate New Screening
+                </button>
+            </header>
+
+            <section class="table-container">
+                <table class="matrix-table">
+                    <thead>
+                        <tr>
+                            <th>Candidate Name</th>
+                            <th>Candidate Email Address</th>
+                            <th>Verification Vector</th>
+                            <th>Submission Date</th>
+                            <th>Verification Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for candidate in candidates %}
+                        <tr>
+                            <td class="font-bold text-white">{{ candidate.name }}</td>
+                            <td class="mono-text">{{ candidate.email }}</td>
+                            <td>{{ candidate.type }}</td>
+                            <td>{{ candidate.date }}</td>
+                            <td>
+                                {% if candidate.status == 'Cleared' %}
+                                    <span class="status-badge badge-cleared"><i class="fa-solid fa-circle-check"></i> Cleared</span>
+                                {% elif candidate.status == 'Flagged' %}
+                                    <span class="status-badge badge-flagged" style="color:#ff4a4a;"><i class="fa-solid fa-triangle-exclamation"></i> Flagged</span>
+                                {% elif candidate.status == 'Processing' %}
+                                    <span class="status-badge badge-processing"><i class="fa-solid fa-spinner fa-spin"></i> Processing</span>
+                                {% else %}
+                                    <span class="status-badge badge-pending"><i class="fa-solid fa-hourglass-half"></i> Pending Input</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" style="text-align: center; color: #a3a3a3; padding: 2rem;">No candidates mapped onto this account layout.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </section>
+        </div>
+
+        <div id="tab-requests" class="tab-content">
+            <header class="workspace-header" style="margin-bottom: 2rem;">
+                <div>
+                    <h1 style="margin: 0; font-size: 1.75rem;">Order Requests History</h1>
+                    <p class="subtitle" style="margin: 0.25rem 0 0 0; color: #a3a3a3;">Track batch volumes and processing invoice balances.</p>
                 </div>
             </header>
             <section class="table-container">
                 <table class="matrix-table">
                     <thead>
-                        <tr><th>Timestamp</th><th>Action Node</th><th>Operator ID</th><th>Status</th></tr>
+                        <tr>
+                            <th>Request Trace ID</th>
+                            <th>Screening Vector Target</th>
+                            <th>Batch Volume Size</th>
+                            <th>Billing Matrix Status</th>
+                        </tr>
                     </thead>
                     <tbody>
-                        <tr><td class="mono-text">2026-06-09 00:01</td><td>Session Authentication Approved</td><td>admin@verifyme.co.za</td><td><span style="color:#00e5ff;">SUCCESS</span></td></tr>
-                        <tr><td class="mono-text">2026-06-08 14:22</td><td>Criminal Record Registry Pinged</td><td>system-hook-04</td><td><span style="color:#4eb637;">CLEARED</span></td></tr>
+                        {% for candidate in candidates %}
+                        <tr>
+                            <td class="mono-text">VFY-TX-{{ 4000 + candidate.id|int }}</td>
+                            <td>{{ candidate.type }}</td>
+                            <td>1 Batch Node</td>
+                            <td><span class="status-badge badge-cleared"><i class="fa-solid fa-circle-check"></i> Account Settled</span></td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="4" style="text-align: center; color: #a3a3a3; padding: 2rem;">No corporate transaction statements registered.</td>
+                        </tr>
+                        {% endfor %}
                     </tbody>
                 </table>
             </section>
         </div>
 
         <div id="tab-settings" class="tab-content">
-            <header class="workspace-header">
+            <header class="workspace-header" style="margin-bottom: 2rem;">
                 <div>
-                    <h1>System Configurations</h1>
-                    <p class="subtitle">Manage webhook bindings and API keys.</p>
+                    <h1 style="margin: 0; font-size: 1.75rem;">System Configurations</h1>
+                    <p class="subtitle" style="margin: 0.25rem 0 0 0; color: #a3a3a3;">Manage webhook bindings and global API tokens.</p>
                 </div>
             </header>
             <section class="analytics-card" style="max-width: 600px;">
-                <h4 style="margin-top:0;">API Authorization Node</h4>
+                <h4 style="margin-top:0;"><i class="fa-solid fa-key text-cyan"></i> API Authorization Node</h4>
                 <div class="form-group">
-                    <label>Sandbox Environment Key</label>
-                    <input type="text" class="form-control" value="vfy_live_883aee1920bc741f028" readonly>
+                    <label>Sandbox Authorization Key</label>
+                    <input type="text" class="form-control" value="vfy_live_auth_node_{{ session['user_id'] }}bb829" readonly>
                 </div>
-                <button class="btn-portal-primary" style="max-width:200px; padding:0.6rem;" onclick="alert('Configuration Parameters Saved!')">Save Parameters</button>
+                <button class="btn-portal-primary" style="max-width:200px; padding:0.6rem;" onclick="alert('Configuration Matrix Saved!')">
+                    <i class="fa-solid fa-floppy-disk"></i> Save Environment
+                </button>
+            </section>
+        </div>
+
+        <div id="tab-profile" class="tab-content">
+            <header class="workspace-header" style="margin-bottom: 2rem;">
+                <div>
+                    <h1 style="margin: 0; font-size: 1.75rem;">Company Profile</h1>
+                    <p class="subtitle" style="margin: 0.25rem 0 0 0; color: #a3a3a3;">Enterprise details and corporate metadata contacts.</p>
+                </div>
+            </header>
+            <section class="analytics-card" style="max-width: 600px;">
+                <h4 style="margin-top:0; color:#ffffff;"><i class="fa-solid fa-building-user text-cyan"></i> Profile Ledger</h4>
+                <div style="display:flex; flex-direction:column; gap:1.25rem; margin-top:1.5rem;">
+                    <div class="form-group">
+                        <label>Registered Legal Trading Entity Name</label>
+                        <input type="text" class="form-control" value="{{ session['display_name'] }}" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>Primary Account Operations Email</label>
+                        <input type="text" class="form-control" value="{{ session['user_email'] }}" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>Corporate Account Key Node</label>
+                        <input type="text" class="form-control" value="VFY-CORP-00{{ session['user_id'] }}" readonly>
+                    </div>
+                </div>
             </section>
         </div>
 
@@ -137,45 +296,49 @@
     <div class="modal-card" style="max-width: 550px;">
         <div class="modal-header">
             <h3 id="wizard-step-title">Initiate Background Run (Step 1/3)</h3>
-            <button class="close-modal-btn" onclick="closeScreeningModal()">×</button>
+            <button class="close-modal-btn" onclick="closeScreeningModal()">&times;</button>
         </div>
 
         <div class="wizard-progress-bar">
             <div id="wizard-progress" class="wizard-progress-fill" style="width: 33.3%;"></div>
         </div>
 
-        <form id="multi-step-screening-form" onsubmit="handleWizardSubmit(event)">
-            
+        <form id="multi-step-screening-form" method="POST" action="{{ url_for('initiate_screening') }}" enctype="multipart/form-data">
+
             <div id="wizard-step-1" class="wizard-step-block active-step">
                 <div class="form-group">
-                    <label for="vector-select">Select Screening Vector Type</label>
-                    <select id="vector-select" class="form-control" onchange="calculateCost()" style="background:#1f2521; color:#fff;">
-                        <option value="Identity Check" data-price="85">Identity Verification — R85.00 / candidate</option>
-                        <option value="Academic Check" data-price="195">Academic Credentials Audit — R195.00 / candidate</option>
-                        <option value="Criminal Check" data-price="250">Criminal (Biometric Fingerprint) — R250.00 / candidate</option>
+                    <label for="screening_type">Select Screening Vector Type</label>
+                    <select id="vector-select" name="screening_type" class="form-control" onchange="calculateCost()" style="background:#1f2521; color:#fff;">
+                        <option value="Identity Verification" data-price="85">Identity Verification — R85.00 / candidate</option>
+                        <option value="Academic Credentials Audit" data-price="195">Academic Credentials Audit — R195.00 / candidate</option>
+                        <option value="Criminal Record Audit" data-price="250">Criminal (Biometric Fingerprint) — R250.00 / candidate</option>
                         <option value="Full Premium Screening" data-price="450">Full Matrix Combo — R450.00 / candidate</option>
                     </select>
                 </div>
 
                 <div class="form-group">
-                    <label for="candidate-count">Number of Target Candidates</label>
-                    <input type="number" id="candidate-count" class="form-control" value="1" min="1" max="100" oninput="calculateCost()" required>
+                    <label for="candidate-count">Number of Target Candidates in Batch</label>
+                    <input type="number" id="candidate-count" name="candidate_count" class="form-control" value="1" min="1" max="100" oninput="calculateCost()" required>
                 </div>
 
                 <div class="form-group">
-                    <label for="csv-upload">Upload Candidate Registry (CSV Format)</label>
+                    <label for="csv-upload">Upload Candidate Registry (CSV Format: Name, Email)</label>
                     <div class="csv-upload-dropzone">
-                        <input type="file" id="csv-upload" accept=".csv" required onchange="updateCSVLabel(this)">
-                        <span id="csv-label">📁 Drag & Drop or click to upload candidates.csv</span>
+                        <input type="file" id="csv-upload" name="candidate_csv" accept=".csv" required onchange="updateCSVLabel(this)">
+                        <span id="csv-label">
+                            <i class="fa-solid fa-file-csv style-icon" style="font-size: 1.5rem; display:block; margin-bottom:0.5rem;"></i> 
+                            Drag & Drop or click to upload candidates.csv
+                        </span>
                     </div>
                 </div>
 
                 <div id="fingerprint-notice" class="alert-notice-box" style="display: none;">
-                    <strong>ℹ️ Operational Protocol:</strong> Because this action handles biometric fingerprint records, candidate verification nodes will automatically direct users to visit their nearest local <b>PostNet</b> branch or designated regional head office to finalize digital capture scanning operations.
+                    <strong><i class="fa-solid fa-triangle-exclamation"></i> Biometric Notice:</strong> Criminal checks require fingerprint verification. After your candidates complete their data upload link, they will be prompted to visit a local <b>PostNet</b> branch.
                 </div>
 
                 <div class="wizard-footer-actions">
-                    <div></div> <button type="button" class="btn-action-cyan" onclick="goToStep(2)">Proceed to Billing →</button>
+                    <div></div>
+                    <button type="button" class="btn-action-cyan" onclick="goToStep(2)">Proceed to Billing <i class="fa-solid fa-arrow-right"></i></button>
                 </div>
             </div>
 
@@ -184,7 +347,7 @@
                     <h4>Cost Evaluation Summary</h4>
                     <div class="billing-row">
                         <span>Calculated Line Items:</span>
-                        <span id="summary-text">1 candidate × Identity Check</span>
+                        <span id="summary-text">1 candidate(s) &times; Identity Verification</span>
                     </div>
                     <div class="billing-row total-row">
                         <span>Total Due (ZAR):</span>
@@ -193,7 +356,7 @@
                 </div>
 
                 <div class="banking-details-box">
-                    <h5>Electronic Funds Transfer (EFT) Target Node</h5>
+                    <h5><i class="fa-solid fa-building-columns text-cyan"></i> Electronic Funds Transfer (EFT) Target Node</h5>
                     <p>Please dispatch complete settlement to our banking terminal infrastructure below:</p>
                     <ul>
                         <li><strong>Bank Brand:</strong> FNB Corporate Banking SA</li>
@@ -202,33 +365,33 @@
                         <li><strong>Branch Routing Code:</strong> 250655</li>
                         <li><strong>Payment Reference Tag:</strong> <span class="mono-text text-cyan" id="payment-ref">VFY-TX-6009</span></li>
                     </ul>
+                    <p style="font-size: 0.8rem; margin-top: 0.5rem; color: #a3a3a3; font-style: italic;">
+                        *System verification links are queued immediately and released to candidates upon backend proof of payment validation.
+                    </p>
                 </div>
 
                 <div class="wizard-footer-actions">
-                    <button type="button" class="btn-table-row" onclick="goToStep(1)">← Back</button>
-                    <button type="button" class="btn-action-cyan" onclick="goToStep(3)">Proceed to Payment Upload →</button>
+                    <button type="button" class="btn-table-row" onclick="goToStep(1)"><i class="fa-solid fa-arrow-left"></i> Back</button>
+                    <button type="button" class="btn-action-cyan" onclick="goToStep(3)">Proceed to Payment Upload <i class="fa-solid fa-arrow-right"></i></button>
                 </div>
             </div>
 
             <div id="wizard-step-3" class="wizard-step-block">
                 <div class="form-group">
-                    <label for="pop-upload">Upload Bank Transfer Confirmation (PDF / Image)</label>
-                    <div class="csv-upload-dropzone" style="border-style: solid; border-color: var(--brand-cyan, #00e5ff);">
-                        <input type="file" id="pop-upload" accept=".pdf,image/*" required onchange="updatePOPLabel(this)">
-                        <span id="pop-label">📄 Attach Electronic Proof of Payment (PoP)</span>
+                    <label>Upload Bank Transfer Confirmation (PDF / Image)</label>
+                    <div class="csv-upload-dropzone" style="border-style: solid; border-color: #4eb637;">
+                        <input type="file" id="pop-upload" name="pop_receipt" accept=".pdf,image/*" required onchange="updatePOPLabel(this)">
+                        <span id="pop-label">
+                            <i class="fa-solid fa-receipt style-icon" style="font-size: 1.5rem; display:block; margin-bottom:0.5rem;"></i> 
+                            Attach Electronic Proof of Payment (PoP)
+                        </span>
                     </div>
                 </div>
-
-                <p style="font-size: 0.8rem; color: #8a9e8d; line-height: 1.4;">
-                    Once finalized, the engine will instantly process the request, fire automated document collection emails to all designated target candidates, and render pending nodes into your analytics view tracking terminal.
-                </p>
-
                 <div class="wizard-footer-actions">
-                    <button type="button" class="btn-table-row" onclick="goToStep(2)">← Back</button>
-                    <button type="submit" class="btn-portal-primary" style="margin: 0; width: auto; padding: 0.75rem 1.5rem;">Deploy Core Request</button>
+                    <button type="button" class="btn-table-row" onclick="goToStep(2)"><i class="fa-solid fa-arrow-left"></i> Back</button>
+                    <button type="submit" class="btn-portal-primary" style="margin: 0; width: auto; padding: 0.75rem 1.5rem;"><i class="fa-solid fa-rocket"></i> Deploy Core Request</button>
                 </div>
             </div>
-
         </form>
     </div>
 </div>
@@ -239,115 +402,71 @@
     function switchTab(tabName, clickedBtn) {
         document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active-content'));
         document.querySelectorAll('.sidebar-menu .menu-item').forEach(btn => btn.classList.remove('active'));
-        
+
         document.getElementById('tab-' + tabName).classList.add('active-content');
         clickedBtn.classList.add('active');
     }
 
-    function openScreeningModal() { 
+    function toggleNotificationDropdown() {
+        const dropdown = document.getElementById('notification-dropdown');
+        dropdown.classList.toggle('open-dropdown');
+    }
+
+    function openScreeningModal() {
         currentStep = 1;
         goToStep(1);
-        // Generate a random mock reference code
         document.getElementById('payment-ref').innerText = "VFY-TX-" + Math.floor(1000 + Math.random() * 9000);
-        document.getElementById('screening-modal').classList.add('open'); 
+        document.getElementById('screening-modal').classList.add('open');
     }
-    
+
     function closeScreeningModal() { 
         document.getElementById('screening-modal').classList.remove('open'); 
     }
 
     function updateCSVLabel(input) {
         if (input.files.length > 0) {
-            document.getElementById('csv-label').innerText = "✅ Loaded: " + input.files[0].name;
+            document.getElementById('csv-label').innerHTML = `<i class="fa-solid fa-circle-check text-cyan" style="font-size: 1.5rem; display:block; margin-bottom:0.5rem;"></i> Registry Loaded: <b>${input.files[0].name}</b>`;
         }
     }
 
     function updatePOPLabel(input) {
         if (input.files.length > 0) {
-            document.getElementById('pop-label').innerText = "✅ Attached: " + input.files[0].name;
+            document.getElementById('pop-label').innerHTML = `<i class="fa-solid fa-circle-check text-cyan" style="font-size: 1.5rem; display:block; margin-bottom:0.5rem;"></i> Attached: <b>${input.files[0].name}</b>`;
         }
     }
 
     function calculateCost() {
         const vectorSelect = document.getElementById('vector-select');
         const countInput = document.getElementById('candidate-count');
-        
+
         const pricePerUnit = parseFloat(vectorSelect.options[vectorSelect.selectedIndex].getAttribute('data-price'));
         const totalUnits = parseInt(countInput.value) || 1;
         const totalPrice = pricePerUnit * totalUnits;
 
-        // Show/Hide biometric instruction callouts based on selection choice
         const noticeBox = document.getElementById('fingerprint-notice');
-        if (vectorSelect.value === "Criminal Check" || vectorSelect.value === "Full Premium Screening") {
-            noticeBox.style.display = "block";
-        } else {
-            noticeBox.style.display = "none";
-        }
+        noticeBox.style.display = (vectorSelect.value === "Criminal Record Audit" || vectorSelect.value === "Full Premium Screening") ? "block" : "none";
 
-        // Apply dynamically to accounting templates
-        document.getElementById('summary-text').innerText = `${totalUnits} candidate(s) × ${vectorSelect.value}`;
+        document.getElementById('summary-text').innerText = `${totalUnits} candidate(s) \u00d7 ${vectorSelect.value}`;
         document.getElementById('total-price-display').innerText = "R" + totalPrice.toFixed(2);
     }
 
     function goToStep(stepNumber) {
-        // Simple client form guard rails checking standard constraint parameters
         if (stepNumber === 2 && currentStep === 1) {
-            if (!document.getElementById('csv-upload').files.length || !document.getElementById('candidate-count').value) {
-                alert("Please declare total candidate units and upload your background csv registry to proceed.");
+            const csvFile = document.getElementById('csv-upload').files;
+            const countValue = document.getElementById('candidate-count').value;
+            
+            if (!csvFile.length || !countValue || countValue < 1) {
+                alert("Please declare your target candidate count metrics and upload the candidate registry .csv file to proceed.");
                 return;
             }
         }
-        
         currentStep = stepNumber;
-        
-        // Toggle blocks display status states
         document.querySelectorAll('.wizard-step-block').forEach(block => block.classList.remove('active-step'));
         document.getElementById('wizard-step-' + stepNumber).classList.add('active-step');
 
-        // Render bar percentage and title trackers
         const barPercent = stepNumber === 1 ? '33.3%' : stepNumber === 2 ? '66.6%' : '100%';
         document.getElementById('wizard-progress').style.width = barPercent;
         document.getElementById('wizard-step-title').innerText = `Initiate Background Run (Step ${stepNumber}/3)`;
-    }
-
-    function handleWizardSubmit(event) {
-        event.preventDefault();
-        
-        const count = parseInt(document.getElementById('candidate-count').value) || 1;
-        const vector = document.getElementById('vector-select').value;
-        const today = new Date().toISOString().split('T')[0];
-        const tbody = document.querySelector('#pipeline-table tbody');
-
-        // Determine inline message block parameters based on biometric attributes
-        let detailNotice = "Document Request Dispatched";
-        let statusTag = '<span class="status-badge badge-pending">Pending Info</span>';
-        
-        if (vector === "Criminal Check" || vector === "Full Premium Screening") {
-            detailNotice = '<span class="instruction-badge postnet">PostNet Fingerprints Pending</span>';
-        }
-
-        // Insert mock row records representing simulation parameters
-        for (let i = 1; i <= count; i++) {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td class="font-bold text-white">Candidate Node #${Math.floor(100 + Math.random() * 900)}</td>
-                <td>\${vector}</td>
-                <td>\${detailNotice}</td>
-                <td>\${today}</td>
-                <td>\${statusTag}</td>
-            `;
-            tbody.prepend(row);
-        }
-
-        // Update main dashboard container statistics markers
-        const countEl = document.getElementById('count-active');
-        countEl.innerText = parseInt(countEl.innerText) + count;
-
-        alert(`Processing Action Complete!\n\nSimulated pipeline deployed successfully: ${count} candidate records ingested. Notifications dispatched successfully.`);
-        document.getElementById('multi-step-screening-form').reset();
-        document.getElementById('csv-label').innerText = "📁 Drag & Drop or click to upload candidates.csv";
-        document.getElementById('pop-label').innerText = "📄 Attach Electronic Proof of Payment (PoP)";
-        closeScreeningModal();
     }
 </script>
 {% endblock %}

@@ -1,0 +1,218 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="dashboard-wrapper" style="display: flex; min-height: 100vh; background: #121413; font-family: 'Inter', sans-serif;">
+    
+    <div class="sidebar" style="width: 260px; background: #1a1d1b; border-right: 1px solid rgba(227, 231, 228, 0.05); padding: 2rem 1.5rem; display: flex; flex-direction: column; justify-content: space-between;">
+        <div>
+            <div class="sidebar-brand" style="margin-bottom: 2.5rem;">
+                <span class="matrix-tag" style="display: flex; align-items: center; gap: 0.75rem; font-size: 1.15rem; letter-spacing: 0.5px; color: #ffffff; font-weight: 600;">
+                    <img src="{{ url_for('static', filename='images/VM_Icon.png') }}" alt="VM" style="height: 32px; width: auto; object-fit: contain;">
+                    VerifyMe
+                </span>
+            </div>
+            
+            <nav class="sidebar-menu" style="display: flex; flex-direction: column; gap: 0.5rem;">
+                <a href="#" class="menu-item active" style="display: flex; align-items: center; gap: 1rem; color: #4eb637; padding: 0.75rem 1rem; background: rgba(78, 182, 55, 0.08); border-radius: 8px; text-decoration: none; font-weight: 500;">
+                    <i class="fa fa-file-invoice" style="width: 18px;"></i> Requests
+                </a>
+                <a href="#" class="menu-item" style="display: flex; align-items: center; gap: 1rem; color: #8a948f; padding: 0.75rem 1rem; border-radius: 8px; text-decoration: none; font-weight: 500; transition: all 0.2s;" onmouseover="this.style.color='#ffffff'; this.style.background='rgba(255,255,255,0.02)'" onmouseout="this.style.color='#8a948f'; this.style.background='transparent'">
+                    <i class="fa fa-user-circle" style="width: 18px;"></i> Profile
+                </a>
+                <a href="#" class="menu-item" onclick="openVerificationModal()" style="display: flex; align-items: center; gap: 1rem; color: #8a948f; padding: 0.75rem 1rem; border-radius: 8px; text-decoration: none; font-weight: 500; transition: all 0.2s;" onmouseover="this.style.color='#ffffff'; this.style.background='rgba(255,255,255,0.02)'" onmouseout="this.style.color='#8a948f'; this.style.background='transparent'">
+                    <i class="fa fa-tags" style="width: 18px;"></i> Our Services
+                </a>
+                <a href="#" class="menu-item" style="display: flex; align-items: center; gap: 1rem; color: #8a948f; padding: 0.75rem 1rem; border-radius: 8px; text-decoration: none; font-weight: 500; transition: all 0.2s;" onmouseover="this.style.color='#ffffff'; this.style.background='rgba(255,255,255,0.02)'" onmouseout="this.style.color='#8a948f'; this.style.background='transparent'">
+                    <i class="fa fa-sliders-h" style="width: 18px;"></i> Settings
+                </a>
+            </nav>
+        </div>
+
+        <div class="sidebar-footer">
+            <a href="{{ url_for('logout') }}" style="display: flex; align-items: center; gap: 1rem; color: #ff6b6b; padding: 0.75rem 1rem; text-decoration: none; font-weight: 500; transition: color 0.2s;" onmouseover="this.style.color='#ff4d4d'" onmouseout="this.style.color='#ff6b6b'">
+                <i class="fa fa-sign-out-alt"></i> Logout
+            </a>
+        </div>
+    </div>
+
+    <div class="main-workspace" style="flex: 1; padding: 2.5rem 3rem; overflow-y: auto;">
+        
+        <div class="top-bar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2.5rem;">
+            <div>
+                <h1 style="color: #ffffff; margin: 0; font-size: 1.75rem; font-weight: 600; letter-spacing: -0.5px;">Personal Verification Hub</h1>
+                <p style="color: #8a948f; margin: 0.25rem 0 0 0; font-size: 0.9rem;">Manage, audit, and track your credentials securely.</p>
+            </div>
+            
+            <div style="display: flex; align-items: center; gap: 1.5rem;">
+                <div class="notification-bell-wrapper" style="position: relative; cursor: pointer; color: #8a948f; transition: color 0.2s;" onmouseover="this.style.color='#ffffff'" onmouseout="this.style.color='#8a948f'">
+                    <i class="fa fa-bell" style="font-size: 1.2rem;"></i>
+                    <span style="position: absolute; top: -5px; right: -4px; width: 8px; height: 8px; background: #4eb637; border-radius: 50%; border: 2px solid #121413;"></span>
+                </div>
+
+                <div class="identity-profile-badge" style="display: flex; align-items: center; gap: 0.75rem; background: #1a1d1b; padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid rgba(227, 231, 228, 0.05);">
+                    <div style="width: 32px; height: 32px; background: rgba(78, 182, 55, 0.15); color: #4eb637; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.85rem;">
+                        <i class="fa fa-user"></i>
+                    </div>
+                    <div style="display: flex; flex-direction: column;">
+                        <span style="color: #ffffff; font-size: 0.85rem; font-weight: 500; line-height: 1.2;">{{ session.get('display_name', 'Applicant Vault') }}</span>
+                        <span style="color: #8a948f; font-size: 0.75rem;">Verified Member</span>
+                    </div>
+                </div>
+
+                <button class="btn-portal-primary" onclick="openVerificationModal()" style="background: #4eb637; color: #ffffff; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; transition: background 0.2s;" onmouseover="this.style.backgroundColor='#429b2f'" onmouseout="this.style.backgroundColor='#4eb637'">
+                    <i class="fa fa-plus"></i> Request New Verification
+                </button>
+            </div>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert" style="background: rgba(78, 182, 55, 0.1); border: 1px solid #4eb637; color: #ffffff; padding: 1rem; border-radius: 8px; margin-bottom: 2rem; font-size: 0.95rem;">
+                        <i class="fa fa-circle-check" style="color: #4eb637; margin-right: 0.5rem;"></i> {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="matrix-card" style="background: #1a1d1b; border: 1px solid rgba(227, 231, 228, 0.05); border-radius: 12px; padding: 1.5rem;">
+            <h3 style="color: #ffffff; margin-top: 0; margin-bottom: 1.5rem; font-size: 1.1rem; font-weight: 500; letter-spacing: 0.3px;">Active Verification Audits</h3>
+            
+            <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                <thead>
+                    <tr style="border-bottom: 1px solid rgba(227, 231, 228, 0.1); color: #8a948f; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">
+                        <th style="padding: 1rem;">Verification Engine Tier</th>
+                        <th style="padding: 1rem;">Attached Files</th>
+                        <th style="padding: 1rem;">Pipeline Status</th>
+                        <th style="padding: 1rem;">Date Created</th>
+                    </tr>
+                </thead>
+                <tbody style="color: #e3e7e4; font-size: 0.95rem;">
+                    {% if checks %}
+                        {% for check in checks %}
+                            <tr style="border-bottom: 1px solid rgba(227, 231, 228, 0.05); transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.01)'" onmouseout="this.style.background='transparent'">
+                                <td style="padding: 1rem; font-weight: 500; color: #ffffff;">{{ check.type }}</td>
+                                <td style="padding: 1rem; color: #8a948f; font-size: 0.85rem;">
+                                    <i class="fa fa-paperclip" style="margin-right: 0.25rem;"></i> Documents Loaded
+                                </td>
+                                <td style="padding: 1rem;">
+                                    <span style="padding: 0.3rem 0.75rem; border-radius: 20px; font-size: 0.75rem; font-weight: 700; display: inline-block;
+                                        {% if check.status == 'Cleared' %} background: rgba(78, 182, 55, 0.15); color: #4eb637; border: 1px solid rgba(78, 182, 55, 0.3);
+                                        {% elif check.status == 'Pending' %} background: rgba(255, 193, 7, 0.15); color: #ffc107; border: 1px solid rgba(255, 193, 7, 0.3);
+                                        {% else %} background: rgba(255, 255, 255, 0.08); color: #8a948f; {% endif %}">
+                                        ● {{ check.status }}
+                                    </span>
+                                </td>
+                                <td style="padding: 1rem; color: #8a948f;">{{ check.date }}</td>
+                            </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="4" style="padding: 4rem; text-align: center; color: #8a948f; font-style: italic; font-size: 0.9rem;">
+                                <i class="fa fa-folder-open" style="display: block; font-size: 1.5rem; margin-bottom: 0.75rem; color: rgba(227, 231, 228, 0.2);"></i>
+                                No personal verifications requested yet. Click the button above to begin.
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div id="wizardModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(5px);">
+    <div style="background: #1a1d1b; width: 550px; max-height: 90vh; overflow-y: auto; border-radius: 12px; border: 1px solid rgba(227, 231, 228, 0.1); padding: 2rem; position: relative; box-shadow: 0 20px 40px rgba(0,0,0,0.5);">
+        
+        <h2 style="color: #ffffff; margin-top: 0; font-weight: 600; font-size: 1.4rem; letter-spacing: -0.3px;">New Verification Request</h2>
+        <p style="color: #8a948f; font-size: 0.9rem; margin-top: -0.5rem; margin-bottom: 1.75rem;">Follow the flow to load credentials into your verification queue pipeline.</p>
+        
+        <form action="{{ url_for('submit_individual_verification') }}" method="POST" enctype="multipart/form-data">
+            
+            <div class="form-group" style="margin-bottom: 1.5rem;">
+                <label style="color: #ffffff; display: block; margin-bottom: 0.5rem; font-size: 0.9rem; font-weight: 500;">Select Verification Metric</label>
+                <select id="verification_type" name="verification_type" onchange="updateDynamicPricing()" style="width: 100%; background: #222623; border: 1px solid rgba(227, 231, 228, 0.1); padding: 0.75rem; border-radius: 6px; color: #ffffff; font-size: 0.95rem; outline: none; focus: border-color: #4eb637;" required>
+                    <option value="National ID Card Audit">National ID Card Verification</option>
+                    <option value="Tertiary Qualification Audit">Tertiary Qualification Audit</option>
+                    <option value="Driver's License Authenticity Check">Driver's License Check</option>
+                </select>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 1.5rem;">
+                <label style="color: #ffffff; display: block; margin-bottom: 0.5rem; font-size: 0.9rem; font-weight: 500;">Upload Documents / Certificates</label>
+                <div id="file-input-container">
+                    <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+                        <input type="file" name="documents" style="background: #222623; color: #8a948f; flex: 1; padding: 0.5rem; border-radius: 6px; border: 1px solid rgba(227, 231, 228, 0.1); font-size: 0.85rem;" required>
+                    </div>
+                </div>
+                <button type="button" onclick="addFileSlot()" style="background: transparent; color: #4eb637; border: 1px dashed rgba(78, 182, 55, 0.4); padding: 0.6rem; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.85rem; width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; transition: background 0.2s;" onmouseover="this.style.background='rgba(78, 182, 55, 0.05)'" onmouseout="this.style.background='transparent'">
+                    <i class="fa fa-plus"></i> Add Another Document Page (e.g., Back of ID Card)
+                </button>
+            </div>
+
+            <div style="background: rgba(78, 182, 55, 0.04); border: 1px solid rgba(78, 182, 55, 0.15); padding: 1.25rem; border-radius: 8px; margin-bottom: 1.5rem;">
+                <h4 style="color: #4eb637; margin: 0 0 0.5rem 0; font-size: 0.95rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem;"><i class="fa fa-university"></i> Verification Pricing Settlement</h4>
+                <p style="color: #8a948f; font-size: 0.8rem; margin: 0 0 0.75rem 0; line-height: 1.45;">
+                    Please complete processing fees using the account layout below. Use your registered login email address as your tracking reference descriptor.
+                </p>
+                <div style="font-family: monospace; font-size: 0.85rem; color: #e3e7e4; background: #121413; padding: 0.75rem; border-radius: 4px; line-height: 1.6; border: 1px solid rgba(227, 231, 228, 0.03);">
+                    Bank: FNB Corporate<br>
+                    Acc Number: 62901122334<br>
+                    Branch Code: 250655<br>
+                    Fee Matrix: <span id="pricing-tier-name" style="color: #ffffff; font-weight: bold;">National ID Card Verification</span><br>
+                    Amount Due: <span id="pricing-tier-amount" style="color: #4eb637; font-weight: bold; font-size: 1rem;">R120.00</span>
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 2rem;">
+                <label style="color: #ffffff; display: block; margin-bottom: 0.5rem; font-size: 0.9rem; font-weight: 500;">Upload Proof of Payment (POP)</label>
+                <input type="file" name="proof_of_payment" style="width: 100%; background: #222623; color: #8a948f; padding: 0.5rem; border-radius: 6px; border: 1px solid rgba(227, 231, 228, 0.1); font-size: 0.85rem;" required>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 1rem; border-top: 1px solid rgba(227, 231, 228, 0.05); padding-top: 1.25rem;">
+                <button type="button" onclick="closeVerificationModal()" style="background: transparent; color: #8a948f; border: 1px solid rgba(227, 231, 228, 0.1); padding: 0.75rem 1.2rem; border-radius: 6px; cursor: pointer; font-weight: 500; transition: color 0.2s;" onmouseover="this.style.color='#ffffff'" onmouseout="this.style.color='#8a948f'">Cancel</button>
+                <button type="submit" style="background: #4eb637; color: #ffffff; border: none; padding: 0.75rem 1.5rem; border-radius: 6px; font-weight: 600; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.backgroundColor='#429b2f'" onmouseout="this.style.backgroundColor='#4eb637'">Submit Request</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    const feeMatrix = {
+        "National ID Card Audit": { name: "National ID Card Verification", price: "R120.00" },
+        "Tertiary Qualification Audit": { name: "Tertiary Qualification Audit", price: "R250.00" },
+        "Driver's License Authenticity Check": { name: "Driver's License Check", price: "R180.00" }
+    };
+
+    function updateDynamicPricing() {
+        const selectedValue = document.getElementById('verification_type').value;
+        const tierData = feeMatrix[selectedValue];
+
+        if (tierData) {
+            document.getElementById('pricing-tier-name').innerText = tierData.name;
+            document.getElementById('pricing-tier-amount').innerText = tierData.price;
+        }
+    }
+
+    function openVerificationModal() {
+        document.getElementById('wizardModal').style.display = 'flex';
+        updateDynamicPricing();
+    }
+    
+    function closeVerificationModal() {
+        document.getElementById('wizardModal').style.display = 'none';
+    }
+
+    function addFileSlot() {
+        const container = document.getElementById('file-input-container');
+        const newSlot = document.createElement('div');
+        newSlot.style.display = 'flex';
+        newSlot.style.gap = '0.5rem';
+        newSlot.style.marginBottom = '0.5rem';
+        newSlot.innerHTML = `
+            <input type="file" name="documents" style="background: #222623; color: #8a948f; flex: 1; padding: 0.5rem; border-radius: 6px; border: 1px solid rgba(227, 231, 228, 0.1); font-size: 0.85rem;" required>
+            <button type="button" onclick="this.parentElement.remove()" style="background: rgba(220,53,69,0.15); color: #ff6b6b; border: 1px solid rgba(220,53,69,0.3); padding: 0.5rem 0.75rem; border-radius: 6px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='rgba(220,53,69,0.3)'" onmouseout="this.style.background='rgba(220,53,69,0.15)'"><i class="fa fa-trash"></i></button>
+        `;
+        container.appendChild(newSlot);
+    }
+</script>
+{% endblock %}

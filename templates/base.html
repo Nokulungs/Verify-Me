@@ -6,11 +6,16 @@
     <title>VerifyMe Technologies | Secure Background Screening</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght=400;500;600;700&family=DM+Sans:wght=400;500;700;800&family=DM+Mono:wght=400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    
+    {% block head %}{% endblock %}
 </head>
-<body>
+<body class="{% block body_class %}{% endblock %}" style="background: #121413; margin: 0; padding: 0;">
 
+{% if not hide_navbar %}
 <nav class="navbar">
     <div class="nav-container">
         <a href="/" class="logo-group">
@@ -21,7 +26,6 @@
             </div>
         </a>
 
-        <!-- Desktop links -->
         <div class="nav-links">
             <a href="#about">About</a>
             <a href="#services">Services</a>
@@ -29,7 +33,6 @@
             <a href="tel:+27114635540" class="nav-cta">Call Us</a>
         </div>
 
-        <!-- Hamburger (mobile only) -->
         <button class="nav-hamburger" id="navHamburger" aria-label="Toggle menu">
             <span></span>
             <span></span>
@@ -38,46 +41,50 @@
     </div>
 </nav>
 
-<!-- Mobile drawer (sits outside navbar, inside body) -->
 <div class="nav-mobile-drawer" id="navMobileDrawer">
-    <a href="#about"    onclick="closeMenu()">About</a>
+    <a href="#about" onclick="closeMenu()">About</a>
     <a href="#services" onclick="closeMenu()">Services</a>
-    <a href="#contact"  onclick="closeMenu()">Contact</a>
+    <a href="#contact" onclick="closeMenu()">Contact</a>
     <a href="tel:+27114635540" class="mobile-cta">📞 Call Us</a>
 </div>
+{% endif %}
+
+<main>
+    {% block content %}{% endblock %}
+</main>
+
+{% if not hide_footer %}
+<footer class="footer">
+    <p>&copy; 2026 VerifyMe Technologies. Powered by InspHired Recruitment Solutions. All Rights Reserved.</p>
+</footer>
+{% endif %}
 
 <script>
     const hamburger = document.getElementById('navHamburger');
     const drawer    = document.getElementById('navMobileDrawer');
 
-    hamburger.addEventListener('click', () => {
-        hamburger.classList.toggle('open');
-        drawer.classList.toggle('open');
-    });
+    // Toggle menu interactions only run if components exist in the current layout context
+    if (hamburger && drawer) {
+        hamburger.addEventListener('click', () => {
+            hamburger.classList.toggle('open');
+            drawer.classList.toggle('open');
+        });
 
-    function closeMenu() {
-        hamburger.classList.remove('open');
-        drawer.classList.remove('open');
+        // Close drawer when clicking outside bounds
+        document.addEventListener('click', (e) => {
+            if (!hamburger.contains(e.target) && !drawer.contains(e.target)) {
+                closeMenu();
+            }
+        });
     }
 
-    // Close drawer when clicking outside
-    document.addEventListener('click', (e) => {
-        if (!hamburger.contains(e.target) && !drawer.contains(e.target)) {
-            closeMenu();
+    function closeMenu() {
+        if (hamburger && drawer) {
+            hamburger.remove('open');
+            drawer.classList.remove('open');
         }
-    });
+    }
 </script>
-
-
-    <main>
-        {% block content %}{% endblock %}
-    </main>
-
-    <footer class="footer">
-        <p>&copy; 2026 VerifyMe Technologies. Powered by InspHired Recruitment Solutions. All Rights Reserved.</p>
-    </footer>
 
 </body>
 </html>
-
-<body class="{% block body_class %}{% endblock %}"></body>
