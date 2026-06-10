@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+{% set hide_navbar = True %}
+
+{% block head %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}?v=2.2">
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <aside class="dashboard-sidebar" style="display: flex; flex-direction: column; justify-content: space-between; height: 100vh;">
+        <div>
+            <div class="sidebar-brand" style="margin-bottom: 2.5rem;">
+                <span class="matrix-tag" style="display: flex; align-items: center; gap: 0.75rem; font-size: 1.15rem;">
+                    <img src="{{ url_for('static', filename='images/VM_Icon.png') }}" alt="VM" style="height: 32px; width: auto;">
+                    VerifyMe
+                </span>
+            </div>
+            <nav class="sidebar-menu">
+                <a href="{{ url_for('dashboard') }}" class="menu-item">
+                    <i class="fa-solid fa-gauge menu-icon"></i> Main Dashboard
+                </a>
+                <a href="{{ url_for('services') }}" class="menu-item">
+                    <i class="fa-solid fa-shield-halved menu-icon"></i> Our Services
+                </a>
+                <a href="{{ url_for('profile') }}" class="menu-item active">
+                    <i class="fa-solid fa-user menu-icon"></i> My Profile
+                </a>
+                <a href="{{ url_for('settings') }}" class="menu-item">
+                    <i class="fa-solid fa-gear menu-icon"></i> Settings
+                </a>
+            </nav>
+        </div>
+        <div class="sidebar-footer" style="padding: 1.25rem; border-top: 1px solid rgba(255,255,255,0.05);">
+            <a href="{{ url_for('logout') }}" class="menu-item logout-btn" style="color: #ff4a4a; text-decoration: none; display: flex; align-items: center; gap: 0.75rem;">
+                <i class="fa-solid fa-right-from-bracket"></i> Logout
+            </a>
+        </div>
+    </aside>
+
+    <main class="dashboard-main">
+        <header class="workspace-header" style="margin-bottom: 2rem;">
+            <h1 style="margin: 0; font-size: 1.75rem;">Personal Profile Ledger</h1>
+            <p class="subtitle" style="margin: 0.25rem 0 0 0; color: #a3a3a3;">Manage your personal identity credentials and contact information.</p>
+        </header>
+
+        <section class="analytics-card" style="max-width: 600px; background: #1f2521; border: 1px solid rgba(255, 255, 255, 0.05); padding: 2rem; border-radius: 8px;">
+            <form method="POST" action="{{ url_for('update_profile') }}" style="display:flex; flex-direction:column; gap:1.25rem;">
+                <div class="form-group" style="display:flex; flex-direction:column; gap:0.5rem;">
+                    <label style="color:#a3a3a3; font-size:0.9rem;">Full Name & Surname</label>
+                    <input type="text" name="display_name" class="form-control" style="background:#181c19; color:#fff; border:1px solid rgba(255,255,255,0.1); padding:0.6rem 1rem; border-radius:4px;" value="{{ session['display_name'] }}">
+                </div>
+                <div class="form-group" style="display:flex; flex-direction:column; gap:0.5rem;">
+                    <label style="color:#a3a3a3; font-size:0.9rem;">Primary Email Address</label>
+                    <input type="email" name="user_email" class="form-control" style="background:#181c19; color:#fff; border:1px solid rgba(255,255,255,0.1); padding:0.6rem 1rem; border-radius:4px;" value="{{ session['user_email'] }}">
+                </div>
+                <div class="form-group" style="display:flex; flex-direction:column; gap:0.5rem;">
+                    <label style="color:#a3a3a3; font-size:0.9rem;">National ID / Passport Number</label>
+                    <input type="text" class="form-control" style="background:#181c19; color:#fff; border:1px solid rgba(255,255,255,0.1); padding:0.6rem 1rem; border-radius:4px; opacity: 0.7;" value="950812XXXX08X" readonly>
+                    <small style="color: #00ffd1; font-size: 0.75rem;"><i class="fa-solid fa-circle-check"></i> Identity Locked & Verified</small>
+                </div>
+                
+                <div style="margin-top: 0.5rem;">
+                    <button type="submit" class="btn-portal-primary" style="background-color:#00ffd1; color:#121613; font-weight:bold; border:none; border-radius:4px; padding: 0.75rem 1.5rem; cursor:pointer;">
+                        <i class="fa-solid fa-floppy-disk"></i> Save Changes
+                    </button>
+                </div>
+            </form>
+        </section>
+    </main>
+</div>
+{% endblock %}

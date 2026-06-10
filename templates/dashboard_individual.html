@@ -1,218 +1,916 @@
 {% extends 'base.html' %}
+{% set hide_navbar = True %}
+{% set hide_footer = True %}
+
+{% block head %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+{% endblock %}
 
 {% block content %}
-<div class="dashboard-wrapper" style="display: flex; min-height: 100vh; background: #121413; font-family: 'Inter', sans-serif;">
-    
-    <div class="sidebar" style="width: 260px; background: #1a1d1b; border-right: 1px solid rgba(227, 231, 228, 0.05); padding: 2rem 1.5rem; display: flex; flex-direction: column; justify-content: space-between;">
-        <div>
-            <div class="sidebar-brand" style="margin-bottom: 2.5rem;">
-                <span class="matrix-tag" style="display: flex; align-items: center; gap: 0.75rem; font-size: 1.15rem; letter-spacing: 0.5px; color: #ffffff; font-weight: 600;">
-                    <img src="{{ url_for('static', filename='images/VM_Icon.png') }}" alt="VM" style="height: 32px; width: auto; object-fit: contain;">
-                    VerifyMe
-                </span>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap');
+
+:root {
+    --bg:          #181c19;
+    --panel:       #1f2521;
+    --card:        #252b27;
+    --border:      #2e3830;
+    --border-hi:   #3d4f40;
+    --lime:        #4eb637;
+    --lime-dim:    rgba(78,182,55,0.10);
+    --lime-border: rgba(78,182,55,0.22);
+    --olive:       #617c41;
+    --muted:       #7a9080;
+    --white:       #eef2ef;
+    --error:       #f87171;
+    --warning:     #fbbf24;
+    --font:        'DM Sans', sans-serif;
+    --mono:        'DM Mono', monospace;
+    --sidebar-w:   240px;
+    --topbar-h:    64px;
+}
+
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+html, body { height: 100%; }
+
+body {
+    background: var(--bg);
+    color: var(--white);
+    font-family: var(--font);
+    -webkit-font-smoothing: antialiased;
+}
+
+/* ── LAYOUT ───────────────────────────────────────── */
+.db-root { display: flex; min-height: 100vh; }
+
+/* ── SIDEBAR ──────────────────────────────────────── */
+.db-sidebar {
+    width: var(--sidebar-w);
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0; left: 0;
+    height: 100vh;
+    z-index: 200;
+    transition: transform 0.3s ease;
+}
+
+.sidebar-brand {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    height: var(--topbar-h);
+}
+
+.sidebar-brand img { height: 32px; width: auto; object-fit: contain; }
+.sidebar-brand-name { font-size: 0.88rem; font-weight: 800; color: var(--white); text-transform: uppercase; letter-spacing: -0.02em; display: block; }
+.sidebar-brand-sub  { font-size: 0.6rem; font-weight: 600; color: var(--lime); text-transform: uppercase; letter-spacing: 1.5px; display: block; }
+
+.sidebar-section-label {
+    font-family: var(--mono);
+    font-size: 0.6rem; font-weight: 500;
+    color: var(--muted); text-transform: uppercase;
+    letter-spacing: 1.5px;
+    padding: 1.25rem 1.5rem 0.5rem;
+    display: block;
+}
+
+.sidebar-nav { flex: 1; padding: 0.5rem 0.75rem; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; }
+
+.nav-item {
+    display: flex; align-items: center; gap: 0.75rem;
+    padding: 0.7rem 0.85rem; border-radius: 8px;
+    font-size: 0.85rem; font-weight: 600;
+    color: var(--muted); cursor: pointer;
+    border: none; background: transparent;
+    width: 100%; text-align: left;
+    transition: background 0.15s, color 0.15s;
+    font-family: var(--font); text-decoration: none;
+}
+
+.nav-item:hover  { background: rgba(255,255,255,0.04); color: var(--white); }
+.nav-item.active { background: var(--lime-dim); color: var(--lime); border: 1px solid var(--lime-border); }
+
+.nav-icon { width: 18px; height: 18px; flex-shrink: 0; opacity: 0.7; }
+.nav-item.active .nav-icon { opacity: 1; }
+
+.nav-badge {
+    margin-left: auto;
+    background: var(--lime); color: #fff;
+    font-size: 0.62rem; font-weight: 700;
+    padding: 0.1rem 0.45rem; border-radius: 10px;
+    font-family: var(--mono);
+}
+
+.sidebar-footer { padding: 1rem 0.75rem; border-top: 1px solid var(--border); }
+
+.sidebar-user-card {
+    display: flex; align-items: center; gap: 0.75rem;
+    padding: 0.75rem; border-radius: 8px;
+    background: var(--card); border: 1px solid var(--border);
+}
+
+.user-avatar {
+    width: 34px; height: 34px;
+    background: var(--lime-dim); border: 1px solid var(--lime-border);
+    border-radius: 8px; display: flex;
+    align-items: center; justify-content: center;
+    font-size: 0.8rem; font-weight: 800;
+    color: var(--lime); flex-shrink: 0; font-family: var(--mono);
+}
+
+.user-info { flex: 1; min-width: 0; }
+.user-name { font-size: 0.8rem; font-weight: 700; color: var(--white); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.user-role { font-size: 0.65rem; color: var(--muted); font-family: var(--mono); }
+
+.btn-logout-sm {
+    background: none; border: none; color: var(--muted);
+    cursor: pointer; padding: 4px; border-radius: 4px;
+    transition: color 0.15s; flex-shrink: 0; text-decoration: none;
+    display: flex; align-items: center;
+}
+.btn-logout-sm:hover { color: var(--error); }
+
+/* ── MAIN ─────────────────────────────────────────── */
+.db-main { margin-left: var(--sidebar-w); flex: 1; display: flex; flex-direction: column; min-height: 100vh; }
+
+.db-topbar {
+    height: var(--topbar-h);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center;
+    justify-content: space-between;
+    padding: 0 2rem;
+    background: var(--panel);
+    position: sticky; top: 0; z-index: 100;
+}
+
+.topbar-left { display: flex; align-items: center; gap: 1rem; }
+.topbar-page-title { font-size: 0.95rem; font-weight: 700; color: var(--white); }
+.topbar-breadcrumb { font-size: 0.75rem; color: var(--muted); font-family: var(--mono); }
+
+.btn-new-request {
+    display: flex; align-items: center; gap: 0.5rem;
+    background: var(--lime); color: #fff; border: none;
+    padding: 0.55rem 1.1rem; border-radius: 7px;
+    font-size: 0.78rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 1px;
+    cursor: pointer; font-family: var(--font); transition: filter 0.2s;
+}
+.btn-new-request:hover { filter: brightness(1.1); }
+
+.hamburger-btn { display: none; background: none; border: none; cursor: pointer; padding: 6px; flex-direction: column; gap: 4px; }
+.hamburger-btn span { display: block; width: 20px; height: 2px; background: var(--white); border-radius: 2px; }
+
+.db-content { flex: 1; padding: 2rem; }
+
+/* ── TABS ─────────────────────────────────────────── */
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ── STATS ────────────────────────────────────────── */
+.stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.75rem; }
+
+.stat-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 1.35rem 1.5rem;
+    display: flex; flex-direction: column; gap: 0.5rem;
+}
+
+.stat-label { font-size: 0.68rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; font-family: var(--mono); }
+.stat-value { font-size: 2rem; font-weight: 800; color: var(--white); letter-spacing: -1px; line-height: 1; }
+.stat-value.lime    { color: var(--lime); }
+.stat-value.warning { color: var(--warning); }
+.stat-sub { font-size: 0.72rem; color: var(--muted); font-family: var(--mono); }
+
+/* ── SECTION HEAD ─────────────────────────────────── */
+.section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+.section-head h2 { font-size: 1rem; font-weight: 700; color: var(--white); }
+.section-head p  { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
+
+/* ── TABLE ────────────────────────────────────────── */
+.table-wrap { background: var(--card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 1.75rem; }
+
+.vm-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+.vm-table thead tr { background: var(--panel); border-bottom: 1px solid var(--border); }
+.vm-table th { padding: 0.75rem 1.25rem; text-align: left; font-size: 0.65rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; font-family: var(--mono); white-space: nowrap; }
+.vm-table tbody tr { border-bottom: 1px solid var(--border); transition: background 0.15s; }
+.vm-table tbody tr:last-child { border-bottom: none; }
+.vm-table tbody tr:hover { background: rgba(255,255,255,0.025); }
+.vm-table td { padding: 0.9rem 1.25rem; color: var(--muted); vertical-align: middle; }
+.td-bold { font-weight: 700; color: var(--white) !important; }
+.td-mono { font-family: var(--mono); font-size: 0.78rem; }
+
+/* ── STATUS PILLS ─────────────────────────────────── */
+.status-pill {
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    padding: 0.3rem 0.75rem; border-radius: 20px;
+    font-size: 0.7rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    font-family: var(--mono); white-space: nowrap;
+}
+.status-pill::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+
+.pill-pending  { background: rgba(251,191,36,0.1);  color: var(--warning); border: 1px solid rgba(251,191,36,0.2); }
+.pill-review   { background: rgba(96,165,250,0.1);  color: #60a5fa;        border: 1px solid rgba(96,165,250,0.2); }
+.pill-cleared  { background: rgba(78,182,55,0.1);   color: var(--lime);    border: 1px solid var(--lime-border); }
+.pill-flagged  { background: rgba(248,113,113,0.1); color: var(--error);   border: 1px solid rgba(248,113,113,0.2); }
+
+/* ── PROFILE CARD ─────────────────────────────────── */
+.profile-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 2rem; max-width: 560px; }
+.profile-card h3 { font-size: 1rem; font-weight: 700; color: var(--white); margin-bottom: 1.5rem; }
+.profile-field { display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 1.1rem; }
+.profile-field label { font-size: 0.67rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; font-family: var(--mono); }
+.profile-field span { font-size: 0.92rem; color: var(--white); background: var(--panel); border: 1px solid var(--border); padding: 0.75rem 1rem; border-radius: 7px; }
+
+/* ── SERVICE GRID ─────────────────────────────────── */
+.service-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+
+.service-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 1.5rem;
+    cursor: pointer; transition: border-color 0.2s, transform 0.15s;
+}
+.service-card:hover { border-color: var(--lime); transform: translateY(-2px); }
+.service-icon { width: 26px; height: 26px; margin-bottom: 1rem; color: var(--lime); }
+.service-name  { font-size: 0.9rem; font-weight: 700; color: var(--white); margin-bottom: 0.4rem; line-height: 1.3; }
+.service-desc  { font-size: 0.78rem; color: var(--muted); line-height: 1.6; }
+.service-price { margin-top: 1rem; font-family: var(--mono); font-size: 0.82rem; font-weight: 600; color: var(--lime); }
+
+/* ── MODAL ────────────────────────────────────────── */
+.modal-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.75);
+    backdrop-filter: blur(4px);
+    z-index: 500; display: none;
+    align-items: center; justify-content: center; padding: 1.5rem;
+}
+.modal-backdrop.open { display: flex; }
+
+.modal-box {
+    background: var(--card); border: 1px solid var(--border-hi);
+    border-radius: 14px; width: 100%; max-width: 520px;
+    max-height: 90vh; overflow-y: auto;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.6);
+    animation: modalIn 0.2s ease;
+}
+
+@keyframes modalIn {
+    from { opacity:0; transform: translateY(12px) scale(0.98); }
+    to   { opacity:1; transform: translateY(0) scale(1); }
+}
+
+.modal-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border);
+}
+.modal-head h3 { font-size: 1.05rem; font-weight: 800; color: var(--white); }
+.modal-close { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 1.25rem; padding: 4px 8px; border-radius: 4px; transition: color 0.15s; }
+.modal-close:hover { color: var(--white); }
+
+.modal-body { padding: 1.5rem; }
+
+.modal-step { display: none; }
+.modal-step.active { display: block; }
+
+/* Step indicator */
+.step-indicator { display: flex; align-items: center; margin-bottom: 1.75rem; }
+.step-dot { display: flex; align-items: center; gap: 0.5rem; font-size: 0.72rem; font-weight: 700; font-family: var(--mono); color: var(--muted); }
+.step-dot-circle { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 0.65rem; font-weight: 800; transition: all 0.2s; }
+.step-dot.done   .step-dot-circle { background: var(--lime); border-color: var(--lime); color: #fff; }
+.step-dot.active .step-dot-circle { border-color: var(--lime); color: var(--lime); }
+.step-dot.active { color: var(--white); }
+.step-line { flex: 1; height: 1px; background: var(--border); margin: 0 0.5rem; }
+
+/* Wizard progress bar */
+.wizard-progress-bar { height: 3px; background: var(--border); }
+.wizard-progress-fill { height: 100%; background: var(--lime); transition: width 0.3s ease; }
+
+/* Form */
+.mform-group { display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 1rem; }
+.mform-group label { font-size: 0.67rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; font-family: var(--mono); }
+.mform-group select {
+    background: var(--panel); border: 1px solid var(--border);
+    padding: 0.8rem 1rem; color: var(--white);
+    border-radius: 7px; font-size: 0.88rem;
+    font-family: var(--font); outline: none;
+    transition: border-color 0.2s; width: 100%;
+}
+.mform-group select option { background: var(--card); }
+.mform-group select:focus { border-color: var(--lime); }
+
+/* Upload zone */
+.upload-zone {
+    border: 2px dashed var(--border); border-radius: 8px;
+    padding: 1.5rem; text-align: center; cursor: pointer;
+    transition: border-color 0.2s, background 0.2s; margin-bottom: 1rem;
+}
+.upload-zone:hover { border-color: var(--lime); background: var(--lime-dim); }
+.upload-zone p     { font-size: 0.82rem; color: var(--muted); margin-top: 0.5rem; }
+.upload-zone small { font-size: 0.72rem; color: var(--muted); font-family: var(--mono); }
+.upload-zone input[type="file"] { display: none; }
+
+/* Payment box */
+.payment-box { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; margin-bottom: 1.25rem; }
+.payment-box-title { font-size: 0.68rem; font-weight: 700; color: var(--lime); text-transform: uppercase; letter-spacing: 1.5px; font-family: var(--mono); margin-bottom: 1rem; }
+.payment-row { display: flex; justify-content: space-between; align-items: center; padding: 0.55rem 0; border-bottom: 1px solid var(--border); font-size: 0.85rem; }
+.payment-row:last-child { border-bottom: none; }
+.payment-row span:first-child { color: var(--muted); }
+.payment-row span:last-child  { color: var(--white); font-weight: 600; font-family: var(--mono); }
+.payment-total-row span:last-child { color: var(--lime); font-size: 1rem; font-weight: 800; }
+
+/* Notice box */
+.notice-box {
+    background: rgba(251,191,36,0.06); border: 1px solid rgba(251,191,36,0.2);
+    border-radius: 8px; padding: 1rem 1.1rem;
+    font-size: 0.82rem; color: var(--warning);
+    line-height: 1.6; margin-bottom: 1rem;
+}
+
+/* Success */
+.success-screen { text-align: center; padding: 1.5rem 0; }
+.success-icon { width: 60px; height: 60px; background: var(--lime-dim); border: 2px solid var(--lime); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.25rem; font-size: 1.5rem; }
+.success-screen h3  { font-size: 1.25rem; font-weight: 800; color: var(--white); margin-bottom: 0.5rem; }
+.success-screen p   { font-size: 0.88rem; color: var(--muted); line-height: 1.6; }
+.success-order-num  { font-family: var(--mono); font-size: 1rem; color: var(--lime); font-weight: 700; margin: 1rem 0; }
+
+/* Modal footer */
+.modal-footer { display: flex; gap: 0.75rem; padding: 1.25rem 1.5rem; border-top: 1px solid var(--border); }
+.btn-modal-back { flex: 1; padding: 0.8rem; background: transparent; border: 1px solid var(--border); color: var(--muted); border-radius: 7px; font-size: 0.8rem; font-weight: 600; cursor: pointer; font-family: var(--font); transition: all 0.15s; }
+.btn-modal-back:hover { color: var(--white); border-color: var(--border-hi); }
+.btn-modal-next { flex: 2; padding: 0.8rem; background: var(--lime); border: none; color: #fff; border-radius: 7px; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; cursor: pointer; font-family: var(--font); transition: filter 0.15s; }
+.btn-modal-next:hover { filter: brightness(1.1); }
+
+/* Flash messages */
+.flash-box { padding: 0.85rem 1.25rem; border-radius: 8px; margin-bottom: 1.25rem; font-size: 0.85rem; font-weight: 500; }
+.flash-box.success { background: rgba(78,182,55,0.08); border: 1px solid var(--lime-border); color: var(--lime); }
+.flash-box.error   { background: rgba(248,113,113,0.08); border: 1px solid rgba(248,113,113,0.2); color: var(--error); }
+
+/* Sidebar mobile overlay */
+.sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 190; }
+.sidebar-overlay.open { display: block; }
+
+/* ── RESPONSIVE ───────────────────────────────────── */
+@media (max-width: 1024px) {
+    .stats-row    { grid-template-columns: repeat(3, 1fr); }
+    .service-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 768px) {
+    .db-sidebar      { transform: translateX(-100%); }
+    .db-sidebar.open { transform: translateX(0); }
+    .db-main         { margin-left: 0; }
+    .hamburger-btn   { display: flex; }
+    .stats-row       { grid-template-columns: repeat(3, 1fr); }
+    .service-grid    { grid-template-columns: 1fr; }
+    .db-content      { padding: 1.25rem; }
+}
+
+@media (max-width: 520px) {
+    .stats-row { grid-template-columns: 1fr 1fr; }
+}
+</style>
+
+<div class="db-root">
+
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+    <!-- ── SIDEBAR ─────────────────────────────────── -->
+    <aside class="db-sidebar" id="dbSidebar">
+        <div class="sidebar-brand">
+            <img src="{{ url_for('static', filename='images/VM_Icon.png') }}" alt="VerifyMe">
+            <div>
+                <span class="sidebar-brand-name">VerifyMe</span>
+                <span class="sidebar-brand-sub">Individual Portal</span>
             </div>
-            
-            <nav class="sidebar-menu" style="display: flex; flex-direction: column; gap: 0.5rem;">
-                <a href="#" class="menu-item active" style="display: flex; align-items: center; gap: 1rem; color: #4eb637; padding: 0.75rem 1rem; background: rgba(78, 182, 55, 0.08); border-radius: 8px; text-decoration: none; font-weight: 500;">
-                    <i class="fa fa-file-invoice" style="width: 18px;"></i> Requests
-                </a>
-                <a href="#" class="menu-item" style="display: flex; align-items: center; gap: 1rem; color: #8a948f; padding: 0.75rem 1rem; border-radius: 8px; text-decoration: none; font-weight: 500; transition: all 0.2s;" onmouseover="this.style.color='#ffffff'; this.style.background='rgba(255,255,255,0.02)'" onmouseout="this.style.color='#8a948f'; this.style.background='transparent'">
-                    <i class="fa fa-user-circle" style="width: 18px;"></i> Profile
-                </a>
-                <a href="#" class="menu-item" onclick="openVerificationModal()" style="display: flex; align-items: center; gap: 1rem; color: #8a948f; padding: 0.75rem 1rem; border-radius: 8px; text-decoration: none; font-weight: 500; transition: all 0.2s;" onmouseover="this.style.color='#ffffff'; this.style.background='rgba(255,255,255,0.02)'" onmouseout="this.style.color='#8a948f'; this.style.background='transparent'">
-                    <i class="fa fa-tags" style="width: 18px;"></i> Our Services
-                </a>
-                <a href="#" class="menu-item" style="display: flex; align-items: center; gap: 1rem; color: #8a948f; padding: 0.75rem 1rem; border-radius: 8px; text-decoration: none; font-weight: 500; transition: all 0.2s;" onmouseover="this.style.color='#ffffff'; this.style.background='rgba(255,255,255,0.02)'" onmouseout="this.style.color='#8a948f'; this.style.background='transparent'">
-                    <i class="fa fa-sliders-h" style="width: 18px;"></i> Settings
-                </a>
-            </nav>
         </div>
+
+        <span class="sidebar-section-label">My Account</span>
+
+        <nav class="sidebar-nav">
+            <button class="nav-item active" onclick="switchTab('overview', this)">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+                Overview
+            </button>
+            <button class="nav-item" onclick="switchTab('requests', this)">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/></svg>
+                My Requests
+                <span class="nav-badge">{{ checks|length }}</span>
+            </button>
+            <button class="nav-item" onclick="switchTab('services', this)">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                Our Services
+            </button>
+            <button class="nav-item" onclick="switchTab('profile', this)">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                My Profile
+            </button>
+        </nav>
 
         <div class="sidebar-footer">
-            <a href="{{ url_for('logout') }}" style="display: flex; align-items: center; gap: 1rem; color: #ff6b6b; padding: 0.75rem 1rem; text-decoration: none; font-weight: 500; transition: color 0.2s;" onmouseover="this.style.color='#ff4d4d'" onmouseout="this.style.color='#ff6b6b'">
-                <i class="fa fa-sign-out-alt"></i> Logout
-            </a>
+            <div class="sidebar-user-card">
+                <div class="user-avatar" id="userInitials">
+                    {{ session.get('display_name', 'U')[0]|upper }}
+                </div>
+                <div class="user-info">
+                    <div class="user-name">{{ session.get('display_name', 'Individual') }}</div>
+                    <div class="user-role">Individual Account</div>
+                </div>
+                <a href="{{ url_for('logout') }}" class="btn-logout-sm" title="Log out">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                </a>
+            </div>
         </div>
-    </div>
+    </aside>
 
-    <div class="main-workspace" style="flex: 1; padding: 2.5rem 3rem; overflow-y: auto;">
-        
-        <div class="top-bar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2.5rem;">
+    <!-- ── MAIN ────────────────────────────────────── -->
+    <div class="db-main">
+
+        <header class="db-topbar">
+            <div class="topbar-left">
+                <button class="hamburger-btn" onclick="openSidebar()">
+                    <span></span><span></span><span></span>
+                </button>
+                <div>
+                    <div class="topbar-page-title" id="topbarTitle">Overview</div>
+                    <div class="topbar-breadcrumb">{{ session.get('display_name', '') }} · Individual Dashboard</div>
+                </div>
+            </div>
             <div>
-                <h1 style="color: #ffffff; margin: 0; font-size: 1.75rem; font-weight: 600; letter-spacing: -0.5px;">Personal Verification Hub</h1>
-                <p style="color: #8a948f; margin: 0.25rem 0 0 0; font-size: 0.9rem;">Manage, audit, and track your credentials securely.</p>
-            </div>
-            
-            <div style="display: flex; align-items: center; gap: 1.5rem;">
-                <div class="notification-bell-wrapper" style="position: relative; cursor: pointer; color: #8a948f; transition: color 0.2s;" onmouseover="this.style.color='#ffffff'" onmouseout="this.style.color='#8a948f'">
-                    <i class="fa fa-bell" style="font-size: 1.2rem;"></i>
-                    <span style="position: absolute; top: -5px; right: -4px; width: 8px; height: 8px; background: #4eb637; border-radius: 50%; border: 2px solid #121413;"></span>
-                </div>
-
-                <div class="identity-profile-badge" style="display: flex; align-items: center; gap: 0.75rem; background: #1a1d1b; padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid rgba(227, 231, 228, 0.05);">
-                    <div style="width: 32px; height: 32px; background: rgba(78, 182, 55, 0.15); color: #4eb637; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.85rem;">
-                        <i class="fa fa-user"></i>
-                    </div>
-                    <div style="display: flex; flex-direction: column;">
-                        <span style="color: #ffffff; font-size: 0.85rem; font-weight: 500; line-height: 1.2;">{{ session.get('display_name', 'Applicant Vault') }}</span>
-                        <span style="color: #8a948f; font-size: 0.75rem;">Verified Member</span>
-                    </div>
-                </div>
-
-                <button class="btn-portal-primary" onclick="openVerificationModal()" style="background: #4eb637; color: #ffffff; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; transition: background 0.2s;" onmouseover="this.style.backgroundColor='#429b2f'" onmouseout="this.style.backgroundColor='#4eb637'">
-                    <i class="fa fa-plus"></i> Request New Verification
+                <button class="btn-new-request" onclick="openModal()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    New Request
                 </button>
             </div>
-        </div>
+        </header>
 
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert" style="background: rgba(78, 182, 55, 0.1); border: 1px solid #4eb637; color: #ffffff; padding: 1rem; border-radius: 8px; margin-bottom: 2rem; font-size: 0.95rem;">
-                        <i class="fa fa-circle-check" style="color: #4eb637; margin-right: 0.5rem;"></i> {{ message }}
+        <div class="db-content">
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="flash-box {{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <!-- ── OVERVIEW ──────────────────────────── -->
+            <div class="tab-panel active" id="tab-overview">
+
+                <div class="stats-row">
+                    <div class="stat-card">
+                        <span class="stat-label">Total Requests</span>
+                        <div class="stat-value">{{ checks|length }}</div>
+                        <span class="stat-sub">All submitted verifications</span>
                     </div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
+                    <div class="stat-card">
+                        <span class="stat-label">Cleared</span>
+                        <div class="stat-value lime">
+                            {{ checks|selectattr('status','equalto','Cleared')|list|length }}
+                        </div>
+                        <span class="stat-sub">Verification complete</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">Pending</span>
+                        <div class="stat-value warning">
+                            {{ checks|selectattr('status','equalto','Pending')|list|length }}
+                        </div>
+                        <span class="stat-sub">Awaiting review</span>
+                    </div>
+                </div>
 
-        <div class="matrix-card" style="background: #1a1d1b; border: 1px solid rgba(227, 231, 228, 0.05); border-radius: 12px; padding: 1.5rem;">
-            <h3 style="color: #ffffff; margin-top: 0; margin-bottom: 1.5rem; font-size: 1.1rem; font-weight: 500; letter-spacing: 0.3px;">Active Verification Audits</h3>
-            
-            <table style="width: 100%; border-collapse: collapse; text-align: left;">
-                <thead>
-                    <tr style="border-bottom: 1px solid rgba(227, 231, 228, 0.1); color: #8a948f; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">
-                        <th style="padding: 1rem;">Verification Engine Tier</th>
-                        <th style="padding: 1rem;">Attached Files</th>
-                        <th style="padding: 1rem;">Pipeline Status</th>
-                        <th style="padding: 1rem;">Date Created</th>
-                    </tr>
-                </thead>
-                <tbody style="color: #e3e7e4; font-size: 0.95rem;">
-                    {% if checks %}
-                        {% for check in checks %}
-                            <tr style="border-bottom: 1px solid rgba(227, 231, 228, 0.05); transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.01)'" onmouseout="this.style.background='transparent'">
-                                <td style="padding: 1rem; font-weight: 500; color: #ffffff;">{{ check.type }}</td>
-                                <td style="padding: 1rem; color: #8a948f; font-size: 0.85rem;">
-                                    <i class="fa fa-paperclip" style="margin-right: 0.25rem;"></i> Documents Loaded
-                                </td>
-                                <td style="padding: 1rem;">
-                                    <span style="padding: 0.3rem 0.75rem; border-radius: 20px; font-size: 0.75rem; font-weight: 700; display: inline-block;
-                                        {% if check.status == 'Cleared' %} background: rgba(78, 182, 55, 0.15); color: #4eb637; border: 1px solid rgba(78, 182, 55, 0.3);
-                                        {% elif check.status == 'Pending' %} background: rgba(255, 193, 7, 0.15); color: #ffc107; border: 1px solid rgba(255, 193, 7, 0.3);
-                                        {% else %} background: rgba(255, 255, 255, 0.08); color: #8a948f; {% endif %}">
-                                        ● {{ check.status }}
-                                    </span>
-                                </td>
-                                <td style="padding: 1rem; color: #8a948f;">{{ check.date }}</td>
+                <div class="section-head">
+                    <div>
+                        <h2>Recent Verifications</h2>
+                        <p>Your latest submitted requests</p>
+                    </div>
+                    <button class="btn-new-request" style="font-size:0.74rem;padding:0.45rem 0.9rem;" onclick="switchTab('requests', document.querySelectorAll('.nav-item')[1])">View All</button>
+                </div>
+
+                <div class="table-wrap">
+                    <table class="vm-table">
+                        <thead>
+                            <tr>
+                                <th>Verification Service</th>
+                                <th>Date Submitted</th>
+                                <th>Status</th>
                             </tr>
-                        {% endfor %}
-                    {% else %}
-                        <tr>
-                            <td colspan="4" style="padding: 4rem; text-align: center; color: #8a948f; font-style: italic; font-size: 0.9rem;">
-                                <i class="fa fa-folder-open" style="display: block; font-size: 1.5rem; margin-bottom: 0.75rem; color: rgba(227, 231, 228, 0.2);"></i>
-                                No personal verifications requested yet. Click the button above to begin.
-                            </td>
-                        </tr>
-                    {% endif %}
-                </tbody>
-            </table>
+                        </thead>
+                        <tbody>
+                            {% for check in checks[:5] %}
+                            <tr>
+                                <td class="td-bold">{{ check.type }}</td>
+                                <td class="td-mono">{{ check.date }}</td>
+                                <td>
+                                    {% if check.status == 'Cleared' %}
+                                        <span class="status-pill pill-cleared">Cleared</span>
+                                    {% elif check.status == 'Pending' %}
+                                        <span class="status-pill pill-pending">Pending</span>
+                                    {% elif check.status == 'Flagged' %}
+                                        <span class="status-pill pill-flagged">Flagged</span>
+                                    {% else %}
+                                        <span class="status-pill pill-review">{{ check.status }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="3" style="text-align:center;padding:3rem;color:var(--muted);font-size:0.88rem;">
+                                    No requests yet — click <strong style="color:var(--white);">New Request</strong> to get started.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ── MY REQUESTS ───────────────────────── -->
+            <div class="tab-panel" id="tab-requests">
+                <div class="section-head">
+                    <div>
+                        <h2>My Verification Requests</h2>
+                        <p>All submitted verification orders</p>
+                    </div>
+                    <button class="btn-new-request" onclick="openModal()">+ New Request</button>
+                </div>
+
+                <div class="table-wrap">
+                    <table class="vm-table">
+                        <thead>
+                            <tr>
+                                <th>Verification Service</th>
+                                <th>Date Submitted</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for check in checks %}
+                            <tr>
+                                <td class="td-bold">{{ check.type }}</td>
+                                <td class="td-mono">{{ check.date }}</td>
+                                <td>
+                                    {% if check.status == 'Cleared' %}
+                                        <span class="status-pill pill-cleared">Cleared</span>
+                                    {% elif check.status == 'Pending' %}
+                                        <span class="status-pill pill-pending">Pending</span>
+                                    {% elif check.status == 'Flagged' %}
+                                        <span class="status-pill pill-flagged">Flagged</span>
+                                    {% else %}
+                                        <span class="status-pill pill-review">{{ check.status }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="3" style="text-align:center;padding:3rem;color:var(--muted);font-size:0.88rem;">
+                                    No requests submitted yet.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ── SERVICES ──────────────────────────── -->
+            <div class="tab-panel" id="tab-services">
+                <div class="section-head">
+                    <div><h2>Verification Services</h2><p>Select a service to submit a new request</p></div>
+                </div>
+                <div class="service-grid">
+                    <div class="service-card" onclick="openModal()">
+                        <svg class="service-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                        <div class="service-name">Identity Verification & Validation</div>
+                        <div class="service-desc">Document authentication and biometric checks across digital and physical spaces.</div>
+                        <div class="service-price">R450 per verification</div>
+                    </div>
+                    <div class="service-card" onclick="openModal()">
+                        <svg class="service-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 14l9-5-9-5-9 5 9 5z"/><path d="M12 14v7"/><path d="M22.5 10v6M1.5 10v6"/></svg>
+                        <div class="service-name">Criminal Record & Background Check</div>
+                        <div class="service-desc">National and international criminal record searches including global watchlists.</div>
+                        <div class="service-price">R550 per verification</div>
+                    </div>
+                    <div class="service-card" onclick="openModal()">
+                        <svg class="service-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                        <div class="service-name">Credit & Financial Check</div>
+                        <div class="service-desc">Credit reports and financial history checks for roles requiring financial responsibility.</div>
+                        <div class="service-price">R380 per verification</div>
+                    </div>
+                    <div class="service-card" onclick="openModal()">
+                        <svg class="service-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                        <div class="service-name">Professional License Verification</div>
+                        <div class="service-desc">Verify that your professional licenses and certifications are valid and up-to-date.</div>
+                        <div class="service-price">R320 per verification</div>
+                    </div>
+                    <div class="service-card" onclick="openModal()">
+                        <svg class="service-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                        <div class="service-name">Global Compliance Screening</div>
+                        <div class="service-desc">Sanctions, PEP and AML database screening for international compliance.</div>
+                        <div class="service-price">R620 per verification</div>
+                    </div>
+                    <div class="service-card" onclick="openModal()">
+                        <svg class="service-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                        <div class="service-name">Social Media & Digital Footprint</div>
+                        <div class="service-desc">Reputational screening through digital footprint and public profile analysis.</div>
+                        <div class="service-price">R280 per verification</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── PROFILE ───────────────────────────── -->
+            <div class="tab-panel" id="tab-profile">
+                <div class="section-head">
+                    <div><h2>My Profile</h2><p>Your registered account details</p></div>
+                </div>
+                <div class="profile-card">
+                    <h3>Personal Information</h3>
+                    <div class="profile-field">
+                        <label>Full Name</label>
+                        <span>{{ session.get('display_name', '—') }}</span>
+                    </div>
+                    <div class="profile-field">
+                        <label>Email Address</label>
+                        <span>{{ session.get('user_email', '—') }}</span>
+                    </div>
+                    <div class="profile-field">
+                        <label>Account Type</label>
+                        <span>Individual</span>
+                    </div>
+                    <div class="profile-field">
+                        <label>Account Reference</label>
+                        <span style="font-family:var(--mono);color:var(--lime);">VM-IND-{{ session.get('user_id', '—') }}</span>
+                    </div>
+                </div>
+            </div>
+
+        </div><!-- /db-content -->
+    </div><!-- /db-main -->
+</div><!-- /db-root -->
+
+
+<div class="modal-backdrop" id="requestModal">
+    <div class="modal-box">
+
+        <div class="wizard-progress-bar">
+            <div class="wizard-progress-fill" id="wizard-progress" style="width:33.3%"></div>
+        </div>
+
+        <div class="modal-head">
+            <h3 id="modal-step-title">New Verification Request (Step 1/3)</h3>
+            <button class="modal-close" onclick="closeModal()">×</button>
+        </div>
+
+        <div class="modal-body">
+            <form id="verificationForm" action="{{ url_for('submit_individual_verification') }}" method="POST" enctype="multipart/form-data">
+
+                <div class="modal-step active" id="mstep-1">
+                    <p style="font-size:0.82rem;color:var(--muted);margin-bottom:1.25rem;line-height:1.6;">
+                        Select <strong style="color:var(--white);">one service</strong> for this request. Each verification is processed as a separate order.
+                    </p>
+
+                    <div class="mform-group">
+                        <label>Verification Service</label>
+                        <select id="verification_type" name="verification_type" onchange="onServiceChange()">
+                            <option value="Identity Verification &amp; Validation" data-price="450">Identity Verification &amp; Validation — R450</option>
+                            <option value="Criminal Record &amp; Background Check" data-price="550">Criminal Record &amp; Background Check — R550</option>
+                            <option value="Credit &amp; Financial Check" data-price="380">Credit &amp; Financial Check — R380</option>
+                            <option value="Professional License Verification" data-price="320">Professional License Verification — R320</option>
+                            <option value="Global Compliance Screening" data-price="620">Global Compliance Screening — R620</option>
+                            <option value="Social Media &amp; Digital Footprint" data-price="280">Social Media &amp; Digital Footprint — R280</option>
+                        </select>
+                    </div>
+
+                    <div id="criminal-notice" class="notice-box" style="display:none;">
+                        <strong>⚠ Biometric Notice:</strong> Criminal record checks require fingerprint verification.
+                        After submitting you will receive instructions to visit your nearest <strong>PostNet</strong> branch or a VerifyMe office for fingerprinting.
+                    </div>
+                </div> 
+
+
+                <div class="modal-step" id="mstep-2">
+                    <p style="font-size:0.82rem;color:var(--muted);margin-bottom:1rem;line-height:1.6;">
+                        Upload the required documents for <strong style="color:var(--white);" id="step2-service-label">your selected service</strong>.
+                    </p>
+
+                    <div class="mform-group">
+                        <label>Upload Documents (ID, Certificate, License etc.)</label>
+                        <div class="upload-zone" onclick="document.getElementById('doc-files').click()">
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:var(--lime);margin:0 auto;display:block;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                            <p id="doc-label">Click to upload your documents</p>
+                            <small>PDF, JPG or PNG · Max 5MB each · Multiple files allowed</small>
+                            <input type="file" id="doc-files" name="documents" accept=".pdf,.jpg,.jpeg,.png" multiple onchange="onDocUpload(this)">
+                        </div>
+                    </div>
+                </div> 
+
+
+                <div class="modal-step" id="mstep-3">
+                    <div class="payment-box">
+                        <div class="payment-box-title">Order Summary</div>
+                        <div class="payment-row"><span>Service</span><span id="pay-service">—</span></div>
+                        <div class="payment-row payment-total-row"><span style="font-weight:700;color:var(--white);">Total Due</span><span id="pay-total">—</span></div>
+                    </div>
+
+                    <div class="mform-group" style="margin-top:1.5rem; margin-bottom:1.5rem;">
+                        <label style="color:var(--white); font-weight:600; margin-bottom:0.75rem; display:block;">Select Payment Avenue</label>
+                        
+                        <div style="margin-bottom: 0.5rem;">
+                            <input type="radio" name="payment_method" value="card" id="pay_card" checked onchange="togglePaymentPanels('gateway')">
+                            <label for="pay_card" style="display:inline; font-weight:normal; cursor:pointer;">
+                                <strong>Credit / Debit Card</strong> (Instant processing)
+                            </label>
+                        </div>
+
+                        <div style="margin-bottom: 0.5rem;">
+                            <input type="radio" name="payment_method" value="instant_eft" id="pay_ieft" onchange="togglePaymentPanels('gateway')">
+                            <label for="pay_ieft" style="display:inline; font-weight:normal; cursor:pointer;">
+                                <strong>Secure Instant EFT</strong> (PayFast Gateway)
+                            </label>
+                        </div>
+
+                        <div style="margin-bottom: 0.5rem;">
+                            <input type="radio" name="payment_method" value="manual_eft" id="pay_meft" onchange="togglePaymentPanels('manual')">
+                            <label for="pay_meft" style="display:inline; font-weight:normal; cursor:pointer;">
+                                <strong>Traditional Manual EFT</strong> (Requires POP Upload)
+                            </label>
+                        </div>
+                    </div>
+
+                    <div id="panel-gateway-notice" class="notice-box" style="background: rgba(0,255,128,0.05); border-color: var(--lime);">
+                        ℹ️ Clicking submit will securely route you to our encrypted payment gateway to authorize the transaction deduction instantly.
+                    </div>
+
+                    <div id="panel-manual-eft" style="display:none;">
+                        <div class="payment-box">
+                            <div class="payment-box-title">EFT Payment Details</div>
+                            <div class="payment-row"><span>Bank</span><span>First National Bank</span></div>
+                            <div class="payment-row"><span>Account Name</span><span>InspHired Recruitment Solutions</span></div>
+                            <div class="payment-row"><span>Account Number</span><span>62910488219</span></div>
+                            <div class="payment-row"><span>Branch Code</span><span>250655</span></div>
+                            <div class="payment-row"><span>Reference</span><span id="pay-reference" style="color:var(--lime);">{{ session.get('user_email','') }}</span></div>
+                        </div>
+
+                        <div class="mform-group">
+                            <label>Upload Proof of Payment *</label>
+                            <div class="upload-zone" onclick="document.getElementById('pop-upload').click()">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:var(--lime);margin:0 auto;display:block;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                                <p id="pop-label">Click to upload proof of payment</p>
+                                <small>PDF, JPG or PNG · Max 5MB</small>
+                                <input type="file" id="pop-upload" name="proof_of_payment" accept=".pdf,.jpg,.jpeg,.png">
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" id="submit-btn" style="display:none;">Hidden Submit Trigger</button>
+                </div> 
+
+                <div class="modal-footer" id="modal-footer" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; padding-top: 15px; border-top: 1px solid var(--border-color, #333);">
+                    <button type="button" class="btn-secondary" id="btn-back" onclick="modalBack()" style="display: none;">← Back</button>
+                    <button type="button" class="btn-primary" id="btn-next" onclick="modalNext()">Continue →</button>
+                </div>
+
+            </form>
         </div>
     </div>
 </div>
 
-<div id="wizardModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(5px);">
-    <div style="background: #1a1d1b; width: 550px; max-height: 90vh; overflow-y: auto; border-radius: 12px; border: 1px solid rgba(227, 231, 228, 0.1); padding: 2rem; position: relative; box-shadow: 0 20px 40px rgba(0,0,0,0.5);">
-        
-        <h2 style="color: #ffffff; margin-top: 0; font-weight: 600; font-size: 1.4rem; letter-spacing: -0.3px;">New Verification Request</h2>
-        <p style="color: #8a948f; font-size: 0.9rem; margin-top: -0.5rem; margin-bottom: 1.75rem;">Follow the flow to load credentials into your verification queue pipeline.</p>
-        
-        <form action="{{ url_for('submit_individual_verification') }}" method="POST" enctype="multipart/form-data">
-            
-            <div class="form-group" style="margin-bottom: 1.5rem;">
-                <label style="color: #ffffff; display: block; margin-bottom: 0.5rem; font-size: 0.9rem; font-weight: 500;">Select Verification Metric</label>
-                <select id="verification_type" name="verification_type" onchange="updateDynamicPricing()" style="width: 100%; background: #222623; border: 1px solid rgba(227, 231, 228, 0.1); padding: 0.75rem; border-radius: 6px; color: #ffffff; font-size: 0.95rem; outline: none; focus: border-color: #4eb637;" required>
-                    <option value="National ID Card Audit">National ID Card Verification</option>
-                    <option value="Tertiary Qualification Audit">Tertiary Qualification Audit</option>
-                    <option value="Driver's License Authenticity Check">Driver's License Check</option>
-                </select>
-            </div>
-
-            <div class="form-group" style="margin-bottom: 1.5rem;">
-                <label style="color: #ffffff; display: block; margin-bottom: 0.5rem; font-size: 0.9rem; font-weight: 500;">Upload Documents / Certificates</label>
-                <div id="file-input-container">
-                    <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
-                        <input type="file" name="documents" style="background: #222623; color: #8a948f; flex: 1; padding: 0.5rem; border-radius: 6px; border: 1px solid rgba(227, 231, 228, 0.1); font-size: 0.85rem;" required>
-                    </div>
-                </div>
-                <button type="button" onclick="addFileSlot()" style="background: transparent; color: #4eb637; border: 1px dashed rgba(78, 182, 55, 0.4); padding: 0.6rem; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.85rem; width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; transition: background 0.2s;" onmouseover="this.style.background='rgba(78, 182, 55, 0.05)'" onmouseout="this.style.background='transparent'">
-                    <i class="fa fa-plus"></i> Add Another Document Page (e.g., Back of ID Card)
-                </button>
-            </div>
-
-            <div style="background: rgba(78, 182, 55, 0.04); border: 1px solid rgba(78, 182, 55, 0.15); padding: 1.25rem; border-radius: 8px; margin-bottom: 1.5rem;">
-                <h4 style="color: #4eb637; margin: 0 0 0.5rem 0; font-size: 0.95rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem;"><i class="fa fa-university"></i> Verification Pricing Settlement</h4>
-                <p style="color: #8a948f; font-size: 0.8rem; margin: 0 0 0.75rem 0; line-height: 1.45;">
-                    Please complete processing fees using the account layout below. Use your registered login email address as your tracking reference descriptor.
-                </p>
-                <div style="font-family: monospace; font-size: 0.85rem; color: #e3e7e4; background: #121413; padding: 0.75rem; border-radius: 4px; line-height: 1.6; border: 1px solid rgba(227, 231, 228, 0.03);">
-                    Bank: FNB Corporate<br>
-                    Acc Number: 62901122334<br>
-                    Branch Code: 250655<br>
-                    Fee Matrix: <span id="pricing-tier-name" style="color: #ffffff; font-weight: bold;">National ID Card Verification</span><br>
-                    Amount Due: <span id="pricing-tier-amount" style="color: #4eb637; font-weight: bold; font-size: 1rem;">R120.00</span>
-                </div>
-            </div>
-
-            <div class="form-group" style="margin-bottom: 2rem;">
-                <label style="color: #ffffff; display: block; margin-bottom: 0.5rem; font-size: 0.9rem; font-weight: 500;">Upload Proof of Payment (POP)</label>
-                <input type="file" name="proof_of_payment" style="width: 100%; background: #222623; color: #8a948f; padding: 0.5rem; border-radius: 6px; border: 1px solid rgba(227, 231, 228, 0.1); font-size: 0.85rem;" required>
-            </div>
-
-            <div style="display: flex; justify-content: flex-end; gap: 1rem; border-top: 1px solid rgba(227, 231, 228, 0.05); padding-top: 1.25rem;">
-                <button type="button" onclick="closeVerificationModal()" style="background: transparent; color: #8a948f; border: 1px solid rgba(227, 231, 228, 0.1); padding: 0.75rem 1.2rem; border-radius: 6px; cursor: pointer; font-weight: 500; transition: color 0.2s;" onmouseover="this.style.color='#ffffff'" onmouseout="this.style.color='#8a948f'">Cancel</button>
-                <button type="submit" style="background: #4eb637; color: #ffffff; border: none; padding: 0.75rem 1.5rem; border-radius: 6px; font-weight: 600; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.backgroundColor='#429b2f'" onmouseout="this.style.backgroundColor='#4eb637'">Submit Request</button>
-            </div>
-        </form>
-    </div>
-</div>
 
 <script>
-    const feeMatrix = {
-        "National ID Card Audit": { name: "National ID Card Verification", price: "R120.00" },
-        "Tertiary Qualification Audit": { name: "Tertiary Qualification Audit", price: "R250.00" },
-        "Driver's License Authenticity Check": { name: "Driver's License Check", price: "R180.00" }
-    };
+let currentStep = 1;
 
-    function updateDynamicPricing() {
-        const selectedValue = document.getElementById('verification_type').value;
-        const tierData = feeMatrix[selectedValue];
+const prices = {
+    'Identity Verification & Validation': 450,
+    'Criminal Record & Background Check':  550,
+    'Credit & Financial Check':            380,
+    'Professional License Verification':   320,
+    'Global Compliance Screening':         620,
+    'Social Media & Digital Footprint':    280
+};
 
-        if (tierData) {
-            document.getElementById('pricing-tier-name').innerText = tierData.name;
-            document.getElementById('pricing-tier-amount').innerText = tierData.price;
+// ── SIDEBAR ──────────────────────────────────────────────
+function openSidebar()  { document.getElementById('dbSidebar').classList.add('open'); document.getElementById('sidebarOverlay').classList.add('open'); }
+function closeSidebar() { document.getElementById('dbSidebar').classList.remove('open'); document.getElementById('sidebarOverlay').classList.remove('open'); }
+
+// ── TABS ─────────────────────────────────────────────────
+function switchTab(name, btn) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    if (btn) btn.classList.add('active');
+    const titles = { overview:'Overview', requests:'My Requests', services:'Our Services', profile:'My Profile' };
+    document.getElementById('topbarTitle').textContent = titles[name] || name;
+    closeSidebar();
+}
+
+// ── SERVICE CHANGE ────────────────────────────────────────
+function onServiceChange() {
+    const val        = document.getElementById('verification_type').value;
+    const isCriminal = val.toLowerCase().includes('criminal');
+    document.getElementById('criminal-notice').style.display = isCriminal ? 'block' : 'none';
+    const step2Label = document.getElementById('step2-service-label');
+    if (step2Label) step2Label.textContent = val;
+}
+
+// ── MODAL ─────────────────────────────────────────────────
+function openModal() {
+    currentStep = 1;
+    renderStep();
+    document.getElementById('requestModal').classList.add('open');
+    onServiceChange();
+}
+
+function closeModal() { document.getElementById('requestModal').classList.remove('open'); }
+
+function renderStep() {
+    document.querySelectorAll('.modal-step').forEach(s => s.classList.remove('active'));
+    document.getElementById('mstep-' + currentStep).classList.add('active');
+
+    const pct = { 1: '33.3%', 2: '66.6%', 3: '100%' };
+    document.getElementById('wizard-progress').style.width    = pct[currentStep];
+    document.getElementById('modal-step-title').textContent   = `New Verification Request (Step ${currentStep}/3)`;
+
+    document.getElementById('btn-back').style.display   = currentStep > 1 ? 'block' : 'none';
+    document.getElementById('btn-next').style.display   = 'block';
+    document.getElementById('btn-next').textContent     = currentStep === 3 ? 'Submit Request →' : 'Continue →';
+    document.getElementById('modal-footer').style.display = 'flex';
+}
+
+function modalNext() {
+    if (currentStep === 1) {
+        onServiceChange();
+    }
+
+    if (currentStep === 2) {
+        const docs = document.getElementById('doc-files').files;
+        if (!docs.length) { alert('Please upload at least one document before continuing.'); return; }
+        buildPaymentSummary();
+    }
+
+    if (currentStep === 3) {
+        // Evaluate chosen payment avenue
+        const selectedMethod = document.querySelector('input[name="payment_method"]:checked').value;
+        
+        if (selectedMethod === 'manual_eft') {
+            const pop = document.getElementById('pop-upload').files[0];
+            if (!pop) { alert('Please upload your manual bank proof of payment transfer receipt before submitting.'); return; }
         }
+        
+        // Triggers the form submission event cleanly
+        document.getElementById('submit-btn').click();
+        return;
     }
 
-    function openVerificationModal() {
-        document.getElementById('wizardModal').style.display = 'flex';
-        updateDynamicPricing();
-    }
-    
-    function closeVerificationModal() {
-        document.getElementById('wizardModal').style.display = 'none';
-    }
+    currentStep++;
+    renderStep();
+}
 
-    function addFileSlot() {
-        const container = document.getElementById('file-input-container');
-        const newSlot = document.createElement('div');
-        newSlot.style.display = 'flex';
-        newSlot.style.gap = '0.5rem';
-        newSlot.style.marginBottom = '0.5rem';
-        newSlot.innerHTML = `
-            <input type="file" name="documents" style="background: #222623; color: #8a948f; flex: 1; padding: 0.5rem; border-radius: 6px; border: 1px solid rgba(227, 231, 228, 0.1); font-size: 0.85rem;" required>
-            <button type="button" onclick="this.parentElement.remove()" style="background: rgba(220,53,69,0.15); color: #ff6b6b; border: 1px solid rgba(220,53,69,0.3); padding: 0.5rem 0.75rem; border-radius: 6px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='rgba(220,53,69,0.3)'" onmouseout="this.style.background='rgba(220,53,69,0.15)'"><i class="fa fa-trash"></i></button>
-        `;
-        container.appendChild(newSlot);
+function modalBack() { if (currentStep > 1) { currentStep--; renderStep(); } }
+
+// ── UPLOAD LABELS ─────────────────────────────────────────
+function onDocUpload(input) {
+    const count = input.files.length;
+    document.getElementById('doc-label').textContent = count > 0
+        ? `✓ ${count} file${count > 1 ? 's' : ''} selected`
+        : 'Click to upload your documents';
+}
+
+function onPopUpload(input) {
+    if (input.files[0]) {
+        document.getElementById('pop-label').textContent = `✓ ${input.files[0].name}`;
     }
+}
+
+// ── PAYMENT SUMMARY ───────────────────────────────────────
+function buildPaymentSummary() {
+    const val   = document.getElementById('verification_type').value;
+    const price = prices[val] || 0;
+    document.getElementById('pay-service').textContent = val;
+    document.getElementById('pay-total').textContent   = `R${price}`;
+}
+
+// ── SEGREGATED SETTLEMENT ROUTING MODULES ─────────────────
+function togglePaymentPanels(target) {
+    const gatewayNotice = document.getElementById('panel-gateway-notice');
+    const manualPanel = document.getElementById('panel-manual-eft');
+
+    if (target === 'gateway') {
+        gatewayNotice.style.display = 'block';
+        manualPanel.style.display = 'none';
+    } else {
+        gatewayNotice.style.display = 'none';
+        manualPanel.style.display = 'block';
+    }
+}
+
+// ── CLOSE ON BACKDROP ─────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('requestModal').addEventListener('click', function(e) {
+        if (e.target === this) closeModal();
+    });
+});
 </script>
 {% endblock %}

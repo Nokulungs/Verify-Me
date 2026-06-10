@@ -34,7 +34,7 @@ def init_db():
             )
         ''')
         
-        # 2. Corporate Screenings Pipeline Table (Updated for Name + Email Bulk Entry Strategy)
+        # 2. Corporate Screenings Pipeline Table
         conn.execute('''
             CREATE TABLE IF NOT EXISTS screenings (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -61,7 +61,7 @@ def init_db():
         ''')
         conn.commit()
 
-# Always safe to run on startup. SQLite handles tables gracefully if they already exist.
+# Always safe to run on startup.
 init_db()
 
 
@@ -160,7 +160,6 @@ def dashboard_corporate():
         flash('Access denied. Corporate clearance required.', 'error')
         return redirect(url_for('login'))
 
-    # Query real candidate rows belonging strictly to this corporate entity
     with get_db_connection() as conn:
         candidates = conn.execute('''
             SELECT id,
@@ -183,51 +182,38 @@ def initiate_screening():
         return redirect(url_for('login'))
 
     screening_type = request.form.get('screening_type')
-    candidate_count = request.form.get('candidate_count')
-
-    # File and Verification checking validation routines
+    
     if 'candidate_csv' not in request.files or 'pop_receipt' not in request.files:
-        flash('All screening profile metrics are required. Please upload both candidate registry and proof of payment files.', 'error')
+        flash('All screening profile metrics are required.', 'error')
         return redirect(url_for('dashboard_corporate'))
 
     csv_file = request.files['candidate_csv']
     pop_file = request.files['pop_receipt']
 
     if csv_file.filename == '' or pop_file.filename == '':
-        flash('All screening profile metrics are required. Invalid file options chosen.', 'error')
+        flash('All screening profile metrics are required. Invalid file options.', 'error')
         return redirect(url_for('dashboard_corporate'))
 
     try:
-        # 1. Read file bytes directly out of memory stream
         file_bytes = csv_file.read()
-        
-        # 'utf-8-sig' cleanly unmasks hidden BOM headers added by tools like MS Excel
         file_data = file_bytes.decode("utf-8-sig")
         
-        # 2. Dynamic Delimiter Evaluation Matrix
         try:
-            # Inspect sample boundary to auto-discover standard commas or regional semicolons (;)
             dialect = csv.Sniffer().sniff(file_data[:2048], delimiters=',;\t|')
             detected_delimiter = dialect.delimiter
         except Exception:
-            detected_delimiter = ','  # Defensible standard fallback execution
+            detected_delimiter = ','
 
-        # 3. Stream data loop iterations
         csv_input = csv.reader(io.StringIO(file_data), delimiter=detected_delimiter)
-        
-        # Pull or skip file table headers securely (e.g. Name,Email)
         header = next(csv_input, None)
         
         inserted_count = 0
-
         with get_db_connection() as conn:
             for row in csv_input:
                 if not row or len(row) < 2:
-                    continue  # Protect database from clean formatting rows or trace gaps
-                
+                    continue
                 c_name = row[0].strip()
                 c_email = row[1].strip()
-
                 if not c_name or not c_email:
                     continue
 
@@ -236,13 +222,11 @@ def initiate_screening():
                     VALUES (?, ?, ?, ?, 'Pending Input')
                 ''', (session['user_id'], c_name, c_email, screening_type))
                 inserted_count += 1
-            
             conn.commit()
 
-        flash(f'Successfully initialized tracking. Staged {inserted_count} batch candidates onto pipeline matrix.', 'success')
-        
+        flash(f'Successfully staged {inserted_count} batch candidates onto pipeline matrix.', 'success')
     except Exception as e:
-        flash(f'Bulk operation failed. Integrity checks details: {str(e)}', 'error')
+        flash(f'Bulk operation failed: {str(e)}', 'error')
 
     return redirect(url_for('dashboard_corporate'))
 
@@ -262,8 +246,11 @@ def dashboard_individual():
             WHERE user_id = ? 
             ORDER BY created_at DESC
         ''', (session['user_id'],)).fetchall()
+        
+        # Pull extra user metrics for the profile panel tab view directly inside dashboard context
+        user_profile = conn.execute('SELECT email, individual_name, individual_id, created_at FROM users WHERE id = ?', (session['user_id'],)).fetchone()
 
-    return render_template('dashboard_individual.html', checks=checks, hide_navbar=True, hide_footer=True)
+    return render_template('dashboard_individual.html', checks=checks, user_profile=user_profile, hide_navbar=True, hide_footer=True)
 
 
 @app.route('/submit-individual-verification', methods=['POST'])

@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+{% set hide_navbar = True %}
+
+{% block head %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}?v=2.2">
+<style>
+    .services-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1.5rem;
+        margin-top: 1.5rem;
+    }
+    .service-card {
+        background: #1f2521;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 8px;
+        padding: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        transition: border-color 0.2s;
+    }
+    .service-card:hover {
+        border-color: #00ffd1;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <aside class="dashboard-sidebar" style="display: flex; flex-direction: column; justify-content: space-between; height: 100vh;">
+        <div>
+            <div class="sidebar-brand" style="margin-bottom: 2.5rem;">
+                <span class="matrix-tag" style="display: flex; align-items: center; gap: 0.75rem; font-size: 1.15rem;">
+                    <img src="{{ url_for('static', filename='images/VM_Icon.png') }}" alt="VM" style="height: 32px; width: auto;">
+                    VerifyMe
+                </span>
+            </div>
+            <nav class="sidebar-menu">
+
+                <a href="{{ url_for('services') }}" class="menu-item active">
+                    <i class="fa-solid fa-shield-halved menu-icon"></i> Our Services
+                </a>
+                <a href="{{ url_for('profile') }}" class="menu-item">
+                    <i class="fa-solid fa-user menu-icon"></i> My Profile
+                </a>
+                <a href="{{ url_for('settings') }}" class="menu-item">
+                    <i class="fa-solid fa-gear menu-icon"></i> Settings
+                </a>
+            </nav>
+        </div>
+        <div class="sidebar-footer" style="padding: 1.25rem; border-top: 1px solid rgba(255,255,255,0.05);">
+            <a href="{{ url_for('logout') }}" class="menu-item logout-btn" style="color: #ff4a4a; text-decoration: none; display: flex; align-items: center; gap: 0.75rem;">
+                <i class="fa-solid fa-right-from-bracket"></i> Logout
+            </a>
+        </div>
+    </aside>
+
+    <main class="dashboard-main">
+        <header class="workspace-header">
+            <h1 style="margin: 0; font-size: 1.75rem;">Verification Services</h1>
+            <p class="subtitle" style="margin: 0.25rem 0 0 0; color: #a3a3a3;">Run verification credentials directly on your own profile to build your digital trust score.</p>
+        </header>
+
+        <div class="services-grid">
+            <div class="service-card">
+                <div>
+                    <h3 style="color:#fff; margin:0 0 0.5rem 0;"><i class="fa-solid fa-id-card text-cyan"></i> Identity Check</h3>
+                    <p style="color:#a3a3a3; font-size:0.85rem; margin:0;">Cross-references your details with the Home Affairs registry to issue an official identity verification token.</p>
+                </div>
+                <button class="btn-action-cyan" style="width:100%; justify-content:center; margin-top:1.5rem;" onclick="alert('Initiating Personal Identity Check...')">
+                    Request Check (R85.00)
+                </button>
+            </div>
+
+            <div class="service-card">
+                <div>
+                    <h3 style="color:#fff; margin:0 0 0.5rem 0;"><i class="fa-solid fa-graduation-cap text-cyan"></i> Qualification Audit</h3>
+                    <p style="color:#a3a3a3; font-size:0.85rem; margin:0;">Validates matric certificates, diplomas, or degrees against national tertiary enrollment databases.</p>
+                </div>
+                <button class="btn-action-cyan" style="width:100%; justify-content:center; margin-top:1.5rem;" onclick="alert('Initiating Qualification Check...')">
+                    Request Check (R195.00)
+                </button>
+            </div>
+
+            <div class="service-card">
+                <div>
+                    <h3 style="color:#fff; margin:0 0 0.5rem 0;"><i class="fa-solid fa-fingerprint text-cyan"></i> Criminal Record Clearance</h3>
+                    <p style="color:#a3a3a3; font-size:0.85rem; margin:0;">Generates an digital booking pass for biometric fingerprint capture at your closest partner branch.</p>
+                </div>
+                <button class="btn-action-cyan" style="width:100%; justify-content:center; margin-top:1.5rem;" onclick="alert('Initiating Criminal Background Check...')">
+                    Request Check (R250.00)
+                </button>
+            </div>
+        </div>
+    </main>
+</div>
+{% endblock %}
