@@ -2,34 +2,71 @@ import os
 import sqlite3
 import csv
 import io
-from flask import Flask, render_template, request, redirect, url_for, flash, session
+import urllib.parse
+import hashlib
+from datetime import datetime
+from functools import wraps
+from flask import Flask, render_template, request, redirect, url_for, flash, session, abort, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
+from dotenv import load_dotenv
+
+# Initialize Environmental Context
+load_dotenv()
+
+class Config:
+    """Core Application Configurations."""
+    SECRET_KEY = os.environ.get('SECRET_KEY', 'super_secure_verifyme_key')
+    BASE_URL = os.environ.get('BASE_URL')
+    
+    # PayFast API Binding Configurations
+    PAYFAST_MERCHANT_ID = os.environ.get('PAYFAST_MERCHANT_ID', '10050117')
+    PAYFAST_MERCHANT_KEY = os.environ.get('PAYFAST_MERCHANT_KEY', 'muy2vlzbld3vi')
+    PAYFAST_PASSPHRASE = os.environ.get('PAYFAST_PASSPHRASE')
+    PAYFAST_POST_URL = os.environ.get('PAYFAST_POST_URL', 'https://sandbox.payfast.co.za/eng/process')
 
 app = Flask(__name__)
-app.secret_key = 'super_secure_verifyme_key'
+app.config.from_object(Config)
+
 DATABASE = 'verifyme.db'
+
+# --- FILE CAPTURE CONFIGURATIONS ---
+UPLOAD_FOLDER = os.path.join('static', 'uploads', 'receipts')
+DOCS_FOLDER = os.path.join('static', 'uploads', 'credentials')
+ALLOWED_EXTENSIONS = {'pdf', 'png', 'jpg', 'jpeg'}
+
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['DOCS_FOLDER'] = DOCS_FOLDER
+
+# Ensure target server storage paths exist safely
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+os.makedirs(DOCS_FOLDER, exist_ok=True)
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
 
 # --- DATABASE MANAGEMENT ARCHITECTURE ---
 
 def get_db_connection():
     conn = sqlite3.connect(DATABASE)
-    conn.row_factory = sqlite3.Row  # Returns query rows as clean dictionary structures
+    conn.row_factory = sqlite3.Row  
     return conn
 
 def init_db():
     """Initializes the verification data vault structures inside SQLite."""
     with get_db_connection() as conn:
-        # 1. Main Accounts Ledger (Handles both corporate and individual profiles)
+        # 1. Main Accounts Ledger
         conn.execute('''
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 email TEXT UNIQUE NOT NULL,
                 password_hash TEXT NOT NULL,
-                applicant_type TEXT NOT NULL,       -- 'individual' or 'company'
-                individual_name TEXT,               -- Nullable if corporate
-                individual_id TEXT,                 -- Nullable if corporate
-                company_name TEXT,                  -- Nullable if individual
-                company_contact TEXT,               -- Nullable if individual
+                applicant_type TEXT NOT NULL,       -- 'individual', 'company', or 'admin'
+                individual_name TEXT,              
+                individual_id TEXT,                
+                company_name TEXT,                  
+                company_contact TEXT,              
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
@@ -38,11 +75,18 @@ def init_db():
         conn.execute('''
             CREATE TABLE IF NOT EXISTS screenings (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,            -- Links to the corporate creator
+                user_id INTEGER NOT NULL,            
                 candidate_name TEXT NOT NULL,
-                candidate_email TEXT NOT NULL,       -- Captured from bulk registry CSV upload
-                screening_type TEXT NOT NULL,        -- 'Identity Verification', 'Academic Credentials Audit', etc.
-                status TEXT DEFAULT 'Pending Input', -- Default waiting state for candidate forms
+                candidate_email TEXT NOT NULL,       
+                screening_type TEXT NOT NULL,        
+                status TEXT DEFAULT 'Awaiting Payment', 
+                payment_method TEXT,                 -- 'card', 'instant_eft', 'manual_eft'
+                payment_status TEXT DEFAULT 'Pending',-- 'Pending', 'Completed', 'Failed'
+                payment_ref TEXT,                    
+                pop_file_path TEXT,                  
+                id_file_path TEXT,                   
+                qualification_file_path TEXT,        
+                rejection_reason TEXT,               
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users (id)
             )
@@ -52,17 +96,88 @@ def init_db():
         conn.execute('''
             CREATE TABLE IF NOT EXISTS individual_audits (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,            -- Links to individual applicant
-                verification_type TEXT NOT NULL,     -- 'National ID Card Audit', 'Tertiary Qualification Audit'
-                status TEXT DEFAULT 'Pending',       -- 'Pending', 'Cleared', etc.
+                user_id INTEGER NOT NULL,            
+                verification_type TEXT NOT NULL,     
+                status TEXT DEFAULT 'Awaiting Payment', 
+                payment_method TEXT DEFAULT 'manual_eft',
+                payment_status TEXT DEFAULT 'Pending',
+                payment_ref TEXT,                    
+                pop_file_path TEXT,                  
+                id_file_path TEXT,                   
+                qualification_file_path TEXT,        
+                rejection_reason TEXT,               
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users (id)
             )
         ''')
         conn.commit()
 
-# Always safe to run on startup.
+        # Seed initial system administrator safely if slot is unoccupied
+        try:
+            admin_check = conn.execute("SELECT 1 FROM users WHERE applicant_type = 'admin'").fetchone()
+            if not admin_check:
+                hashed_admin_pass = generate_password_hash("adminsecret", method='pbkdf2:sha256')
+                conn.execute('''
+                    INSERT INTO users (email, password_hash, applicant_type, individual_name)
+                    VALUES (?, ?, ?, ?)
+                ''', ('admin@insphiredops.co.za', 'adminsecret', 'admin', 'SecOps Specialist'))
+                conn.commit()
+        except sqlite3.Error:
+            pass
+
 init_db()
+
+
+# --- DECORATOR INTERCEPT FOR SECURE ROLE ACCESS ---
+def role_required(allowed_roles):
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            if 'user_id' not in session:
+                flash("Authentication required. Access checkpoint blocked.", "error")
+                return redirect(url_for('login'))
+            if session.get('applicant_type') not in allowed_roles:
+                abort(403) 
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
+
+
+# --- SYSTEM COST EVALUATION CALCULATORS ---
+def calculate_batch_cost(screening_type, volume):
+    price_map = {
+        "Identity Verification": 85.00,
+        "Academic Credentials Audit": 195.00,
+        "Criminal Record Audit": 250.00,
+        "Full Premium Screening": 450.00
+    }
+    return price_map.get(screening_type, 85.00) * volume
+
+def calculate_individual_cost(verification_type):
+    individual_prices = {
+        'Identity Verification & Validation': 450.00,
+        'Criminal Record & Background Check': 550.00,
+        'Credit & Financial Check': 380.00,
+        'Professional License Verification': 320.00,
+        'Global Compliance Screening': 620.00,
+        'Social Media & Digital Footprint': 280.00
+    }
+    return individual_prices.get(verification_type, 450.00)
+
+
+# --- PAYFAST CORE SIGNATURE UTILITY ENGINE ---
+def generate_payfast_signature(data, passphrase=None):
+    """Correct PayFast MD5 signature — values MUST be URL-encoded."""
+    param_string = '&'.join(
+        f'{k}={urllib.parse.quote_plus(str(v).strip())}'
+        for k, v in sorted(data.items())
+        if str(v).strip() != '' and k != 'signature'
+    )
+
+    if passphrase and str(passphrase).strip():
+        param_string += f'&passphrase={urllib.parse.quote_plus(str(passphrase).strip())}'
+
+    return hashlib.md5(param_string.encode('utf-8')).hexdigest()
 
 
 # --- PUBLIC & AUTH ROUTING CHANNELS ---
@@ -77,7 +192,7 @@ def register():
     if request.method == 'POST':
         email = request.form.get('email').strip().lower()
         password = request.form.get('password')
-        applicant_type = request.form.get('applicant_type')  # 'individual' or 'company'
+        applicant_type = request.form.get('applicant_type') 
 
         individual_name = request.form.get('individual_name')
         individual_id = request.form.get('individual_id')
@@ -85,16 +200,14 @@ def register():
         company_contact = request.form.get('company_contact')
 
         if applicant_type == 'individual':
-            company_name = None
-            company_contact = None
+            company_name, company_contact = None, None
             if not individual_name or not individual_id:
-                flash('Please complete your Full Legal Name and National ID field metrics.', 'error')
+                flash('Please complete your Full Legal Name and National ID fields.', 'error')
                 return redirect(url_for('register'))
         else:
-            individual_name = None
-            individual_id = None
+            individual_name, individual_id = None, None
             if not company_name or not company_contact:
-                flash('Please complete your Registered Entity and Representative field metrics.', 'error')
+                flash('Please complete your Registered Entity and Representative fields.', 'error')
                 return redirect(url_for('register'))
 
         password_hash = generate_password_hash(password, method='pbkdf2:sha256')
@@ -103,20 +216,12 @@ def register():
             try:
                 conn.execute('''
                     INSERT INTO users (
-                        email, password_hash, applicant_type, 
-                        individual_name, individual_id, 
-                        company_name, company_contact
+                        email, password_hash, applicant_type, individual_name, individual_id, company_name, company_contact
                     ) VALUES (?, ?, ?, ?, ?, ?, ?)
-                ''', (
-                    email, password_hash, applicant_type, 
-                    individual_name, individual_id, 
-                    company_name, company_contact
-                ))
+                ''', (email, password_hash, applicant_type, individual_name, individual_id, company_name, company_contact))
                 conn.commit()
-
                 flash('Workspace profile structured successfully! Please sign in.', 'success')
                 return redirect(url_for('login'))
-
             except sqlite3.IntegrityError:
                 flash('This exact email workspace slot is already registered.', 'error')
                 return redirect(url_for('register'))
@@ -137,13 +242,15 @@ def login():
             session['user_id'] = user['id']
             session['user_email'] = user['email']
             session['applicant_type'] = user['applicant_type']
-            session['display_name'] = user['company_name'] if user['applicant_type'] == 'company' else user['individual_name']
-
-            flash('Authentication verified successfully!', 'success')
             
             if user['applicant_type'] == 'company':
+                session['display_name'] = user['company_name']
                 return redirect(url_for('dashboard_corporate'))
+            elif user['applicant_type'] == 'admin':
+                session['display_name'] = user['individual_name']
+                return redirect(url_for('admin_dashboard'))
             else:
+                session['display_name'] = user['individual_name']
                 return redirect(url_for('dashboard_individual'))
         
         flash('Invalid credentials validation parameters provided.', 'error')
@@ -152,7 +259,163 @@ def login():
     return render_template('auth/login.html')
 
 
-# --- SECURED ENTERPRISE DASHBOARD CHANNELS (COMPANIES) ---
+# ─── THE ADMINISTRATIVE MASTER WORKSPACE VAULT ───────────
+
+@app.route('/admin/workspace')
+@role_required(['admin'])
+def admin_dashboard():
+    conn = get_db_connection()
+    
+    # 1. Live Platform Metrics
+    total_users = conn.execute("SELECT COUNT(*) FROM users WHERE applicant_type != 'admin'").fetchone()[0]
+    total_corp = conn.execute("SELECT COUNT(*) FROM screenings").fetchone()[0]
+    total_indiv = conn.execute("SELECT COUNT(*) FROM individual_audits").fetchone()[0]
+    
+    # Revenue Auditing Engine
+    revenue_corp = sum(
+        calculate_batch_cost(row['screening_type'], 1) 
+        for row in conn.execute("SELECT screening_type FROM screenings WHERE payment_status = 'Completed'").fetchall()
+    )
+    revenue_indiv = sum(
+        calculate_individual_cost(row['verification_type']) 
+        for row in conn.execute("SELECT verification_type FROM individual_audits WHERE payment_status = 'Completed'").fetchall()
+    )
+    
+    metrics = {
+        "total_users": total_users,
+        "total_corp": total_corp,
+        "total_indiv": total_indiv,
+        "gross_revenue": f"R {revenue_corp + revenue_indiv:,.2f}"
+    }
+
+    # Monitor Unresolved Action Alerts
+    pending_eft_count = conn.execute("SELECT COUNT(DISTINCT payment_ref) FROM screenings WHERE payment_method = 'manual_eft' AND payment_status = 'Pending'").fetchone()[0]
+    pending_eft_count += conn.execute("SELECT COUNT(*) FROM individual_audits WHERE payment_method = 'manual_eft' AND payment_status = 'Pending'").fetchone()[0]
+    
+    ready_review_count = conn.execute("SELECT COUNT(*) FROM screenings WHERE status = 'Ready for Review'").fetchone()[0]
+    ready_review_count += conn.execute("SELECT COUNT(*) FROM individual_audits WHERE status = 'Ready for Review'").fetchone()[0]
+    
+    quick_alerts = {
+        "pending_efts": pending_eft_count,
+        "ready_reviews": ready_review_count
+    }
+
+    # Filtered Corporate Data Channels
+    companies = conn.execute("SELECT DISTINCT company_name FROM users WHERE company_name IS NOT NULL AND company_name != ''").fetchall()
+    selected_company = request.args.get('company_filter', '')
+    
+    query_corp = "SELECT s.*, u.company_name FROM screenings s JOIN users u ON s.user_id = u.id"
+    if selected_company:
+        corporate_candidates = conn.execute(query_corp + " WHERE u.company_name = ? ORDER BY s.created_at DESC", (selected_company,)).fetchall()
+    else:
+        corporate_candidates = conn.execute(query_corp + " ORDER BY s.created_at DESC").fetchall()
+
+    individual_requests = conn.execute("""
+        SELECT a.*, u.email FROM individual_audits a JOIN users u ON a.user_id = u.id ORDER BY a.created_at DESC
+    """).fetchall()
+
+    # Unified Financial Settlements View
+    payments_queue = conn.execute('''
+        SELECT payment_ref, u.company_name AS party_name, screening_type AS service, payment_method, payment_status, pop_file_path,
+               COUNT(s.id) AS units, 'company' AS type
+        FROM screenings s JOIN users u ON s.user_id = u.id
+        WHERE payment_ref IS NOT NULL AND payment_ref != ''
+        GROUP BY payment_ref
+        UNION ALL
+        SELECT payment_ref, u.individual_name AS party_name, verification_type AS service, payment_method, payment_status, pop_file_path,
+               1 AS units, 'individual' AS type
+        FROM individual_audits a JOIN users u ON a.user_id = u.id
+        WHERE payment_ref IS NOT NULL AND payment_ref != ''
+        GROUP BY payment_ref
+        ORDER BY payment_status DESC
+    ''').fetchall()
+
+    users_ledger = conn.execute("SELECT id, email, company_name, individual_name, applicant_type FROM users WHERE applicant_type != 'admin'").fetchall()
+    conn.close()
+    
+    return render_template(
+        'admin_dashboard.html',
+        metrics=metrics,
+        quick_alerts=quick_alerts,
+        companies=companies,
+        selected_company=selected_company,
+        corporate_candidates=corporate_candidates,
+        individual_requests=individual_requests,
+        payments_queue=payments_queue,
+        users_ledger=users_ledger
+    )
+
+
+@app.route('/admin/update-candidate-status', methods=['POST'])
+@role_required(['admin'])
+def update_candidate_status():
+    candidate_id = request.form.get('id')
+    new_status = request.form.get('status')
+    track = request.form.get('track', 'corporate') 
+    
+    with get_db_connection() as conn:
+        if track == 'corporate':
+            conn.execute("UPDATE screenings SET status = ? WHERE id = ?", (new_status, candidate_id))
+        else:
+            conn.execute("UPDATE individual_audits SET status = ? WHERE id = ?", (new_status, candidate_id))
+        conn.commit()
+    
+    flash(f"Candidate status updated to [{new_status}] successfully.", "success")
+    return redirect(url_for('admin_dashboard', tab=track))
+
+
+@app.route('/admin/flag-document', methods=['POST'])
+@role_required(['admin'])
+def flag_document():
+    record_id = request.form.get('id')
+    reason = request.form.get('flag_reason')
+    track = request.form.get('track', 'corporate')
+    
+    status_label = "Flagged — Image Unclear"
+    with get_db_connection() as conn:
+        if track == 'corporate':
+            conn.execute("UPDATE screenings SET status = ?, rejection_reason = ? WHERE id = ?", (status_label, reason, record_id))
+        else:
+            conn.execute("UPDATE individual_audits SET status = ?, rejection_reason = ? WHERE id = ?", (status_label, reason, record_id))
+        conn.commit()
+    
+    flash("Document flagged. Re-upload instruction triggered back to applicant panel.", "warning")
+    return redirect(url_for('admin_dashboard', tab=track))
+
+
+@app.route('/admin/resolve-payment', methods=['POST'])
+@role_required(['admin'])
+def resolve_payment():
+    pay_ref = request.form.get('payment_ref')
+    action = request.form.get('action') 
+    
+    new_pay_status = 'Completed' if action == 'Confirm' else 'Failed'
+    new_candidate_status = 'Awaiting Document Upload' if action == 'Confirm' else 'Awaiting Payment'
+    
+    with get_db_connection() as conn:
+        conn.execute("UPDATE screenings SET payment_status = ?, status = ? WHERE payment_ref = ?", (new_pay_status, new_candidate_status, pay_ref))
+        conn.execute("UPDATE individual_audits SET payment_status = ?, status = ? WHERE payment_ref = ?", (new_pay_status, 'Ready for Review' if action == 'Confirm' else 'Awaiting Payment', pay_ref))
+        conn.commit()
+    
+    flash(f"Financial Ledger Clearance executed: Reference {pay_ref} is now [{new_pay_status}].", "success")
+    return redirect(url_for('admin_dashboard', tab='payments'))
+
+
+# --- SECURED CORPORATE WORKSPACE & DATA PROCESSING ---
+
+@app.route('/admin/purge-user/<int:user_id>', methods=['POST'])
+@role_required(['admin'])
+def purge_user(user_id):
+    """Purges user data and cascading relational pipeline links completely."""
+    with get_db_connection() as conn:
+        conn.execute("DELETE FROM screenings WHERE user_id = ?", (user_id,))
+        conn.execute("DELETE FROM individual_audits WHERE user_id = ?", (user_id,))
+        conn.execute("DELETE FROM users WHERE id = ?", (user_id,))
+        conn.commit()
+    
+    flash("Master profile and all nested pipeline runs purged from environment via cascade block.", "success")
+    return redirect(url_for('admin_dashboard', tab='users'))
+
 
 @app.route('/dashboard/corporate')
 def dashboard_corporate():
@@ -162,15 +425,8 @@ def dashboard_corporate():
 
     with get_db_connection() as conn:
         candidates = conn.execute('''
-            SELECT id,
-                   candidate_name AS name, 
-                   candidate_email AS email, 
-                   screening_type AS type, 
-                   status, 
-                   DATE(created_at) AS date 
-            FROM screenings 
-            WHERE user_id = ? 
-            ORDER BY created_at DESC
+            SELECT id, candidate_name AS name, candidate_email AS email, screening_type AS type, status, payment_status, DATE(created_at) AS date 
+            FROM screenings WHERE user_id = ? ORDER BY created_at DESC
         ''', (session['user_id'],)).fetchall()
 
     return render_template('dashboard_corporate.html', candidates=candidates, hide_navbar=True, hide_footer=True)
@@ -182,17 +438,36 @@ def initiate_screening():
         return redirect(url_for('login'))
 
     screening_type = request.form.get('screening_type')
+    payment_method = request.form.get('payment_method')
+    payment_ref = "VFY-TX-" + str(os.urandom(3).hex().upper())
     
-    if 'candidate_csv' not in request.files or 'pop_receipt' not in request.files:
-        flash('All screening profile metrics are required.', 'error')
+    if 'candidate_csv' not in request.files:
+        flash('Candidate dataset directory file target missing.', 'error')
         return redirect(url_for('dashboard_corporate'))
 
     csv_file = request.files['candidate_csv']
-    pop_file = request.files['pop_receipt']
-
-    if csv_file.filename == '' or pop_file.filename == '':
-        flash('All screening profile metrics are required. Invalid file options.', 'error')
+    if csv_file.filename == '':
+        flash('Invalid verification array selection.', 'error')
         return redirect(url_for('dashboard_corporate'))
+
+    pop_saved_path = None
+    initial_payment_status = 'Pending'
+    initial_candidate_state = 'Awaiting Payment'
+    
+    if payment_method == 'manual_eft':
+        if 'pop_receipt' not in request.files:
+            flash('Proof of payment document required for ledger checkout routing.', 'error')
+            return redirect(url_for('dashboard_corporate'))
+        
+        pop_file = request.files['pop_receipt']
+        if pop_file.filename != '' and allowed_file(pop_file.filename):
+            base_name = secure_filename(pop_file.filename)
+            unique_filename = f"{payment_ref}_{base_name}"
+            pop_saved_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+            pop_file.save(pop_saved_path)
+    else:
+        initial_payment_status = 'Pending Gateway'
+        initial_candidate_state = 'Awaiting Payment'
 
     try:
         file_bytes = csv_file.read()
@@ -207,28 +482,190 @@ def initiate_screening():
         csv_input = csv.reader(io.StringIO(file_data), delimiter=detected_delimiter)
         header = next(csv_input, None)
         
-        inserted_count = 0
-        with get_db_connection() as conn:
-            for row in csv_input:
-                if not row or len(row) < 2:
-                    continue
-                c_name = row[0].strip()
-                c_email = row[1].strip()
-                if not c_name or not c_email:
-                    continue
+        staged_rows = []
+        for row in csv_input:
+            if not row or len(row) < 2: 
+                continue
+            c_name, c_email = row[0].strip(), row[1].strip()
+            if c_name and c_email: 
+                staged_rows.append((c_name, c_email))
 
+        if not staged_rows:
+            flash('No functional candidates verified inside data stream.', 'error')
+            return redirect(url_for('dashboard_corporate'))
+
+        with get_db_connection() as conn:
+            for c_name, c_email in staged_rows:
                 conn.execute('''
-                    INSERT INTO screenings (user_id, candidate_name, candidate_email, screening_type, status)
-                    VALUES (?, ?, ?, ?, 'Pending Input')
-                ''', (session['user_id'], c_name, c_email, screening_type))
-                inserted_count += 1
+                    INSERT INTO screenings (
+                        user_id, candidate_name, candidate_email, screening_type, status, payment_method, payment_status, payment_ref, pop_file_path
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (session['user_id'], c_name, c_email, screening_type, initial_candidate_state, payment_method, initial_payment_status, payment_ref, pop_saved_path))
             conn.commit()
 
-        flash(f'Successfully staged {inserted_count} batch candidates onto pipeline matrix.', 'success')
+        if payment_method in ['card', 'instant_eft']:
+            total_bill = calculate_batch_cost(screening_type, len(staged_rows))
+            return redirect(url_for('payfast_checkout', track_type='corporate_batch', record_id=session['user_id'], custom_ref=payment_ref, custom_amt=total_bill))
+
+        flash(f'Staged {len(staged_rows)} candidate items under Reference {payment_ref}. Automated launch requires admin validation.', 'success')
+
     except Exception as e:
-        flash(f'Bulk operation failed: {str(e)}', 'error')
+        flash(f'Bulk processing exception generated: {str(e)}', 'error')
 
     return redirect(url_for('dashboard_corporate'))
+
+
+# --- LIVE PAYFAST GATEWAY INTEGRATION ENGINE ---
+
+@app.route('/payment/checkout/<string:track_type>/<int:record_id>', methods=['GET', 'POST'])
+def payfast_checkout(track_type, record_id):
+    if 'user_id' not in session:
+        flash("Authentication token expired. Please login again.", "error")
+        return redirect(url_for('login'))
+
+    custom_ref = request.args.get('custom_ref')
+    custom_amt = request.args.get('custom_amt')
+
+    if track_type == 'corporate_batch' and custom_ref and custom_amt:
+        amount_due = float(custom_amt)
+        payment_reference = custom_ref
+        item_name = f"VerifyMe Corporate Batch {payment_reference}"
+    else:
+        amount_due = float(custom_amt) if custom_amt else 255.00
+        payment_reference = custom_ref or f"VME-{track_type[:1].upper()}{record_id}-{int(datetime.utcnow().timestamp())}"
+        item_name = f"VerifyMe Verification {track_type[:3].upper()}-{record_id}"
+
+    name_first = (session.get('display_name') or 'Client').split()[0][:50].strip()
+
+    payfast_payload = {
+        'merchant_id':   app.config['PAYFAST_MERCHANT_ID'],
+        'merchant_key':  app.config['PAYFAST_MERCHANT_KEY'],
+        'return_url':    f"{app.config['BASE_URL']}/payment/success",
+        'cancel_url':    f"{app.config['BASE_URL']}/payment/cancel",
+        'name_first':    name_first,
+        'email_address': session.get('user_email', ''),
+        'm_payment_id':  payment_reference,
+        'amount':        f"{amount_due:.2f}",
+        'item_name':     item_name[:100],
+        'custom_str1':   track_type,
+        'custom_int1':   str(record_id),
+    }
+
+    # Clean payload map parameters
+    payfast_payload = {k: v for k, v in payfast_payload.items() if str(v).strip() != ''}
+    payfast_payload['signature'] = generate_payfast_signature(payfast_payload, app.config['PAYFAST_PASSPHRASE'])
+
+    return render_template('payfast_redirect.html', payload=payfast_payload, post_url=app.config['PAYFAST_POST_URL'])
+
+
+@app.route('/payment/payfast-itn', methods=['POST'])
+def payfast_itn():
+    """Asynchronous Webhook Callback handler triggered from PayFast Server Clusters."""
+    itn_data = dict(request.form)
+    received_signature = itn_data.get('signature')
+    check_signature = generate_payfast_signature(itn_data, app.config['PAYFAST_PASSPHRASE'])
+    
+    if received_signature != check_signature:
+        return "Signature Verification Failure", 400
+
+    payment_status = itn_data.get('payment_status')
+    track_type = itn_data.get('custom_str1')
+    record_id = itn_data.get('custom_int1')
+    reference = itn_data.get('m_payment_id')
+
+    if payment_status == 'COMPLETE':
+        with get_db_connection() as conn:
+            if track_type == 'corporate_batch' or "VFY-TX-" in reference:
+                conn.execute("UPDATE screenings SET payment_status = 'Completed', status = 'Awaiting Document Upload' WHERE payment_ref = ?", (reference,))
+            elif track_type == 'individual' or "VFY-IND-" in reference:
+                conn.execute("UPDATE individual_audits SET payment_status = 'Completed', status = 'Ready for Review' WHERE payment_ref = ?", (reference,))
+            else:
+                if track_type == 'corporate':
+                    conn.execute("UPDATE screenings SET payment_status='Completed', status='Awaiting Document Upload' WHERE id=?", (record_id,))
+                elif track_type == 'individual_row':
+                    conn.execute("UPDATE individual_audits SET payment_status='Completed', status='Ready for Review' WHERE id=?", (record_id,))
+            conn.commit()
+
+    return "ITN Processed Safely", 200
+
+
+@app.route('/payment/success')
+def payment_success():
+    payment_id = request.args.get('m_payment_id') or session.get('last_payment_id')
+
+    if payment_id:
+        try:
+            with get_db_connection() as conn:
+                conn.execute("UPDATE individual_audits SET payment_status = 'Completed', status = 'Ready for Review' WHERE payment_ref = ?", (payment_id,))
+                conn.execute("UPDATE screenings SET payment_status = 'Completed', status = 'Awaiting Document Upload' WHERE payment_ref = ?", (payment_id,))
+                conn.commit()
+            flash("Payment cleared successfully! Your transaction ledger has been updated.", "success")
+        except Exception as e:
+            flash("Payment captured, but your workspace ledger state is building. Please refresh.", "warning")
+    else:
+        flash("Payment processing cleared successfully!", "success")
+
+    if session.get('applicant_type') == 'company':
+        return redirect(url_for('dashboard_corporate'))
+    return redirect(url_for('dashboard_individual'))
+
+
+@app.route('/payment/cancel')
+def payment_cancel():
+    flash("Transaction was canceled by the user. No units were billed.", "warning")
+    if session.get('applicant_type') == 'company':
+        return redirect(url_for('dashboard_corporate'))
+    return redirect(url_for('dashboard_individual'))
+
+
+# --- CANDIDATE PORTAL DOCUMENT UPLOAD SYSTEM ---
+
+@app.route('/collect/upload-credentials/<int:candidate_id>', methods=['GET', 'POST'])
+def candidate_upload_portal(candidate_id):
+    if request.method == 'POST':
+        id_file = request.files.get('identity_doc')
+        qual_file = request.files.get('qualification_doc')
+        
+        id_path, qual_path = None, None
+        if id_file and allowed_file(id_file.filename):
+            filename = secure_filename(f"CAND_{candidate_id}_ID_{id_file.filename}")
+            id_path = os.path.join(app.config['DOCS_FOLDER'], filename)
+            id_file.save(id_path)
+            
+        if qual_file and allowed_file(qual_file.filename):
+            filename = secure_filename(f"CAND_{candidate_id}_QUAL_{qual_file.filename}")
+            qual_path = os.path.join(app.config['DOCS_FOLDER'], filename)
+            qual_file.save(qual_path)
+            
+        with get_db_connection() as conn:
+            conn.execute('''
+                UPDATE screenings SET id_file_path = ?, qualification_file_path = ?, status = 'Ready for Review', rejection_reason = NULL 
+                WHERE id = ?
+            ''', (id_path, qual_path, candidate_id))
+            conn.commit()
+            
+        return "<h3>Upload Complete. Your files have been securely transmitted to our administrative operators for compliance auditing.</h3>"
+        
+    with get_db_connection() as conn:
+        candidate = conn.execute("SELECT * FROM screenings WHERE id = ?", (candidate_id,)).fetchone()
+    if not candidate: 
+        abort(404)
+        
+    return f"""
+    <html>
+        <body style="background:#111; color:#fff; font-family:sans-serif; padding: 3rem; max-width: 500px; margin: auto;">
+            <h2>VerifyMe Security Portal</h2>
+            <p>Hello <strong>{candidate['candidate_name']}</strong>, please upload clear digital file records for your <strong>{candidate['screening_type']}</strong>.</p>
+            <form method="POST" enctype="multipart/form-data" style="background:#1c1c1c; padding:2rem; border-radius:8px;">
+                <label style="display:block; margin-bottom:0.5rem;">National ID Document:</label>
+                <input type="file" name="identity_doc" required style="margin-bottom:1.5rem;"><br>
+                <label style="display:block; margin-bottom:0.5rem;">Qualification Certificate Matrix (Optional):</label>
+                <input type="file" name="qualification_doc"><br><br>
+                <button type="submit" style="background:#00f2fe; border:none; padding:0.5rem 1rem; font-weight:bold; border-radius:4px; cursor:pointer;">Submit Compliance Documents</button>
+            </form>
+        </body>
+    </html>
+    """
 
 
 # --- SECURED PERSONAL DASHBOARD CHANNELS (INDIVIDUALS) ---
@@ -240,42 +677,102 @@ def dashboard_individual():
         return redirect(url_for('login'))
 
     with get_db_connection() as conn:
-        checks = conn.execute('''
-            SELECT verification_type AS type, status, DATE(created_at) AS date 
-            FROM individual_audits 
-            WHERE user_id = ? 
-            ORDER BY created_at DESC
+        db_rows = conn.execute('''
+            SELECT id, verification_type AS type, status, payment_status, rejection_reason, DATE(created_at) AS date 
+            FROM individual_audits WHERE user_id = ? ORDER BY created_at DESC
         ''', (session['user_id'],)).fetchall()
         
-        # Pull extra user metrics for the profile panel tab view directly inside dashboard context
         user_profile = conn.execute('SELECT email, individual_name, individual_id, created_at FROM users WHERE id = ?', (session['user_id'],)).fetchone()
 
-    return render_template('dashboard_individual.html', checks=checks, user_profile=user_profile, hide_navbar=True, hide_footer=True)
+    return render_template(
+        'dashboard_individual.html', 
+        checks=db_rows,      
+        requests=db_rows,    
+        audits=db_rows,      
+        user_profile=user_profile, 
+        hide_navbar=True, 
+        hide_footer=True
+    )
 
 
+# Combined Route Handler to perfectly handle both frontend path variations seamlessly
+@app.route('/submit-local-verification', methods=['POST'])
 @app.route('/submit-individual-verification', methods=['POST'])
 def submit_individual_verification():
     if 'user_id' not in session or session.get('applicant_type') != 'individual':
         return redirect(url_for('login'))
 
+    # 1. Capture Form Fields
     verification_type = request.form.get('verification_type')
-    uploaded_docs = request.files.getlist('documents')
-    proof_of_payment = request.files.get('proof_of_payment')
+    
+    # Clean the input to prevent case or spacing mismatches from the frontend form
+    payment_method = request.form.get('payment_method', 'card').strip().lower()
+    payment_ref = "VFY-IND-" + str(os.urandom(3).hex().upper())
 
-    if not verification_type or not uploaded_docs or not proof_of_payment:
-        flash('All verification credentials and your proof of payment are required.', 'error')
+    # 2. Extract Files
+    uploaded_docs = request.files.getlist('documents')  
+    proof_of_payment = request.files.get('proof_of_payment')  
+
+    if not verification_type or not uploaded_docs or not uploaded_docs[0].filename:
+        flash('Verification documents are required to process an audit request.', 'error')
         return redirect(url_for('dashboard_individual'))
 
+    pop_saved_path, id_path, qual_path = None, None, None
+    
+    # 3. Determine Lifecyle States Safely
+    if payment_method == 'manual_eft':
+        if not proof_of_payment or proof_of_payment.filename == '':
+            flash('A manual bank wire proof of payment transfer receipt is required.', 'error')
+            return redirect(url_for('dashboard_individual'))
+            
+        initial_payment_status = 'Pending'
+        initial_pipeline_status = 'Ready for Review' # Admin needs to check the uploaded POP
+        
+        if allowed_file(proof_of_payment.filename):
+            pop_filename = f"{payment_ref}_{secure_filename(proof_of_payment.filename)}"
+            pop_saved_path = os.path.join(app.config['UPLOAD_FOLDER'], pop_filename)
+            proof_of_payment.save(pop_saved_path)
+    else:
+        # For PayFast transactions (card / instant_eft)
+        initial_payment_status = 'Pending Gateway'
+        initial_pipeline_status = 'Awaiting Payment'
+
+    # 4. Save Verification Documents
+    for idx, doc in enumerate(uploaded_docs[:2]):
+        if doc and allowed_file(doc.filename):
+            unique_name = f"INDIV_{session['user_id']}_{idx}_{secure_filename(doc.filename)}"
+            saved_path = os.path.join(app.config['DOCS_FOLDER'], unique_name)
+            doc.save(saved_path)
+            
+            if idx == 0:
+                id_path = saved_path
+            elif idx == 1:
+                qual_path = saved_path
+
+    # 5. CRITICAL FIX: Commit to DB *First* regardless of method
     with get_db_connection() as conn:
-        conn.execute('''
-            INSERT INTO individual_audits (user_id, verification_type)
-            VALUES (?, ?)
-        ''', (session['user_id'], verification_type))
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT INTO individual_audits (
+                user_id, verification_type, payment_method, payment_status, 
+                payment_ref, pop_file_path, id_file_path, qualification_file_path, status
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (
+            session['user_id'], verification_type, payment_method, initial_payment_status,
+            payment_ref, pop_saved_path, id_path, qual_path, initial_pipeline_status
+        ))
         conn.commit()
+        generated_id = cursor.lastrowid
 
-    flash(f'Successfully initialized {verification_type} audit pipeline.', 'success')
+    # 6. Branching Logic Control Check
+    if payment_method in ['card', 'instant_eft']:
+        total_bill = calculate_individual_cost(verification_type)
+        # Pass the database row ID we just built down into PayFast tracking
+        return redirect(url_for('payfast_checkout', track_type='individual', record_id=generated_id, custom_ref=payment_ref, custom_amt=total_bill))
+
+    # Traditional EFT breaks out here completely and stays home
+    flash(f'Successfully initialized your {verification_type} audit pipeline. Awaiting manual bank clearance checking.', 'success')
     return redirect(url_for('dashboard_individual'))
-
 
 @app.route('/logout')
 def logout():

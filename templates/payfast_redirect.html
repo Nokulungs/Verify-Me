@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>VerifyMe — Secure Gateway Relay</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@500;700&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+    <style>
+        body { background-color: #181c19; color: #eef2ef; font-family: 'DM Sans', sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+        .relay-box { text-align: center; background: #1f2521; padding: 3rem; border-radius: 16px; border: 1px solid #2e3830; box-shadow: 0 16px 48px rgba(0,0,0,0.5); max-width: 400px; }
+        .spinner { color: #4eb637; font-size: 3rem; margin-bottom: 1.5rem; }
+        h2 { margin: 0 0 0.5rem 0; font-size: 1.25rem; color: #ffffff; }
+        p { color: #8a9e8d; font-size: 0.9rem; margin: 0; }
+    </style>
+</head>
+<body>
+<div class="relay-box">
+    <i class="fa-solid fa-spinner fa-spin spinner"></i>
+    <h2>Connecting Secure Gateway</h2>
+    <p>Establishing encrypted channel with PayFast to finalize validation mechanics safely...</p>
+
+    <form id="payfastForm" action="{{ post_url }}" method="POST">
+        {% for key in payload.keys() | sort %}
+            <input type="hidden" name="{{ key }}" value="{{ payload[key] }}">
+        {% endfor %}
+    </form>
+</div>
+
+<script>
+    window.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('payfastForm').submit();
+    });
+</script>
+</body>
+</html>

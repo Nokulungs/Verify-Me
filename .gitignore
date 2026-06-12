@@ -1,0 +1,4 @@
+# Inside your .gitignore file
+.env
+__pycache__/
+*.db
