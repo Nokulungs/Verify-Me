@@ -27,15 +27,7 @@ class Config:
     PAYFAST_POST_URL = os.environ.get('PAYFAST_POST_URL', 'https://sandbox.payfast.co.za/eng/process')
 
 app = Flask(__name__)
-@app.after_request
-def bypass_ngrok_warning_screen(response):
-    """
-    Globally injects the bypass header into every response.
-    This ensures that when PayFast redirects back to your application,
-    ngrok skips the warning screen and lets the user see the dashboard.
-    """
-    response.headers["ngrok-skip-browser-warning"] = "true"
-    return response
+
 app.config.from_object(Config)
 
 DATABASE = 'verifyme.db'
