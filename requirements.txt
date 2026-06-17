@@ -1,4 +1,0 @@
-Flask==3.0.3
-gunicorn==26.0.0
-packaging==26.2
-python-dotenv==1.2.2

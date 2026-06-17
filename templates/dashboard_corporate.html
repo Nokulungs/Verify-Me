@@ -9,14 +9,11 @@
 {% block content %}
 <div class="dashboard-container">
 
-    <aside class="dashboard-sidebar"
-        style="display: flex; flex-direction: column; justify-content: space-between; height: 100vh;">
+    <aside class="dashboard-sidebar" style="display: flex; flex-direction: column; justify-content: space-between; height: 100vh;">
         <div>
             <div class="sidebar-brand" style="margin-bottom: 2.5rem;">
-                <span class="matrix-tag"
-                    style="display: flex; align-items: center; gap: 0.75rem; font-size: 1.15rem; letter-spacing: 0.5px;">
-                    <img src="{{ url_for('static', filename='images/VM_Icon.png') }}" alt="VM"
-                        style="height: 32px; width: auto; object-fit: contain;">
+                <span class="matrix-tag" style="display: flex; align-items: center; gap: 0.75rem; font-size: 1.15rem; letter-spacing: 0.5px;">
+                    <img src="{{ url_for('static', filename='images/VM_Icon.png') }}" alt="VM" style="height: 32px; width: auto; object-fit: contain;">
                     VerifyMe
                 </span>
             </div>
@@ -40,17 +37,14 @@
         </div>
 
         <div class="sidebar-footer" style="padding: 1.25rem; border-top: 1px solid rgba(255,255,255,0.05);">
-            <a href="{{ url_for('logout') }}" class="menu-item logout-btn"
-                style="display: flex; align-items: center; width: 100%; padding: 0.75rem 1rem; color: #ff4a4a; text-decoration: none; border-radius: 6px; transition: background 0.2s;">
+            <a href="{{ url_for('logout') }}" class="menu-item logout-btn" style="display: flex; align-items: center; width: 100%; padding: 0.75rem 1rem; color: #ff4a4a; text-decoration: none; border-radius: 6px; transition: background 0.2s;">
                 <i class="fa-solid fa-right-from-bracket menu-icon" style="margin-right: 0.75rem;"></i> Logout
             </a>
         </div>
     </aside>
 
     <main class="dashboard-main">
-
-        <div class="top-utility-ribbon"
-            style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.05);">
+        <div class="top-utility-ribbon" style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.05);">
             <div class="ribbon-left-context">
                 <span style="color: #a3a3a3; font-size: 0.95rem;">
                     <i class="fa-solid fa-building text-cyan"></i> Enterprise Client:
@@ -58,8 +52,7 @@
                 </span>
             </div>
 
-            <div class="notification-wrapper" onclick="toggleNotificationDropdown()"
-                style="position: relative; cursor: pointer;">
+            <div class="notification-wrapper" onclick="toggleNotificationDropdown()" style="position: relative; cursor: pointer;">
                 <i class="fa-solid fa-bell utility-bell"></i>
                 <span class="notification-badge-dot"></span>
 
@@ -79,8 +72,7 @@
         {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
         {% for category, message in messages %}
-        <div class="alert-notice-box {% if category == 'error' %}flagged-border{% endif %}"
-            style="margin-bottom: 1.5rem; display: block;">
+        <div class="alert-notice-box {% if category == 'error' %}flagged-border{% endif %}" style="margin-bottom: 1.5rem; display: block;">
             <strong><i class="fa-solid fa-circle-info"></i> System:</strong> {{ message }}
         </div>
         {% endfor %}
@@ -88,12 +80,10 @@
         {% endwith %}
 
         <div id="tab-overview" class="tab-content active-content">
-            <header class="workspace-header"
-                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+            <header class="workspace-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
                 <div>
                     <h1 style="margin: 0; font-size: 1.75rem;">{{ session['display_name'] }} Workspace</h1>
-                    <p class="subtitle" style="margin: 0.25rem 0 0 0; color: #a3a3a3;">Monitor high-level background
-                        screening metrics.</p>
+                    <p class="subtitle" style="margin: 0.25rem 0 0 0; color: #a3a3a3;">Monitor high-level background screening metrics.</p>
                 </div>
                 <button class="btn-action-cyan" onclick="openScreeningModal()">
                     <i class="fa-solid fa-plus-circle"></i> Initiate New Screening
@@ -103,31 +93,27 @@
             <section class="analytics-ribbon">
                 <div class="analytics-card">
                     <span class="card-label"><i class="fa-solid fa-network-wired"></i> Total Pipeline Entries</span>
-                    <div class="card-value shared-count-value">{{ candidates|length }}</div>
+                    <div class="card-value shared-count-value">{{ candidates|length if candidates else 0 }}</div>
                     <span class="card-trend upward"><i class="fa-solid fa-rotate"></i> Live SQL Database Synced</span>
                 </div>
                 <div class="analytics-card">
-                    <span class="card-label"><i class="fa-solid fa-circle-check text-cyan"></i> Verification
-                        Cleared</span>
+                    <span class="card-label"><i class="fa-solid fa-circle-check text-cyan"></i> Verification Cleared</span>
                     <div class="card-value cyan-text">
-                        {{ candidates|selectattr('status', 'equalto', 'Cleared')|list|length }}
+                        {{ candidates|selectattr('status', 'equalto', 'Cleared')|list|length if candidates else 0 }}
                     </div>
                     <span class="card-subtext">Ready for HR processing</span>
                 </div>
                 <div class="analytics-card flagged-border">
-                    <span class="card-label"><i class="fa-solid fa-triangle-exclamation text-burgundy"></i> Attention
-                        Required</span>
+                    <span class="card-label"><i class="fa-solid fa-triangle-exclamation text-burgundy"></i> Attention Required</span>
                     <div class="card-value burgundy-text">
-                        {{ candidates|selectattr('status', 'equalto', 'Flagged')|list|length }}
+                        {{ candidates|selectattr('status', 'equalto', 'Flagged')|list|length if candidates else 0 }}
                     </div>
                     <span class="card-subtext">Discrepancy review advised</span>
                 </div>
             </section>
 
             <section class="table-container">
-                <div class="table-header">
-                    <h3>Active Pipeline Node Stream</h3>
-                </div>
+                <div class="table-header"><h3>Active Pipeline Node Stream</h3></div>
                 <table class="matrix-table">
                     <thead>
                         <tr>
@@ -139,52 +125,46 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for candidate in candidates %}
-                        <tr>
-                            <td class="font-bold text-white">{{ candidate.name }}</td>
-                            <td class="mono-text">{{ candidate.email }}</td>
-                            <td>{{ candidate.type }}</td>
-                            <td>{{ candidate.date }}</td>
-                            <td>
-                                {% if candidate.status == 'Cleared' %}
-                                <span class="status-badge badge-cleared"><i class="fa-solid fa-circle-check"></i>
-                                    Cleared</span>
-                                {% elif candidate.status == 'Flagged' %}
-                                <span class="status-badge badge-flagged" style="color:#ff4a4a;"><i
-                                        class="fa-solid fa-triangle-exclamation"></i> Flagged</span>
-                                {% elif candidate.status == 'Processing' %}
-                                <span class="status-badge badge-processing"><i class="fa-solid fa-spinner fa-spin"></i>
-                                    Processing</span>
-                                {% else %}
-                                <span class="status-badge badge-pending"><i class="fa-solid fa-hourglass-half"></i>
-                                    Pending Input</span>
-                                {% endif %}
-                            </td>
-                        </tr>
+                        {% if candidates %}
+                            {% for candidate in candidates %}
+                            <tr>
+                                <td class="font-bold text-white">{{ candidate.name }}</td>
+                                <td class="mono-text">{{ candidate.email }}</td>
+                                <td>{{ candidate.type }}</td>
+                                <td>{{ candidate.date }}</td>
+                                <td>
+                                    {% if candidate.status == 'Cleared' %}
+                                    <span class="status-badge badge-cleared"><i class="fa-solid fa-circle-check"></i> Cleared</span>
+                                    {% elif candidate.status == 'Flagged' %}
+                                    <span class="status-badge badge-flagged" style="color:#ff4a4a;"><i class="fa-solid fa-triangle-exclamation"></i> Flagged</span>
+                                    {% elif candidate.status == 'Processing' %}
+                                    <span class="status-badge badge-processing"><i class="fa-solid fa-spinner fa-spin"></i> Processing</span>
+                                    {% else %}
+                                    <span class="status-badge badge-pending"><i class="fa-solid fa-hourglass-half"></i> Pending Input</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
                         {% else %}
                         <tr>
-                            <td colspan="5" style="text-align: center; color: #a3a3a3; padding: 2rem;">No active
-                                candidate background track nodes initiated yet.</td>
+                            <td colspan="5" style="text-align: center; color: #a3a3a3; padding: 2rem;">No active candidate background track nodes initiated yet.</td>
                         </tr>
-                        {% endfor %}
+                        {% endif %}
                     </tbody>
                 </table>
             </section>
         </div>
 
         <div id="tab-candidates" class="tab-content">
-            <header class="workspace-header"
-                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+            <header class="workspace-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
                 <div>
                     <h1 style="margin: 0; font-size: 1.75rem;">Candidate Registry</h1>
-                    <p class="subtitle" style="margin: 0.25rem 0 0 0; color: #a3a3a3;">Individual verification matrix
-                        trace.</p>
+                    <p class="subtitle" style="margin: 0.25rem 0 0 0; color: #a3a3a3;">Individual verification matrix trace.</p>
                 </div>
                 <button class="btn-action-cyan" onclick="openScreeningModal()">
                     <i class="fa-solid fa-plus-circle"></i> Initiate New Screening
                 </button>
             </header>
-
             <section class="table-container">
                 <table class="matrix-table">
                     <thead>
@@ -197,34 +177,27 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for candidate in candidates %}
-                        <tr>
-                            <td class="font-bold text-white">{{ candidate.name }}</td>
-                            <td class="mono-text">{{ candidate.email }}</td>
-                            <td>{{ candidate.type }}</td>
-                            <td>{{ candidate.date }}</td>
-                            <td>
-                                {% if candidate.status == 'Cleared' %}
-                                <span class="status-badge badge-cleared"><i class="fa-solid fa-circle-check"></i>
-                                    Cleared</span>
-                                {% elif candidate.status == 'Flagged' %}
-                                <span class="status-badge badge-flagged" style="color:#ff4a4a;"><i
-                                        class="fa-solid fa-triangle-exclamation"></i> Flagged</span>
-                                {% elif candidate.status == 'Processing' %}
-                                <span class="status-badge badge-processing"><i class="fa-solid fa-spinner fa-spin"></i>
-                                    Processing</span>
-                                {% else %}
-                                <span class="status-badge badge-pending"><i class="fa-solid fa-hourglass-half"></i>
-                                    Pending Input</span>
-                                {% endif %}
-                            </td>
-                        </tr>
+                        {% if candidates %}
+                            {% for candidate in candidates %}
+                            <tr>
+                                <td class="font-bold text-white">{{ candidate.name }}</td>
+                                <td class="mono-text">{{ candidate.email }}</td>
+                                <td>{{ candidate.type }}</td>
+                                <td>{{ candidate.date }}</td>
+                                <td>
+                                    {% if candidate.status == 'Cleared' %}
+                                    <span class="status-badge badge-cleared"><i class="fa-solid fa-circle-check"></i> Cleared</span>
+                                    {% elif candidate.status == 'Flagged' %}
+                                    <span class="status-badge badge-flagged" style="color:#ff4a4a;"><i class="fa-solid fa-triangle-exclamation"></i> Flagged</span>
+                                    {% else %}
+                                    <span class="status-badge badge-pending"><i class="fa-solid fa-hourglass-half"></i> Pending</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
                         {% else %}
-                        <tr>
-                            <td colspan="5" style="text-align: center; color: #a3a3a3; padding: 2rem;">No candidates
-                                mapped onto this account layout.</td>
-                        </tr>
-                        {% endfor %}
+                        <tr><td colspan="5" style="text-align: center; color: #a3a3a3; padding: 2rem;">No candidates mapped onto this account layout.</td></tr>
+                        {% endif %}
                     </tbody>
                 </table>
             </section>
@@ -234,8 +207,7 @@
             <header class="workspace-header" style="margin-bottom: 2rem;">
                 <div>
                     <h1 style="margin: 0; font-size: 1.75rem;">Order Requests History</h1>
-                    <p class="subtitle" style="margin: 0.25rem 0 0 0; color: #a3a3a3;">Track batch volumes and
-                        processing invoice balances.</p>
+                    <p class="subtitle" style="margin: 0.25rem 0 0 0; color: #a3a3a3;">Track batch volumes and processing invoice balances.</p>
                 </div>
             </header>
             <section class="table-container">
@@ -249,20 +221,18 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for candidate in candidates %}
-                        <tr>
-                            <td class="mono-text">VFY-TX-{{ 4000 + candidate.id|int }}</td>
-                            <td>{{ candidate.type }}</td>
-                            <td>1 Batch Node</td>
-                            <td><span class="status-badge badge-cleared"><i class="fa-solid fa-circle-check"></i>
-                                    Account Settled</span></td>
-                        </tr>
+                        {% if candidates %}
+                            {% for candidate in candidates %}
+                            <tr>
+                                <td class="mono-text">VFY-TX-{{ 4000 + candidate.id|int }}</td>
+                                <td>{{ candidate.type }}</td>
+                                <td>1 Batch Node</td>
+                                <td><span class="status-badge badge-cleared"><i class="fa-solid fa-circle-check"></i> Account Settled</span></td>
+                            </tr>
+                            {% endfor %}
                         {% else %}
-                        <tr>
-                            <td colspan="4" style="text-align: center; color: #a3a3a3; padding: 2rem;">No corporate
-                                transaction statements registered.</td>
-                        </tr>
-                        {% endfor %}
+                        <tr><td colspan="4" style="text-align: center; color: #a3a3a3; padding: 2rem;">No corporate transaction statements registered.</td></tr>
+                        {% endif %}
                     </tbody>
                 </table>
             </section>
@@ -272,19 +242,16 @@
             <header class="workspace-header" style="margin-bottom: 2rem;">
                 <div>
                     <h1 style="margin: 0; font-size: 1.75rem;">System Configurations</h1>
-                    <p class="subtitle" style="margin: 0.25rem 0 0 0; color: #a3a3a3;">Manage webhook bindings and
-                        global API tokens.</p>
+                    <p class="subtitle" style="margin: 0.25rem 0 0 0; color: #a3a3a3;">Manage webhook bindings and global API tokens.</p>
                 </div>
             </header>
             <section class="analytics-card" style="max-width: 600px;">
                 <h4 style="margin-top:0;"><i class="fa-solid fa-key text-cyan"></i> API Authorization Node</h4>
                 <div class="form-group">
                     <label>Sandbox Authorization Key</label>
-                    <input type="text" class="form-control" value="vfy_live_auth_node_{{ session['user_id'] }}bb829"
-                        readonly>
+                    <input type="text" class="form-control" value="vfy_live_auth_node_{{ session['user_id'] }}bb829" readonly>
                 </div>
-                <button class="btn-portal-primary" style="max-width:200px; padding:0.6rem;"
-                    onclick="alert('Configuration Matrix Saved!')">
+                <button class="btn-portal-primary" style="max-width:200px; padding:0.6rem;" onclick="alert('Configuration Matrix Saved!')">
                     <i class="fa-solid fa-floppy-disk"></i> Save Environment
                 </button>
             </section>
@@ -294,13 +261,11 @@
             <header class="workspace-header" style="margin-bottom: 2rem;">
                 <div>
                     <h1 style="margin: 0; font-size: 1.75rem;">Company Profile</h1>
-                    <p class="subtitle" style="margin: 0.25rem 0 0 0; color: #a3a3a3;">Enterprise details and corporate
-                        metadata contacts.</p>
+                    <p class="subtitle" style="margin: 0.25rem 0 0 0; color: #a3a3a3;">Enterprise details and corporate metadata contacts.</p>
                 </div>
             </header>
             <section class="analytics-card" style="max-width: 600px;">
-                <h4 style="margin-top:0; color:#ffffff;"><i class="fa-solid fa-building-user text-cyan"></i> Profile
-                    Ledger</h4>
+                <h4 style="margin-top:0; color:#ffffff;"><i class="fa-solid fa-building-user text-cyan"></i> Profile Ledger</h4>
                 <div style="display:flex; flex-direction:column; gap:1.25rem; margin-top:1.5rem;">
                     <div class="form-group">
                         <label>Registered Legal Trading Entity Name</label>
@@ -317,7 +282,6 @@
                 </div>
             </section>
         </div>
-
     </main>
 </div>
 
@@ -333,59 +297,45 @@
             <div id="wizard-progress" class="wizard-progress-fill" style="width: 33.3%;"></div>
         </div>
 
-        <form id="multi-step-screening-form" method="POST" action="{{ url_for('initiate_screening') }}"
-            enctype="multipart/form-data">
-
+        <form id="multi-step-screening-form" method="POST" action="{{ url_for('initiate_screening') }}" enctype="multipart/form-data">
             <input type="hidden" name="payment_ref" id="hidden-payment-ref-input">
 
-            <div id="wizard-step-1" class="wizard-step-block active-step">
+            <div id="wizard-step-1" class="wizard-step-block">
                 <div class="form-group">
                     <label for="vector-select">Select Screening Vector Type</label>
-                    <select id="vector-select" name="screening_type" class="form-control" onchange="calculateCost()"
-                        style="background:#1f2521; color:#fff;">
-                        <option value="Identity Verification &amp; Validation" data-price="450">Identity Verification
-                            &amp; Validation — R450.00 / candidate</option>
-                        <option value="Criminal Record &amp; Background Check" data-price="550">Criminal Record &amp;
-                            Background Check — R550.00 / candidate</option>
-                        <option value="Credit &amp; Financial Check" data-price="380">Credit &amp; Financial Check —
-                            R380.00 / candidate</option>
-                        <option value="Professional License Verification" data-price="320">Professional License
-                            Verification — R320.00 / candidate</option>
-                        <option value="Global Compliance Screening" data-price="620">Global Compliance Screening —
-                            R620.00 / candidate</option>
-                        <option value="Social Media &amp; Digital Footprint" data-price="280">Social Media &amp; Digital
-                            Footprint — R280.00 / candidate</option>
+                    <select id="vector-select" name="screening_type" class="form-control" onchange="calculateCost()" style="background:#1f2521; color:#fff;">
+                        <option value="Identity Verification &amp; Validation" data-price="450">Identity Verification &amp; Validation — R450.00 / candidate</option>
+                        <option value="Criminal Record &amp; Background Check" data-price="550">Criminal Record &amp; Background Check — R550.00 / candidate</option>
+                        <option value="Credit &amp; Financial Check" data-price="380">Credit &amp; Financial Check — R380.00 / candidate</option>
+                        <option value="Professional License Verification" data-price="320">Professional License Verification — R320.00 / candidate</option>
+                        <option value="Global Compliance Screening" data-price="620">Global Compliance Screening — R620.00 / candidate</option>
+                        <option value="Social Media &amp; Digital Footprint" data-price="280">Social Media &amp; Digital Footprint — R280.00 / candidate</option>
                     </select>
                 </div>
 
                 <div class="form-group">
                     <label for="candidate-count">Number of Target Candidates in Batch</label>
-                    <input type="number" id="candidate-count" name="candidate_count" class="form-control" value="1"
-                        min="1" max="100" oninput="calculateCost()" required>
+                    <input type="number" id="candidate-count" name="candidate_count" class="form-control" value="1" min="1" max="100" oninput="calculateCost()" required>
                 </div>
 
                 <div class="form-group">
                     <label for="csv-upload">Upload Candidate Registry (CSV Format: Name, Email)</label>
                     <div class="csv-upload-dropzone">
-                        <input type="file" id="csv-upload" name="candidate_csv" accept=".csv"
-                            onchange="updateCSVLabel(this)">
+                        <input type="file" id="csv-upload" name="candidate_csv" accept=".csv" onchange="updateCSVLabel(this)">
                         <span id="csv-label">
-                            <i class="fa-solid fa-file-csv style-icon"
-                                style="font-size: 1.5rem; display:block; margin-bottom:0.5rem;"></i>
+                            <i class="fa-solid fa-file-csv style-icon" style="font-size: 1.5rem; display:block; margin-bottom:0.5rem;"></i>
                             Drag & Drop or click to upload candidates.csv
                         </span>
                     </div>
                 </div>
 
                 <div id="fingerprint-notice" class="alert-notice-box" style="display: none;">
-                    <strong><i class="fa-solid fa-triangle-exclamation"></i> Biometric Notice:</strong> Criminal record
-                    checks require fingerprint verification. After your candidates complete their data upload link, they
-                    will be prompted to visit a local <b>PostNet</b> branch or a VerifyMe office for fingerprinting.
+                    <strong><i class="fa-solid fa-triangle-exclamation"></i> Biometric Notice:</strong> Criminal record checks require fingerprint verification. Candidates will be prompted to complete their verification loops at a local PostNet branch.
                 </div>
 
-                <div class="wizard-footer-actions"
-                    style="display: flex; justify-content: space-between; margin-top: 20px;">
-                    <div></div> <button type="button" class="btn-action-cyan" onclick="goToStep(2)">
+                <div class="wizard-footer-actions" style="display: flex; justify-content: space-between; margin-top: 20px;">
+                    <div></div> 
+                    <button type="button" class="btn-action-cyan" onclick="goToStep(2)">
                         Proceed to Billing <i class="fa-solid fa-arrow-right"></i>
                     </button>
                 </div>
@@ -405,100 +355,78 @@
                 </div>
 
                 <div class="form-group" style="margin-top: 1.5rem; margin-bottom: 1.5rem;">
-                    <label style="color: #ffffff; font-weight: 600; margin-bottom: 0.75rem; display: block;">Select
-                        Corporate Settlement Channel</label>
+                    <label style="color: #ffffff; font-weight: 600; margin-bottom: 0.75rem; display: block;">Select Corporate Settlement Channel</label>
 
-                    <div
-                        style="background: rgba(255,255,255,0.03); padding: 0.75rem 1rem; border-radius: 6px; margin-bottom: 0.5rem; border: 1px solid rgba(255,255,255,0.05);">
-                        <input type="radio" name="payment_method" value="card" id="corp_pay_card" checked
-                            onchange="toggleDashboardPaymentPanels('gateway')">
-                        <label for="corp_pay_card"
-                            style="display: inline; cursor: pointer; color: #fff; margin-left: 0.5rem;">
+                    <div style="background: rgba(255,255,255,0.03); padding: 0.75rem 1rem; border-radius: 6px; margin-bottom: 0.5rem; border: 1px solid rgba(255,255,255,0.05);">
+                        <input type="radio" name="payment_method" value="card" id="corp_pay_card" checked onchange="toggleDashboardPaymentPanels('gateway')">
+                        <label for="corp_pay_card" style="display: inline; cursor: pointer; color: #fff; margin-left: 0.5rem;">
                             <i class="fa-solid fa-credit-card text-cyan" style="margin-right: 0.25rem;"></i>
                             <strong>Credit / Debit Card</strong> (Instant Automated Deployment)
                         </label>
                     </div>
 
-                    <div
-                        style="background: rgba(255,255,255,0.03); padding: 0.75rem 1rem; border-radius: 6px; margin-bottom: 0.5rem; border: 1px solid rgba(255,255,255,0.05);">
-                        <input type="radio" name="payment_method" value="instant_eft" id="corp_pay_ieft"
-                            onchange="toggleDashboardPaymentPanels('gateway')">
-                        <label for="corp_pay_ieft"
-                            style="display: inline; cursor: pointer; color: #fff; margin-left: 0.5rem;">
+                    <div style="background: rgba(255,255,255,0.03); padding: 0.75rem 1rem; border-radius: 6px; margin-bottom: 0.5rem; border: 1px solid rgba(255,255,255,0.05);">
+                        <input type="radio" name="payment_method" value="instant_eft" id="corp_pay_ieft" onchange="toggleDashboardPaymentPanels('gateway')">
+                        <label for="corp_pay_ieft" style="display: inline; cursor: pointer; color: #fff; margin-left: 0.5rem;">
                             <i class="fa-solid fa-bolt" style="color: #ff9f43; margin-right: 0.25rem;"></i>
                             <strong>Secure Instant EFT</strong> (PayFast Gateway Redirection)
                         </label>
                     </div>
 
-                    <div
-                        style="background: rgba(255,255,255,0.03); padding: 0.75rem 1rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05);">
-                        <input type="radio" name="payment_method" value="manual_eft" id="corp_pay_meft"
-                            onchange="toggleDashboardPaymentPanels('manual')">
-                        <label for="corp_pay_meft"
-                            style="display: inline; cursor: pointer; color: #fff; margin-left: 0.5rem;">
+                    <div style="background: rgba(255,255,255,0.03); padding: 0.75rem 1rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05);">
+                        <input type="radio" name="payment_method" value="manual_eft" id="corp_pay_meft" onchange="toggleDashboardPaymentPanels('manual')">
+                        <label for="corp_pay_meft" style="display: inline; cursor: pointer; color: #fff; margin-left: 0.5rem;">
                             <i class="fa-solid fa-building-columns" style="color: #a3a3a3; margin-right: 0.25rem;"></i>
                             <strong>Traditional Manual Corporate EFT</strong> (Requires POP Document)
                         </label>
                     </div>
                 </div>
 
-                <div class="wizard-footer-actions"
-                    style="display: flex; justify-content: space-between; margin-top: 20px;">
+                <div class="wizard-footer-actions" style="display: flex; justify-content: space-between; margin-top: 20px;">
                     <button type="button" class="btn-table-row" onclick="goToStep(1)">
                         <i class="fa-solid fa-arrow-left"></i> Back
                     </button>
-                    <button type="button" class="btn-action-cyan" id="billing-continue-btn"
-                        onclick="handleBillingTransition()">
+                    <button type="button" class="btn-action-cyan" id="billing-continue-btn" onclick="handleBillingTransition()">
                         Proceed to Checkout <i class="fa-solid fa-arrow-right"></i>
                     </button>
                 </div>
             </div>
 
             <div id="wizard-step-3" class="wizard-step-block" style="display: none;">
-
-                <div id="dash-panel-gateway-notice" class="alert-notice-box"
-                    style="display: block; background: rgba(0, 242, 254, 0.05); border-color: #00f2fe; margin-bottom: 1.5rem;">
-                    <strong><i class="fa-solid fa-shield-halved"></i> Payment Gateway Routing:</strong> Your selection
-                    processes instantly. Press deployment below to route through secure end-to-end authorization
-                    networks.
+                <div id="dash-panel-gateway-notice" class="alert-notice-box" style="display: block; background: rgba(0, 242, 254, 0.05); border-color: #00f2fe; margin-bottom: 1.5rem;">
+                    <strong><i class="fa-solid fa-shield-halved"></i> Payment Gateway Routing:</strong> Your selection processes instantly. Press deployment below to route through secure end-to-end authorization networks.
                 </div>
 
                 <div id="dash-panel-manual-eft" style="display: none;">
-                    <div class="banking-details-box" style="margin-bottom: 1.5rem;">
-                        <h5><i class="fa-solid fa-building-columns text-cyan"></i> Electronic Funds Transfer (EFT)
-                            Target Node</h5>
-                        <p>Please dispatch complete settlement to our banking terminal infrastructure below:</p>
-                        <ul>
+                    <div class="banking-details-box" style="margin-bottom: 1.5rem; background: rgba(255,255,255,0.02); padding: 15px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
+                        <h5 style="margin-top:0; color:#00f2fe;"><i class="fa-solid fa-building-columns text-cyan"></i> Electronic Funds Transfer (EFT) Target Node</h5>
+                        <p style="font-size:13px; color:#a3a3a3;">Please dispatch complete settlement to our banking terminal infrastructure below:</p>
+                        <ul style="font-size:13px; list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:4px;">
                             <li><strong>Bank Brand:</strong> FNB Corporate Banking SA</li>
                             <li><strong>Account Name:</strong> InspHired Recruitment Solutions</li>
                             <li><strong>Account Number:</strong> 62910488219</li>
                             <li><strong>Branch Routing Code:</strong> 250655</li>
-                            <li><strong>Payment Reference Tag:</strong> <span class="mono-text text-cyan"
-                                    id="payment-ref">VFY-TX-6009</span></li>
+                            <li><strong>Payment Reference Tag:</strong> <span class="mono-text text-cyan" id="payment-ref">VFY-TX-6009</span></li>
                         </ul>
                     </div>
 
                     <div class="form-group">
                         <label>Upload Bank Transfer Confirmation (PDF / Image)</label>
                         <div class="csv-upload-dropzone" style="border-style: solid; border-color: #4eb637;">
-                            <input type="file" id="pop-upload" name="pop_receipt" accept=".pdf,image/*"
-                                onchange="updatePOPLabel(this)">
+                            <input type="file" id="pop-upload" name="pop_receipt" accept=".pdf,image/*" onchange="updatePOPLabel(this)">
                             <span id="pop-label">
-                                <i class="fa-solid fa-receipt style-icon"
-                                    style="font-size: 1.5rem; display:block; margin-bottom:0.5rem;"></i>
+                                <i class="fa-solid fa-receipt style-icon" style="font-size: 1.5rem; display:block; margin-bottom:0.5rem;"></i>
                                 Attach Electronic Proof of Payment (PoP)
                             </span>
                         </div>
                     </div>
                 </div>
 
-                <div class="wizard-footer-actions"
-                    style="display: flex; justify-content: space-between; margin-top: 20px; padding-top: 15px; border-top: 1px solid var(--border-color, #333);">
+                <div class="wizard-footer-actions" style="display: flex; justify-content: space-between; margin-top: 20px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.05);">
                     <button type="button" class="btn-table-row" onclick="goToStep(2)">
                         <i class="fa-solid fa-arrow-left"></i> Back
                     </button>
-                    <button type="submit" id="final-deploy-btn" class="btn-portal-primary"
-                        style="margin: 0; width: auto; padding: 0.75rem 1.5rem;">
+                    <button type="submit" id="final-deploy-btn" class="btn-portal-primary" style="margin: 0; width: auto; padding: 0.75rem 1.5rem;">
                         <i class="fa-solid fa-rocket"></i> Deploy Core Request
                     </button>
                 </div>
@@ -506,47 +434,38 @@
         </form>
     </div>
 </div>
+
 <script>
     let currentStep = 1;
 
-    // ── TAB LAYOUT ROUTING ───────────────────────────────────
     function switchTab(tabName, clickedBtn) {
         document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active-content'));
         document.querySelectorAll('.sidebar-menu .menu-item').forEach(btn => btn.classList.remove('active'));
-
         document.getElementById('tab-' + tabName).classList.add('active-content');
         clickedBtn.classList.add('active');
     }
 
-    // ── NAVIGATION INTERFACES ────────────────────────────────
     function toggleNotificationDropdown() {
         const dropdown = document.getElementById('notification-dropdown');
         if (dropdown) dropdown.classList.toggle('open-dropdown');
     }
 
-    // ── WIZARD MODAL STATE MANIPULATION ──────────────────────
     function openScreeningModal(preSelectedService = null) {
         currentStep = 1;
         goToStep(1);
 
-        // Reset selection arrays cleanly to default card gateway path
         const defaultRadio = document.getElementById('corp_pay_card');
         if (defaultRadio) defaultRadio.checked = true;
         toggleDashboardPaymentPanels('gateway');
 
-        // Handle pre-selection service contextual mappings from card clicks
         const vectorSelect = document.getElementById('vector-select');
         if (preSelectedService && vectorSelect) {
             vectorSelect.value = preSelectedService;
         }
 
-        // Force recalculation immediately based on updated parameters
         calculateCost();
 
-        // Generate dynamic tracking reference signature node
         const generatedRef = "VFY-TX-" + Math.floor(1000 + Math.random() * 9000);
-
-        // Inject simultaneously to UI display element and back-end payload input field
         const displayRefNode = document.getElementById('payment-ref');
         const hiddenRefInput = document.getElementById('hidden-payment-ref-input');
 
@@ -560,7 +479,6 @@
         document.getElementById('screening-modal').classList.remove('open');
     }
 
-    // ── CORE FILE UPLOAD LABEL WRITERS ───────────────────────
     function updateCSVLabel(input) {
         if (input.files && input.files.length > 0) {
             document.getElementById('csv-label').innerHTML = `<i class="fa-solid fa-circle-check text-cyan" style="font-size: 1.5rem; display:block; margin-bottom:0.5rem;"></i> Registry Loaded: <b>${input.files[0].name}</b>`;
@@ -573,11 +491,9 @@
         }
     }
 
-    // ── COST METRIC EVALUATOR ────────────────────────────────
     function calculateCost() {
         const vectorSelect = document.getElementById('vector-select');
         const countInput = document.getElementById('candidate-count');
-
         if (!vectorSelect || !countInput) return;
 
         const selectedOption = vectorSelect.options[vectorSelect.selectedIndex];
@@ -587,18 +503,15 @@
         const totalUnits = parseInt(countInput.value) || 1;
         const totalPrice = pricePerUnit * totalUnits;
 
-        // Handle biometric conditional visibility box updates using updated service strings
         const noticeBox = document.getElementById('fingerprint-notice');
         if (noticeBox) {
-            const selectedValue = vectorSelect.value.toLowerCase();
-            noticeBox.style.display = selectedValue.includes('criminal') ? "block" : "none";
+            noticeBox.style.display = vectorSelect.value.toLowerCase().includes('criminal') ? "block" : "none";
         }
 
         document.getElementById('summary-text').innerText = `${totalUnits} candidate(s) \u00d7 ${vectorSelect.value}`;
         document.getElementById('total-price-display').innerText = "R" + totalPrice.toFixed(2);
     }
 
-    // ── DYNAMIC SEGREGATED SETTLEMENT ROUTING ────────────────
     function toggleDashboardPaymentPanels(target) {
         const gatewayNotice = document.getElementById('dash-panel-gateway-notice');
         const manualPanel = document.getElementById('dash-panel-manual-eft');
@@ -609,30 +522,22 @@
         if (target === 'gateway') {
             if (gatewayNotice) gatewayNotice.style.display = 'block';
             if (manualPanel) manualPanel.style.display = 'none';
-
-            // Remove native constraints when utilizing online portals
             if (popInput) {
                 popInput.removeAttribute('required');
-                popInput.value = ""; // Flush residual instances safely
-                const popLabel = document.getElementById('pop-label');
-                if (popLabel) popLabel.innerHTML = `<i class="fa-solid fa-receipt style-icon" style="font-size: 1.5rem; display:block; margin-bottom:0.5rem;"></i> Attach Electronic Proof of Payment (PoP)`;
+                popInput.value = "";
+                document.getElementById('pop-label').innerHTML = `<i class="fa-solid fa-receipt style-icon" style="font-size: 1.5rem; display:block; margin-bottom:0.5rem;"></i> Attach Electronic Proof of Payment (PoP)`;
             }
-
             if (nextActionBtn) nextActionBtn.innerHTML = `Proceed to Checkout <i class="fa-solid fa-arrow-right"></i>`;
             if (submitActionBtn) submitActionBtn.innerHTML = `<i class="fa-solid fa-credit-card"></i> Redirect to Gateway`;
         } else {
             if (gatewayNotice) gatewayNotice.style.display = 'none';
             if (manualPanel) manualPanel.style.display = 'block';
-
-            // Enforce file constraint on client layer when manual corporate tracking is picked
             if (popInput) popInput.setAttribute('required', 'required');
-
             if (nextActionBtn) nextActionBtn.innerHTML = `Proceed to Payment Upload <i class="fa-solid fa-arrow-right"></i>`;
             if (submitActionBtn) submitActionBtn.innerHTML = `<i class="fa-solid fa-rocket"></i> Deploy Core Request`;
         }
     }
 
-    // ── DECOUPLED STEP ENGINE FLOWS ──────────────────────────
     function handleBillingTransition() {
         goToStep(3);
     }
@@ -641,53 +546,44 @@
         if (stepNumber === 2 && currentStep === 1) {
             const csvFile = document.getElementById('csv-upload').files;
             const countValue = document.getElementById('candidate-count').value;
-
             if (!csvFile.length || !countValue || countValue < 1) {
                 alert("Please declare your target candidate count metrics and upload the candidate registry .csv file to proceed.");
                 return;
             }
         }
 
-        if (stepNumber === 3 && currentStep === 2) {
-            // Evaluates chosen track rules dynamically instantly
-            calculateCost();
-        }
-
         currentStep = stepNumber;
-        document.querySelectorAll('.wizard-step-block').forEach(block => block.classList.remove('active-step'));
+        
+        // DYNAMIC DISPLAY PROPERTY RESET ENGINE (FIXED HIDDEN WIZARD BLOCK)
+        document.getElementById('wizard-step-1').style.display = 'none';
+        document.getElementById('wizard-step-2').style.display = 'none';
+        document.getElementById('wizard-step-3').style.display = 'none';
 
-        const TargetStepBlock = document.getElementById('wizard-step-' + stepNumber);
-        if (TargetStepBlock) TargetStepBlock.classList.add('active-step');
+        const targetStepBlock = document.getElementById('wizard-step-' + stepNumber);
+        if (targetStepBlock) targetStepBlock.style.display = 'block';
 
         const barPercent = stepNumber === 1 ? '33.3%' : stepNumber === 2 ? '66.6%' : '100%';
-
-        const progressBar = document.getElementById('wizard-progress');
-        const stepTitle = document.getElementById('wizard-step-title');
-
-        if (progressBar) progressBar.style.width = barPercent;
-        if (stepTitle) stepTitle.innerText = `Initiate Background Run (Step ${stepNumber}/3)`;
+        document.getElementById('wizard-progress').style.width = barPercent;
+        document.getElementById('wizard-step-title').innerText = `Initiate Background Run (Step ${stepNumber}/3)`;
     }
 
-    // ── SETUP VALIDATION INTERCEPT SAFETY MAPPINGS ──────────
     document.addEventListener('DOMContentLoaded', () => {
         const screeningForm = document.getElementById('multi-step-screening-form');
         if (screeningForm) {
             screeningForm.addEventListener('submit', function (e) {
-                const selectedMethodNode = document.querySelector('input[name="payment_method"]:checked');
+                const selectedMethodNode = document.querySelector('input[name=\"payment_method\"]:checked');
                 if (!selectedMethodNode) return;
 
-                const selectedMethod = selectedMethodNode.value;
-                if (selectedMethod === 'manual_eft') {
+                if (selectedMethodNode.value === 'manual_eft') {
                     const popFile = document.getElementById('pop-upload').files;
                     if (!popFile || !popFile.length) {
-                        e.preventDefault(); // Halt backend submission pipe
+                        e.preventDefault();
                         alert("Please upload your manual banking proof of payment transfer receipt to deploy this request node.");
                     }
                 }
             });
         }
 
-        // Close modal if user clicks on the backdrop overlay
         const backdropOverlay = document.getElementById('screening-modal');
         if (backdropOverlay) {
             backdropOverlay.addEventListener('click', function (e) {

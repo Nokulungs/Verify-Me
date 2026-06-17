@@ -18,7 +18,7 @@ load_dotenv()
 class Config:
     """Core Application Configurations."""
     SECRET_KEY = os.environ.get('SECRET_KEY', 'super_secure_verifyme_key')
-    BASE_URL = os.environ.get('BASE_URL', 'http://localhost:5000')
+    BASE_URL = os.environ.get('BASE_URL', 'http://localhost:5000').strip()
     
     # PayFast API Binding Configurations
     PAYFAST_MERCHANT_ID = os.environ.get('PAYFAST_MERCHANT_ID', '10050117')
@@ -30,7 +30,8 @@ app = Flask(__name__)
 
 app.config.from_object(Config)
 
-DATABASE = 'verifyme.db'
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+DATABASE = os.path.join(BASE_DIR, 'verifyme.db')
 
 # --- FILE CAPTURE CONFIGURATIONS ---
 UPLOAD_FOLDER = os.path.join('static', 'uploads', 'receipts')
