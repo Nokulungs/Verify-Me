@@ -165,32 +165,64 @@ def role_required(allowed_roles):
 def index():
     return render_template('index.html')
 
+def is_strong_password(password):
+    """Enforces 8 length, 1 number, 1 special character."""
+    if len(password) < 8:
+        return False, "Password must be at least 8 characters long."
+    if not any(char.isdigit() for char in password):
+        return False, "Password must contain at least one number."
+    if not any(char in "!@#$%^&*()-_=+[{]};:'\",<.>/?`~" for char in password):
+        return False, "Password must contain at least one special character."
+    return True, ""
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        email = request.form.get('email').strip().lower()
-        password = request.form.get('password')
-        applicant_type = request.form.get('applicant_type') 
+        # Safely capture string parameters with fallback empty targets
+        email = (request.form.get('email') or '').strip().lower()
+        password = request.form.get('password') or ''
+        applicant_type = (request.form.get('applicant_type') or '').strip()
 
-        individual_name = request.form.get('individual_name')
-        individual_id = request.form.get('individual_id')
-        company_name = request.form.get('company_name')
-        company_contact = request.form.get('company_contact')
+        individual_name = (request.form.get('individual_name') or '').strip()
+        individual_id = (request.form.get('individual_id') or '').strip()
+        company_name = (request.form.get('company_name') or '').strip()
+        company_contact = (request.form.get('company_contact') or '').strip()
 
+        # 1. Base Field Blank-State Validations
+        if not email:
+            flash('Infrastructure authentication failure: Email field cannot be left blank.', 'error')
+            return render_template('auth/register.html')
+            
+        if not applicant_type:
+            flash('Infrastructure authentication failure: Please select an account operational type profile.', 'error')
+            return render_template('auth/register.html')
+
+        if not password:
+            flash('Infrastructure authentication failure: Password security parameter cannot be left blank.', 'error')
+            return render_template('auth/register.html')
+
+        # 2. Strong Password Complexity Enforcement
+        is_valid, password_error_msg = is_strong_password(password)
+        if not is_valid:
+            flash(password_error_msg, 'error')
+            return render_template('auth/register.html')
+
+        # 3. Conditional Operational Account Validations
         if applicant_type == 'individual':
             company_name, company_contact = None, None
             if not individual_name or not individual_id:
-                flash('Please complete your Full Legal Name and National ID fields.', 'error')
-                return redirect(url_for('register'))
+                flash('Please complete your Full Legal Name and National ID fields completely.', 'error')
+                return render_template('auth/register.html')
         else:
             individual_name, individual_id = None, None
             if not company_name or not company_contact:
-                flash('Please complete your Registered Entity and Representative fields.', 'error')
-                return redirect(url_for('register'))
+                flash('Please complete your Registered Entity and Representative corporate validation fields.', 'error')
+                return render_template('auth/register.html')
 
+        # 4. Generate Standard Cryptographic Secure Hash String
         password_hash = generate_password_hash(password, method='pbkdf2:sha256')
 
+        # 5. Database Pipeline Core Entry Execution
         with get_db_connection() as conn:
             try:
                 conn.execute('''
@@ -199,30 +231,46 @@ def register():
                     ) VALUES (?, ?, ?, ?, ?, ?, ?)
                 ''', (email, password_hash, applicant_type, individual_name, individual_id, company_name, company_contact))
                 conn.commit()
+                
                 flash('Workspace profile structured successfully! Please sign in.', 'success')
                 return redirect(url_for('login'))
+                
             except sqlite3.IntegrityError:
-                flash('This exact email workspace slot is already registered.', 'error')
-                return redirect(url_for('register'))
+                flash('This exact email workspace slot is already registered within our system network.', 'error')
+                return render_template('auth/register.html')
 
     return render_template('auth/register.html')
-
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        email = request.form.get('email').strip().lower()
-        password = request.form.get('password')
+        # Safely capture parameters with fallback values
+        email = (request.form.get('email') or '').strip().lower()
+        password = request.form.get('password') or ''
 
-        with get_db_connection() as conn:
-            user = conn.execute('SELECT * FROM users WHERE email = ?', (email,)).fetchone()
+        # 1. Server-Side Native Blank-State Validations
+        if not email:
+            flash('Infrastructure authentication failure: Email parameter cannot be left blank.', 'error')
+            return render_template('auth/login.html')
+            
+        if not password:
+            flash('Infrastructure authentication failure: Password security verification parameter cannot be left blank.', 'error')
+            return render_template('auth/login.html')
 
-        # ── DEVELOPMENT BYPASS & REPAIR ARCHITECTURE ────────────────────────
+        try:
+            with get_db_connection() as conn:
+                user = conn.execute('SELECT * FROM users WHERE email = ?', (email,)).fetchone()
+        except Exception as e:
+            print(f"Login Database Connectivity Error: {e}")
+            flash('A core infrastructure network data error occurred. Please try again.', 'error')
+            return render_template('auth/login.html')
+
+        # 2. Development Bypass, Admin Architecture, and Hash Validations
         is_valid_admin = (email == 'admin@insphiredops.co.za' and password == 'adminsecret')
         is_valid_hash = user and check_password_hash(user['password_hash'], password)
 
         if is_valid_admin or is_valid_hash:
-            # If they used the correct admin credentials but the DB was broken, fix it on the fly!
+            # If they used the correct admin credentials but the DB was using plain text, auto-heal on the fly!
             if is_valid_admin and user and user['password_hash'] == 'adminsecret':
                 try:
                     corrected_hash = generate_password_hash("adminsecret", method='pbkdf2:sha256')
@@ -233,23 +281,31 @@ def login():
                 except Exception:
                     pass
 
-            # Establish standard login session states
+            # 3. Clean Session Security State Configuration Binding
+            session.clear()  # Drop any lingering session tracking states safely
             session['user_id'] = user['id'] if user else 1
             session['user_email'] = email
             session['applicant_type'] = user['applicant_type'] if user else 'admin'
             
+            # 4. Context-Specific Role Redirection Paths
             if session['applicant_type'] == 'company':
-                session['display_name'] = user['company_name']
+                session['display_name'] = user['company_name'] if user else 'Corporate Entity'
+                flash(f"Welcome back to workspace network context: {session['display_name']}", 'success')
                 return redirect(url_for('dashboard_corporate'))
+                
             elif session['applicant_type'] == 'admin':
                 session['display_name'] = user['individual_name'] if user else 'SecOps Specialist'
+                flash("Administrative operational clearance granted.", 'success')
                 return redirect(url_for('admin_dashboard'))
+                
             else:
-                session['display_name'] = user['individual_name']
+                session['display_name'] = user['individual_name'] if user else 'Verified Account'
+                flash(f"Welcome back, {session['display_name']}!", 'success')
                 return redirect(url_for('dashboard_individual'))
         
+        # 5. Mismatched or Invalid Input Rejection Strategy
         flash('Invalid credentials validation parameters provided.', 'error')
-        return redirect(url_for('login'))
+        return render_template('auth/login.html')
 
     return render_template('auth/login.html')
 
@@ -724,17 +780,28 @@ def payfast_checkout():
 
 @app.route('/payment-success')
 def payment_success():
-    ref = request.args.get('ref', '')
-    with get_db_connection() as conn:
-        # Resolve both potential corporate pipelines or individual loops implicitly
-        if "VFY-TX-" in ref:
-            conn.execute("UPDATE screenings SET payment_status = 'Completed', status = 'Awaiting Document Upload' WHERE payment_ref = ?", (ref,))
-        else:
-            conn.execute("UPDATE individual_audits SET payment_status = 'Completed', status = 'Ready for Review' WHERE payment_ref = ?", (ref,))
-        conn.commit()
-        
-    flash("Payment authorized successfully! Your audit verification run is now live.", "success")
-    if "VFY-TX-" in ref:
+    custom_ref = request.args.get('ref', '')
+    
+    # Fallback status update rule: If the user lands here, force update the status instantly
+    if custom_ref:
+        try:
+            with get_db_connection() as conn:
+                # Update corporate screenings matching this reference
+                conn.execute(
+                    "UPDATE screenings SET payment_status = 'Completed', status = 'Awaiting Document Upload' WHERE payment_ref = ?", 
+                    (custom_ref,)
+                )
+                # Update individual audits matching this reference
+                conn.execute(
+                    "UPDATE individual_audits SET payment_status = 'Completed', status = 'Ready for Review' WHERE id = (SELECT id FROM individual_audits WHERE payment_ref = ? OR id = ? LIMIT 1)", 
+                    (custom_ref, custom_ref)
+                )
+                conn.commit()
+        except Exception as e:
+            print(f"Fallback update error: {e}")
+
+    # Seamlessly route them to their correct dashboard style based on account type
+    if session.get('applicant_type') == 'company':
         return redirect(url_for('dashboard_corporate'))
     return redirect(url_for('dashboard_individual'))
 

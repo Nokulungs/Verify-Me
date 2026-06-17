@@ -9,43 +9,66 @@
             <p class="auth-subtitle">Select your operational role profile below.</p>
         </div>
 
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert-box {% if category == 'success' %}alert-success{% else %}alert-error{% endif %}" role="alert">
+                        <div class="alert-icon-container">
+                            {% if category == 'success' %}
+                                <svg class="alert-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                            {% else %}
+                                <svg class="alert-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                                </svg>
+                            {% endif %}
+                        </div>
+                        <div class="alert-message-content">
+                            {{ message }}
+                        </div>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
         <div class="auth-role-selector">
-            <button class="auth-role-btn active" id="btn-individual" type="button" onclick="switchAuthRole('individual')">Individual</button>
-            <button class="auth-role-btn" id="btn-company" type="button" onclick="switchAuthRole('company')">Corporate</button>
+            <button class="auth-role-btn {% if not request.form.get('applicant_type') or request.form.get('applicant_type') == 'individual' %}active{% endif %}" id="btn-individual" type="button" onclick="switchAuthRole('individual')">Individual</button>
+            <button class="auth-role-btn {% if request.form.get('applicant_type') == 'company' %}active{% endif %}" id="btn-company" type="button" onclick="switchAuthRole('company')">Corporate</button>
         </div>
 
-        <form action="{{ url_for('register') }}" method="POST">
-            <input type="hidden" id="applicant_type_field" name="applicant_type" value="individual">
+        <form action="{{ url_for('register') }}" method="POST" novalidate>
+            <input type="hidden" id="applicant_type_field" name="applicant_type" value="{{ request.form.get('applicant_type', 'individual') }}">
 
             <div class="form-group">
                 <label for="reg_email">Email Address</label>
-                <input type="email" id="reg_email" name="email" class="form-control" placeholder="management@company.co.za" required>
+                <input type="email" id="reg_email" name="email" class="form-control" placeholder="management@company.co.za" value="{{ request.form.get('email', '') }}">
             </div>
 
             <div class="form-group">
                 <label for="reg_password">Password</label>
-                <input type="password" id="reg_password" name="password" class="form-control" placeholder="Minimum 8 characters" required>
+                <input type="password" id="reg_password" name="password" class="form-control" placeholder="Min 8 chars, 1 number, 1 special sym">
             </div>
 
-            <div id="fields-individual" style="display: block;">
+            <div id="fields-individual" style="display: {% if not request.form.get('applicant_type') or request.form.get('applicant_type') == 'individual' %}block{% else %}none{% endif %};">
                 <div class="form-group">
                     <label for="ind_name">Full Legal Name</label>
-                    <input type="text" id="ind_name" name="individual_name" class="form-control" placeholder="Jane Doe">
+                    <input type="text" id="ind_name" name="individual_name" class="form-control" placeholder="Jane Doe" value="{{ request.form.get('individual_name', '') }}">
                 </div>
                 <div class="form-group">
                     <label for="ind_id">National ID Number</label>
-                    <input type="text" id="ind_id" name="individual_id" class="form-control" placeholder="South African 13-Digit ID">
+                    <input type="text" id="ind_id" name="individual_id" class="form-control" placeholder="South African 13-Digit ID" value="{{ request.form.get('individual_id', '') }}">
                 </div>
             </div>
 
-            <div id="fields-company" style="display: none;">
+            <div id="fields-company" style="display: {% if request.form.get('applicant_type') == 'company' %}block{% else %}none{% endif %};">
                 <div class="form-group">
                     <label for="comp_name">Registered Entity Name</label>
-                    <input type="text" id="comp_name" name="company_name" class="form-control" placeholder="DevCorp Pty Ltd">
+                    <input type="text" id="comp_name" name="company_name" class="form-control" placeholder="DevCorp Pty Ltd" value="{{ request.form.get('company_name', '') }}">
                 </div>
                 <div class="form-group">
                     <label for="comp_contact">Authorized Representative</label>
-                    <input type="text" id="comp_contact" name="company_contact" class="form-control" placeholder="Full name of authority officer">
+                    <input type="text" id="comp_contact" name="company_contact" class="form-control" placeholder="Full name of authority officer" value="{{ request.form.get('company_contact', '') }}">
                 </div>
             </div>
 
@@ -57,6 +80,46 @@
         </div>
     </div>
 </div>
+
+<style>
+    .alert-box {
+        display: flex;
+        align-items: flex-start;
+        padding: 1rem;
+        margin-bottom: 1.25rem;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        line-height: 1.25rem;
+        animation: fadeIn 0.25s ease-out forwards;
+    }
+    .alert-error {
+        background-color: rgba(220, 38, 38, 0.12);
+        border: 1px solid rgba(220, 38, 38, 0.4);
+        color: #fca5a5;
+    }
+    .alert-success {
+        background-color: rgba(16, 185, 129, 0.12);
+        border: 1px solid rgba(16, 185, 129, 0.4);
+        color: #a7f3d0;
+    }
+    .alert-icon-container {
+        flex-shrink: 0;
+        margin-right: 0.75rem;
+    }
+    .alert-icon {
+        width: 1.25rem;
+        height: 1.25rem;
+    }
+    .alert-message-content {
+        flex: 1;
+        font-weight: 500;
+        text-align: left;
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-4px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+</style>
 
 <script>
     function switchAuthRole(roleType) {

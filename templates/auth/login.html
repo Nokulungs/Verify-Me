@@ -9,15 +9,38 @@
             <p class="auth-subtitle">Access your background screening nodes.</p>
         </div>
 
-        <form action="{{ url_for('login') }}" method="POST">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert-box {% if category == 'success' %}alert-success{% else %}alert-error{% endif %}" role="alert">
+                        <div class="alert-icon-container">
+                            {% if category == 'success' %}
+                                <svg class="alert-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                            {% else %}
+                                <svg class="alert-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                                </svg>
+                            {% endif %}
+                        </div>
+                        <div class="alert-message-content">
+                            {{ message }}
+                        </div>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <form action="{{ url_for('login') }}" method="POST" novalidate>
             <div class="form-group">
                 <label for="login_email">Official Email</label>
-                <input type="email" id="login_email" name="email" class="form-control" placeholder="name@company.co.za" required autocomplete="username">
+                <input type="email" id="login_email" name="email" class="form-control" placeholder="name@company.co.za" autocomplete="username">
             </div>
 
             <div class="form-group">
                 <label for="login_password">Password</label>
-                <input type="password" id="login_password" name="password" class="form-control" placeholder="••••••••••••" required autocomplete="current-password">
+                <input type="password" id="login_password" name="password" class="form-control" placeholder="••••••••••••" autocomplete="current-password">
             </div>
 
             <button type="submit" class="btn-portal-primary">Authenticate Session</button>
@@ -28,4 +51,44 @@
         </div>
     </div>
 </div>
+
+<style>
+    .alert-box {
+        display: flex;
+        align-items: flex-start;
+        padding: 1rem;
+        margin-bottom: 1.25rem;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        line-height: 1.25rem;
+        animation: fadeIn 0.25s ease-out-forward;
+    }
+    .alert-error {
+        background-color: rgba(220, 38, 38, 0.12);
+        border: 1px solid rgba(220, 38, 38, 0.4);
+        color: #fca5a5;
+    }
+    .alert-success {
+        background-color: rgba(16, 185, 129, 0.12);
+        border: 1px solid rgba(16, 185, 129, 0.4);
+        color: #a7f3d0;
+    }
+    .alert-icon-container {
+        flex-shrink: 0;
+        margin-right: 0.75rem;
+    }
+    .alert-icon {
+        width: 1.25rem;
+        height: 1.25rem;
+    }
+    .alert-message-content {
+        flex: 1;
+        font-weight: 500;
+        text-align: left;
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-4px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+</style>
 {% endblock %}
