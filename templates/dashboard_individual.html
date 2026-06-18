@@ -697,143 +697,146 @@
     }
 
     .form-group {
-    display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
-    width: 100%;
-    margin-bottom: 0.5rem;
-}
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
 
-.form-group label {
-    font-size: 0.8rem;
-    font-weight: 500;
-    color: var(--brand-muted, #a3a3a3);
-    letter-spacing: 0.3px;
-}
+    .form-group label {
+        font-size: 0.8rem;
+        font-weight: 500;
+        color: var(--brand-muted, #a3a3a3);
+        letter-spacing: 0.3px;
+    }
 
-.form-control {
-    width: 100%;
-    padding: 0.65rem 0.75rem;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid var(--border, rgba(255, 255, 255, 0.1));
-    border-radius: var(--radius-sm, 6px);
-    color: #ffffff;
-    font-size: 0.9rem;
-    box-sizing: border-box;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
+    .form-control {
+        width: 100%;
+        padding: 0.65rem 0.75rem;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--border, rgba(255, 255, 255, 0.1));
+        border-radius: var(--radius-sm, 6px);
+        color: #ffffff;
+        font-size: 0.9rem;
+        box-sizing: border-box;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
 
-/* Form controls that are locked out from system alterations */
-.form-control[readonly] {
-    background: rgba(255, 255, 255, 0.01);
-    color: #cbd5e1;
-    border-color: transparent;
-    box-shadow: none;
-}
+    /* Form controls that are locked out from system alterations */
+    .form-control[readonly] {
+        background: rgba(255, 255, 255, 0.01);
+        color: #cbd5e1;
+        border-color: transparent;
+        box-shadow: none;
+    }
 
-/* Active State layout during edit profile activation execution */
-.profile-editable:not([readonly]) {
-    outline: none;
-    background: rgba(255, 255, 255, 0.06) !important;
-    border-color: var(--brand-lime, #4eb637) !important;
-    box-shadow: 0 0 0 3px rgba(78, 182, 55, 0.15);
-}
+    /* Active State layout during edit profile activation execution */
+    .profile-editable:not([readonly]) {
+        outline: none;
+        background: rgba(255, 255, 255, 0.06) !important;
+        border-color: var(--brand-lime, #4eb637) !important;
+        box-shadow: 0 0 0 3px rgba(78, 182, 55, 0.15);
+    }
 
-.form-control:focus:not([readonly]) {
-    outline: none;
-    border-color: var(--text-cyan, #00f0ff);
-    background: rgba(255, 255, 255, 0.06);
-    box-shadow: 0 0 0 3px rgba(0, 240, 255, 0.15);
-}
+    .form-control:focus:not([readonly]) {
+        outline: none;
+        border-color: var(--text-cyan, #00f0ff);
+        background: rgba(255, 255, 255, 0.06);
+        box-shadow: 0 0 0 3px rgba(0, 240, 255, 0.15);
+    }
 
-/* --- COMPONENT UI SPECIFIC TOKENS --- */
-.btn-portal-primary {
-    background: var(--brand-lime, #4eb637);
-    color: #0d1112;
-    font-weight: 600;
-    border: none;
-    border-radius: var(--radius-sm, 6px);
-    cursor: pointer;
-    transition: background 0.2s ease;
-}
+    /* --- COMPONENT UI SPECIFIC TOKENS --- */
+    .btn-portal-primary {
+        background: var(--brand-lime, #4eb637);
+        color: #0d1112;
+        font-weight: 600;
+        border: none;
+        border-radius: var(--radius-sm, 6px);
+        cursor: pointer;
+        transition: background 0.2s ease;
+    }
 
-.btn-portal-primary:hover {
-    background: #429d2f;
-}
+    .btn-portal-primary:hover {
+        background: #429d2f;
+    }
 
-/* --- PASSWORD METRICS STRUCTURAL VISUALIZATIONS --- */
-#indiv-strength, #corp-strength {
-    display: flex;
-    gap: 4px;
-    margin-top: 6px;
-    width: 100%;
-}
+    /* --- PASSWORD METRICS STRUCTURAL VISUALIZATIONS --- */
+    #indiv-strength,
+    #corp-strength {
+        display: flex;
+        gap: 4px;
+        margin-top: 6px;
+        width: 100%;
+    }
 
-#indiv-strength div, #corp-strength div {
-    flex: 1;
-    height: 4px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 2px;
-    transition: background 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
+    #indiv-strength div,
+    #corp-strength div {
+        flex: 1;
+        height: 4px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 2px;
+        transition: background 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
 
-/* --- OVERRIDE DEFAULT SYSTEM BUTTON STATES --- */
-#tab-profile button {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    font-family: inherit;
-    font-size: 0.85rem;
-    font-weight: 500;
-    padding: 0.6rem 1.2rem;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    box-sizing: border-box;
-}
+    /* --- OVERRIDE DEFAULT SYSTEM BUTTON STATES --- */
+    #tab-profile button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        font-family: inherit;
+        font-size: 0.85rem;
+        font-weight: 500;
+        padding: 0.6rem 1.2rem;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        box-sizing: border-box;
+    }
 
-/* 1. Standard Row / Silver-Border Action Buttons (Edit Profile / Update Security Hash) */
-#tab-profile .btn-table-row,
-#tab-profile button[type="submit"]:not(.btn-portal-primary) {
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    color: #eef2ef;
-}
+    /* 1. Standard Row / Silver-Border Action Buttons (Edit Profile / Update Security Hash) */
+    #tab-profile .btn-table-row,
+    #tab-profile button[type="submit"]:not(.btn-portal-primary) {
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        color: #eef2ef;
+    }
 
-#tab-profile .btn-table-row:hover,
-#tab-profile button[type="submit"]:not(.btn-portal-primary):hover {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.3);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-}
+    #tab-profile .btn-table-row:hover,
+    #tab-profile button[type="submit"]:not(.btn-portal-primary):hover {
+        background: rgba(255, 255, 255, 0.08);
+        border-color: rgba(255, 255, 255, 0.3);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
 
-/* 2. Primary Portal Action Buttons (Save Changes - Green Accent) */
-#tab-profile .btn-portal-primary {
-    background: #4eb637 !important;
-    border: 1px solid #4eb637 !important;
-    color: #0d1112 !important;
-    font-weight: 600;
-}
+    /* 2. Primary Portal Action Buttons (Save Changes - Green Accent) */
+    #tab-profile .btn-portal-primary {
+        background: #4eb637 !important;
+        border: 1px solid #4eb637 !important;
+        color: #0d1112 !important;
+        font-weight: 600;
+    }
 
-#tab-profile .btn-portal-primary:hover {
-    background: #5fd445 !important;
-    box-shadow: 0 0 15px rgba(78, 182, 55, 0.3);
-}
+    #tab-profile .btn-portal-primary:hover {
+        background: #5fd445 !important;
+        box-shadow: 0 0 15px rgba(78, 182, 55, 0.3);
+    }
 
-/* 3. Danger Zone Specific Buttons (Delete Account - Deep Crimson Accent) */
-#tab-profile .analytics-card[style*="rgba(255, 74, 74"] button,
-#tab-profile button[onclick*="confirmAccountDeletion"] {
-    background: rgba(255, 74, 74, 0.06) !important;
-    border: 1px solid rgba(255, 74, 74, 0.3) !important;
-    color: #ff4a4a !important;
-}
+    /* 3. Danger Zone Specific Buttons (Delete Account - Deep Crimson Accent) */
+    #tab-profile .analytics-card[style*="rgba(255, 74, 74"] button,
+    #tab-profile button[onclick*="confirmAccountDeletion"] {
+        background: rgba(255, 74, 74, 0.06) !important;
+        border: 1px solid rgba(255, 74, 74, 0.3) !important;
+        color: #ff4a4a !important;
+    }
 
-#tab-profile button[onclick*="confirmAccountDeletion"]:hover {
-    background: rgba(255, 74, 74, 0.15) !important;
-    border-color: #ff4a4a !important;
-    box-shadow: 0 0 15px rgba(255, 74, 74, 0.2);
-}
+    #tab-profile button[onclick*="confirmAccountDeletion"]:hover {
+        background: rgba(255, 74, 74, 0.15) !important;
+        border-color: #ff4a4a !important;
+        box-shadow: 0 0 15px rgba(255, 74, 74, 0.2);
+    }
+
     @media (max-width: 900px) {
         .db-sidebar {
             transform: translateX(-100%);
