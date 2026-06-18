@@ -840,5 +840,203 @@ def logout():
     flash('Security session decoupled safely. Workspace locked.', 'success')
     return redirect(url_for('login'))
 
+# --- ADMINISTRATIVE DATA EXPORT & SYSTEM ARCHIVE TRACKS ---
+
+@app.route('/admin/export-corporate/csv')
+@role_required(['admin'])
+def export_corporate_csv():
+    """Generates a streaming CSV report of the enterprise candidate screening matrix."""
+    company_filter = request.args.get('company_filter', '')
+    
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    # Write structural CSV header fields
+    writer.writerow([
+        'Candidate ID', 'Registered Enterprise Name', 'Candidate Name', 
+        'Candidate Email', 'Audit Vector Type', 'Current Status State', 
+        'Billing Method', 'Payment Status Code', 'Financial Reference Token', 'Staging Date'
+    ])
+    
+    query = "SELECT s.*, u.company_name FROM screenings s JOIN users u ON s.user_id = u.id"
+    params = ()
+    if company_filter:
+        query += " WHERE u.company_name = ?"
+        params = (company_filter,)
+    
+    query += " ORDER BY s.created_at DESC"
+    
+    with get_db_connection() as conn:
+        records = conn.execute(query, params).fetchall()
+        
+    for row in records:
+        writer.writerow([
+            f"CC-{row['id']}",
+            row['company_name'],
+            row['candidate_name'],
+            row['candidate_email'],
+            row['screening_type'],
+            row['status'],
+            row['payment_method'],
+            row['payment_status'],
+            row['payment_ref'],
+            row['created_at']
+        ])
+        
+    response = Flask.response_class(
+        output.getvalue(),
+        mimetype='text/csv',
+        headers={"Content-disposition": f"attachment; filename=corporate_screening_report_{datetime.now().strftime('%Y%m%d')}.csv"}
+    )
+    return response
+
+
+@app.route('/admin/export-individual/csv')
+@role_required(['admin'])
+def export_individual_csv():
+    """Generates a streaming CSV data vault export of individual citizen direct checks."""
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    writer.writerow([
+        'Audit Run Token', 'Applicant Account Email', 'Full Legal Name', 
+        'National ID Number', 'Audit Focus Type', 'Pipeline Status State', 
+        'Billing Method', 'Payment Status', 'Ledger Reference', 'Created At'
+    ])
+    
+    with get_db_connection() as conn:
+        records = conn.execute("""
+            SELECT a.*, u.email, u.individual_name, u.individual_id 
+            FROM individual_audits a 
+            JOIN users u ON a.user_id = u.id 
+            ORDER BY a.created_at DESC
+        """).fetchall()
+        
+    for row in records:
+        writer.writerow([
+            f"IND-{row['id']}",
+            row['email'],
+            row['individual_name'] if row['individual_name'] else 'Unspecified',
+            row['individual_id'] if row['individual_id'] else 'Unspecified',
+            row['verification_type'],
+            row['status'],
+            row['payment_method'],
+            row['payment_status'],
+            row['payment_ref'],
+            row['created_at']
+        ])
+        
+    response = Flask.response_class(
+        output.getvalue(),
+        mimetype='text/csv',
+        headers={"Content-disposition": f"attachment; filename=individual_audit_report_{datetime.now().strftime('%Y%m%d')}.csv"}
+    )
+    return response
+
+
+@app.route('/admin/export-profile/pdf/<int:user_id>')
+@role_required(['admin'])
+def export_profile_pdf(user_id):
+    """
+    Renders an elegant, browser-printable security audit certificate panel.
+    Adheres strictly to CSS design compliance rules with zero empty rulesets.
+    """
+    with get_db_connection() as conn:
+        user_profile = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+        if not user_profile:
+            abort(404)
+            
+        if user_profile['applicant_type'] == 'company':
+            history = conn.execute("SELECT id, candidate_name AS name, screening_type AS item, status, created_at FROM screenings WHERE user_id = ?", (user_id,)).fetchall()
+        else:
+            history = conn.execute("SELECT id, '-' AS name, verification_type AS item, status, created_at FROM individual_audits WHERE user_id = ?", (user_id,)).fetchall()
+
+    html_print_layout = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Identity Profile Verification Record — #USR-{user_profile['id']}</title>
+        <style>
+            body {{ background: #ffffff; color: #111111; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 3rem; margin: 0; }}
+            .cert-container {{ border: 2px solid #2e3830; padding: 2rem; border-radius: 8px; }}
+            .cert-header {{ border-bottom: 2px solid #617c41; padding-bottom: 1rem; margin-bottom: 2rem; }}
+            .cert-title {{ font-size: 1.75rem; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; color: #181c19; }}
+            .meta-grid {{ display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem; background: #f4f6f4; padding: 1.5rem; border-radius: 6px; }}
+            .meta-label {{ font-size: 0.75rem; font-weight: bold; color: #617c41; text-transform: uppercase; margin-bottom: 0.25rem; }}
+            .meta-value {{ font-size: 1rem; font-weight: 500; color: #1f2521; }}
+            .history-table {{ width: 100%; border-collapse: collapse; margin-top: 1.5rem; }}
+            .history-table th {{ background: #1f2521; color: #ffffff; text-align: left; padding: 0.75rem; font-size: 0.8rem; text-transform: uppercase; }}
+            .history-table td {{ padding: 0.75rem; border-bottom: 1px solid #eef2ef; font-size: 0.875rem; }}
+            .print-btn-strip {{ margin-bottom: 2rem; display: flex; gap: 1rem; }}
+            .btn-print {{ background: #617c41; color: #ffffff; border: none; padding: 0.5rem 1.25rem; border-radius: 4px; font-weight: bold; cursor: pointer; }}
+            @media print {{ .print-btn-strip {{ display: none; }} body {{ padding: 0; }} }}
+        </style>
+    </head>
+    <body>
+        <div class="print-btn-strip">
+            <button class="btn-print" onclick="window.print();">Print / Save as PDF Document</button>
+            <button class="btn-print" style="background:#252b27;" onclick="window.close();">Dismiss Terminal</button>
+        </div>
+        <div class="cert-container">
+            <div class="cert-header">
+                <div class="cert-title">System Account Audit Ledger Profile</div>
+                <div style="font-size: 0.85rem; color: #617c41; font-weight: 500; margin-top: 0.25rem;">VERIFYME MULTI-CHANNEL DATA PROTECTION HUB</div>
+            </div>
+            
+            <div class="meta-grid">
+                <div>
+                    <div class="meta-label">System Account Identifier</div>
+                    <div class="meta-value">#USR-{user_profile['id']}</div>
+                </div>
+                <div>
+                    <div class="meta-label">Clearance Group Scope</div>
+                    <div class="meta-value" style="text-transform: uppercase;">{user_profile['applicant_type']}</div>
+                </div>
+                <div>
+                    <div class="meta-label">Primary Registration Mail</div>
+                    <div class="meta-value">{user_profile['email']}</div>
+                </div>
+                <div>
+                    <div class="meta-label">Profile Authority Title</div>
+                    <div class="meta-value">{user_profile['company_name'] if user_profile['company_name'] else user_profile['individual_name']}</div>
+                </div>
+            </div>
+
+            <h3 style="text-transform: uppercase; font-size: 1rem; color: #181c19; border-bottom: 1px solid #2e3830; padding-bottom: 0.5rem;">Associated Active Run Matrix Runway</h3>
+            <table class="history-table">
+                <thead>
+                    <tr>
+                        <th>Instance Reference</th>
+                        <th>Target Individual</th>
+                        <th>Assigned Verification Core</th>
+                        <th>Current State</th>
+                        <th>Logged At</th>
+                    </tr>
+                </thead>
+                <tbody>
+    """
+    
+    for item in history:
+        html_print_layout += f"""
+                    <tr>
+                        <td>#{item['id']}</td>
+                        <td>{item['name']}</td>
+                        <td>{item['item']}</td>
+                        <td><strong>{item['status']}</strong></td>
+                        <td>{item['created_at']}</td>
+                    </tr>
+        """
+        
+    html_print_layout += """
+                </tbody>
+            </table>
+            <div style="margin-top: 4rem; text-align: center; font-size: 0.72rem; color: #8a9e8d; border-top: 1px dashed #2e3830; padding-top: 1rem;">
+                Cryptographic Attestation Token Generated Automatically — VerifyMe SecOps Node
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    return html_print_layout
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

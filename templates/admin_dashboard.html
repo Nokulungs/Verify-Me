@@ -314,8 +314,11 @@
             </div>
 
             <div class="table-container">
-                <div class="table-header">
+                <div class="table-header flex-between" style="padding-right: 1.5rem;">
                     <h3>Enterprise Employee Screening Array</h3>
+                    <a href="{{ url_for('export_corporate_csv', company_filter=selected_company) }}" class="btn-table-row" style="text-decoration: none; color: var(--brand-lime); border-color: var(--brand-lime);">
+                        <i class="fa-solid fa-file-csv"></i> Export Array (.CSV)
+                    </a>
                 </div>
                 <table class="matrix-table">
                     <thead>
@@ -385,8 +388,11 @@
 
         <div id="tab-individual" class="tab-content">
             <div class="table-container">
-                <div class="table-header">
+                <div class="table-header flex-between" style="padding-right: 1.5rem;">
                     <h3>Self-Verification Individual Audit Pipelines</h3>
+                    <a href="{{ url_for('export_individual_csv') }}" class="btn-table-row" style="text-decoration: none; color: var(--brand-lime); border-color: var(--brand-lime);">
+                        <i class="fa-solid fa-file-csv"></i> Export Matrix (.CSV)
+                    </a>
                 </div>
                 <table class="matrix-table">
                     <thead>
@@ -528,7 +534,7 @@
                             <th>Corporate Entity Legal Name</th>
                             <th>Individual Full Legal Name</th>
                             <th>Clearance Access Scope</th>
-                            <th>Destructive Control Action</th>
+                            <th>Actions & Controls</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -540,10 +546,19 @@
                             <td>{{ user.individual_name if user.individual_name else '-' }}</td>
                             <td><span class="instruction-badge postnet" style="text-transform:uppercase;">{{ user.applicant_type }}</span></td>
                             <td>
-                                <form method="POST" action="{{ url_for('purge_user', user_id=user.id) }}" onsubmit="return confirm('CRITICAL ARTIFACT REMOVAL: System verification to cascade delete entire workspace entities. Proceed?');">
-                                    <button type="submit" class="btn-table-row" style="color:var(--brand-alert); border-color:rgba(255, 82, 82, 0.2);"><i class="fa-solid fa-trash-can"></i> Purge Matrix</button>
-                                </form>
+                                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                    <a href="{{ url_for('export_profile_pdf', user_id=user.id) }}" target="_blank" class="btn-table-row" style="text-decoration: none; color: var(--brand-white); border-color: var(--border-bright); margin: 0;">
+                                        <i class="fa-solid fa-file-pdf"></i> Profile Report
+                                    </a>
+                                    <form method="POST" action="{{ url_for('purge_user', user_id=user.id) }}" onsubmit="return confirm('CRITICAL ARTIFACT REMOVAL: System verification to cascade delete entire workspace entities. Proceed?');" style="margin: 0;">
+                                        <button type="submit" class="btn-table-row" style="color:var(--brand-alert); border-color:rgba(255, 82, 82, 0.2);"><i class="fa-solid fa-trash-can"></i> Purge Matrix</button>
+                                    </form>
+                                </div>
                             </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6" style="text-align:center; padding: 3rem; color: var(--brand-muted);">No user registries loaded in this cluster array node.</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -553,7 +568,6 @@
 
     </main>
 </div>
-
 <div class="modal-overlay" id="statusModalOverlay">
     <div class="modal-card" style="max-width: 450px;">
         <div class="flex-between">

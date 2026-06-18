@@ -112,7 +112,7 @@
 
     .nav-item:hover {
         color: var(--white);
-        background: rgba(255,255,255,0.02);
+        background: rgba(255, 255, 255, 0.02);
     }
 
     .nav-item.active {
@@ -133,14 +133,14 @@
         width: 100%;
         padding: 10px 12px;
         background: transparent;
-        border: 1px solid var(--border);
-        color: var(--error);
+        color: #ff4a4a;
         border-radius: 6px;
         cursor: pointer;
         font-size: 13px;
-        font-weight: 500;
+        font-weight: 700;
         transition: all 0.2s;
         text-decoration: none;
+        font-size: 1rem;
     }
 
     .btn-logout:hover {
@@ -219,7 +219,7 @@
         justify-content: space-between;
         align-items: center;
         margin-bottom: 40px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
     }
 
     .action-text h3 {
@@ -318,7 +318,7 @@
         text-transform: uppercase;
         letter-spacing: 0.05em;
         border-bottom: 1px solid var(--border);
-        background: rgba(0,0,0,0.08);
+        background: rgba(0, 0, 0, 0.08);
     }
 
     td {
@@ -343,9 +343,23 @@
         font-weight: 500;
     }
 
-    .badge-pending { background: rgba(251,191,36,0.08); color: var(--warning); border: 1px solid rgba(251,191,36,0.15); }
-    .badge-success { background: var(--lime-dim); color: var(--lime); border: 1px solid var(--lime-border); }
-    .badge-error { background: rgba(248,113,113,0.08); color: var(--error); border: 1px solid rgba(248,113,113,0.15); }
+    .badge-pending {
+        background: rgba(251, 191, 36, 0.08);
+        color: var(--warning);
+        border: 1px solid rgba(251, 191, 36, 0.15);
+    }
+
+    .badge-success {
+        background: var(--lime-dim);
+        color: var(--lime);
+        border: 1px solid var(--lime-border);
+    }
+
+    .badge-error {
+        background: rgba(248, 113, 113, 0.08);
+        color: var(--error);
+        border: 1px solid rgba(248, 113, 113, 0.15);
+    }
 
     /* Flash Message Banners */
     .flash-container {
@@ -362,8 +376,17 @@
         gap: 12px;
     }
 
-    .flash-success { background: var(--lime-dim); border: 1px solid var(--lime-border); color: var(--lime); }
-    .flash-error { background: rgba(248,113,113,0.08); border: 1px solid rgba(248,113,113,0.15); color: var(--error); }
+    .flash-success {
+        background: var(--lime-dim);
+        border: 1px solid var(--lime-border);
+        color: var(--lime);
+    }
+
+    .flash-error {
+        background: rgba(248, 113, 113, 0.08);
+        border: 1px solid rgba(248, 113, 113, 0.15);
+        color: var(--error);
+    }
 
     /* Profile Module Component Structures */
     .profile-grid {
@@ -482,7 +505,7 @@
         max-width: 540px;
         border-radius: 16px;
         overflow: hidden;
-        box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
     }
 
     .modal-header-block {
@@ -509,7 +532,9 @@
         padding: 4px;
     }
 
-    .modal-close-trigger:hover { color: var(--white); }
+    .modal-close-trigger:hover {
+        color: var(--white);
+    }
 
     .wizard-progress-bar-rail {
         position: absolute;
@@ -570,7 +595,7 @@
     /* File IO Upload Area Components */
     .upload-dropzone-panel {
         border: 2px dashed var(--border);
-        background: rgba(0,0,0,0.1);
+        background: rgba(0, 0, 0, 0.1);
         border-radius: 10px;
         padding: 32px 20px;
         text-align: center;
@@ -584,7 +609,7 @@
 
     .upload-dropzone-panel:hover {
         border-color: var(--lime-border);
-        background: rgba(78,182,55,0.02);
+        background: rgba(78, 182, 55, 0.02);
     }
 
     .upload-dropzone-panel i {
@@ -605,7 +630,7 @@
 
     /* Structured Banking Voucher Panel */
     .eft-routing-manifest {
-        background: rgba(0,0,0,0.15);
+        background: rgba(0, 0, 0, 0.15);
         border: 1px solid var(--border);
         border-radius: 8px;
         padding: 16px;
@@ -619,13 +644,22 @@
         margin-bottom: 6px;
     }
 
-    .eft-meta-row:last-child { margin-bottom: 0; }
-    .eft-meta-row span:first-child { color: var(--muted); }
-    .eft-meta-row span:last-child { font-family: var(--mono); color: var(--white); }
+    .eft-meta-row:last-child {
+        margin-bottom: 0;
+    }
+
+    .eft-meta-row span:first-child {
+        color: var(--muted);
+    }
+
+    .eft-meta-row span:last-child {
+        font-family: var(--mono);
+        color: var(--white);
+    }
 
     /* Summary Table Matrix blocks */
     .summary-matrix-block {
-        background: rgba(0,0,0,0.12);
+        background: rgba(0, 0, 0, 0.12);
         border-radius: 8px;
         border: 1px solid var(--border);
         padding: 14px;
@@ -635,7 +669,7 @@
     .modal-footer-nav {
         padding: 16px 24px;
         border-top: 1px solid var(--border);
-        background: rgba(0,0,0,0.05);
+        background: rgba(0, 0, 0, 0.05);
         display: flex;
         justify-content: flex-end;
         gap: 12px;
@@ -652,22 +686,168 @@
         cursor: pointer;
     }
 
-    .btn-sec:hover { background: rgba(255,255,255,0.02); }
+    .btn-sec:hover {
+        background: rgba(255, 255, 255, 0.02);
+    }
 
     /* Mobile Responsive Layout Adaptation Triggers */
-    .mobile-burger-trigger, .sidebar-overlay { display: none; }
+    .mobile-burger-trigger,
+    .sidebar-overlay {
+        display: none;
+    }
 
+    .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    width: 100%;
+    margin-bottom: 0.5rem;
+}
+
+.form-group label {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--brand-muted, #a3a3a3);
+    letter-spacing: 0.3px;
+}
+
+.form-control {
+    width: 100%;
+    padding: 0.65rem 0.75rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border, rgba(255, 255, 255, 0.1));
+    border-radius: var(--radius-sm, 6px);
+    color: #ffffff;
+    font-size: 0.9rem;
+    box-sizing: border-box;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Form controls that are locked out from system alterations */
+.form-control[readonly] {
+    background: rgba(255, 255, 255, 0.01);
+    color: #cbd5e1;
+    border-color: transparent;
+    box-shadow: none;
+}
+
+/* Active State layout during edit profile activation execution */
+.profile-editable:not([readonly]) {
+    outline: none;
+    background: rgba(255, 255, 255, 0.06) !important;
+    border-color: var(--brand-lime, #4eb637) !important;
+    box-shadow: 0 0 0 3px rgba(78, 182, 55, 0.15);
+}
+
+.form-control:focus:not([readonly]) {
+    outline: none;
+    border-color: var(--text-cyan, #00f0ff);
+    background: rgba(255, 255, 255, 0.06);
+    box-shadow: 0 0 0 3px rgba(0, 240, 255, 0.15);
+}
+
+/* --- COMPONENT UI SPECIFIC TOKENS --- */
+.btn-portal-primary {
+    background: var(--brand-lime, #4eb637);
+    color: #0d1112;
+    font-weight: 600;
+    border: none;
+    border-radius: var(--radius-sm, 6px);
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.btn-portal-primary:hover {
+    background: #429d2f;
+}
+
+/* --- PASSWORD METRICS STRUCTURAL VISUALIZATIONS --- */
+#indiv-strength, #corp-strength {
+    display: flex;
+    gap: 4px;
+    margin-top: 6px;
+    width: 100%;
+}
+
+#indiv-strength div, #corp-strength div {
+    flex: 1;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+    transition: background 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* --- OVERRIDE DEFAULT SYSTEM BUTTON STATES --- */
+#tab-profile button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: 500;
+    padding: 0.6rem 1.2rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-sizing: border-box;
+}
+
+/* 1. Standard Row / Silver-Border Action Buttons (Edit Profile / Update Security Hash) */
+#tab-profile .btn-table-row,
+#tab-profile button[type="submit"]:not(.btn-portal-primary) {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #eef2ef;
+}
+
+#tab-profile .btn-table-row:hover,
+#tab-profile button[type="submit"]:not(.btn-portal-primary):hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.3);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* 2. Primary Portal Action Buttons (Save Changes - Green Accent) */
+#tab-profile .btn-portal-primary {
+    background: #4eb637 !important;
+    border: 1px solid #4eb637 !important;
+    color: #0d1112 !important;
+    font-weight: 600;
+}
+
+#tab-profile .btn-portal-primary:hover {
+    background: #5fd445 !important;
+    box-shadow: 0 0 15px rgba(78, 182, 55, 0.3);
+}
+
+/* 3. Danger Zone Specific Buttons (Delete Account - Deep Crimson Accent) */
+#tab-profile .analytics-card[style*="rgba(255, 74, 74"] button,
+#tab-profile button[onclick*="confirmAccountDeletion"] {
+    background: rgba(255, 74, 74, 0.06) !important;
+    border: 1px solid rgba(255, 74, 74, 0.3) !important;
+    color: #ff4a4a !important;
+}
+
+#tab-profile button[onclick*="confirmAccountDeletion"]:hover {
+    background: rgba(255, 74, 74, 0.15) !important;
+    border-color: #ff4a4a !important;
+    box-shadow: 0 0 15px rgba(255, 74, 74, 0.2);
+}
     @media (max-width: 900px) {
         .db-sidebar {
             transform: translateX(-100%);
         }
+
         .db-sidebar.open {
             transform: translateX(0);
         }
+
         .main-window {
             margin-left: 0;
             padding: 24px;
         }
+
         .mobile-burger-trigger {
             display: flex;
             align-items: center;
@@ -680,16 +860,18 @@
             border-radius: 8px;
             cursor: pointer;
         }
+
         .sidebar-overlay {
             display: block;
             position: fixed;
             inset: 0;
-            background: rgba(0,0,0,0.5);
+            background: rgba(0, 0, 0, 0.5);
             z-index: 90;
             opacity: 0;
             pointer-events: none;
             transition: opacity 0.2s;
         }
+
         .sidebar-overlay.open {
             opacity: 1;
             pointer-events: auto;
@@ -697,18 +879,32 @@
     }
 
     @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(4px); }
-        to { opacity: 1; transform: translateY(0); }
+        from {
+            opacity: 0;
+            transform: translateY(4px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
     }
 </style>
 
 <div class="dashboard-layout">
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
-    
+
     <aside class="db-sidebar" id="dbSidebar">
-        <div class="sidebar-header">
-            <img src="/static/images/VM_Icon.png" alt="VerifyMe System Badge">
-            <h1>VerifyMe</h1>
+        <div class="sidebar-header" style="display: flex; align-items: center; gap: 0.75rem;">
+            <img src="/static/images/VM_Icon.png" alt="VerifyMe System Badge"
+                style="height: 32px; width: auto; object-fit: contain;">
+
+            <div style="display: flex; flex-direction: column; align-items: flex-start; line-height: 1.1;">
+                <div style="color: #eef2ef; font-weight: 700; font-size: 1.15rem; letter-spacing: 0.5px;">VerifyMe</div>
+                <div
+                    style="color: #4eb637; font-size: 0.68rem; text-transform: uppercase; font-weight: 700; letter-spacing: 1px; margin-top: 2px;">
+                    Technologies</div>
+            </div>
         </div>
         <nav class="sidebar-menu">
             <button class="nav-item active" onclick="switchTab('overview', this)">
@@ -726,7 +922,7 @@
         </nav>
         <div class="sidebar-footer">
             <a href="/logout" class="btn-logout">
-                <i class="fa-solid fa-arrow-right-from-bracket"></i> Lock Workspace
+                <i class="fa-solid fa-arrow-right-from-bracket"></i> Logout
             </a>
         </div>
     </aside>
@@ -739,7 +935,7 @@
                 </button>
                 <h2 id="topbarTitle">Overview</h2>
             </div>
-            
+
             <div class="user-profile-badge">
                 <div class="profile-avatar">
                     {{ session.get('display_name', 'U')[0] | upper }}
@@ -749,16 +945,17 @@
         </div>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                <div class="flash-container">
-                    {% for category, message in messages %}
-                        <div class="flash-banner flash-{{ category }}">
-                            <i class="fa-solid {% if category == 'success' %}fa-circle-check{% else %}fa-circle-exclamation{% endif %}"></i>
-                            <span>{{ message }}</span>
-                        </div>
-                    {% endfor %}
-                </div>
-            {% endif %}
+        {% if messages %}
+        <div class="flash-container">
+            {% for category, message in messages %}
+            <div class="flash-banner flash-{{ category }}">
+                <i
+                    class="fa-solid {% if category == 'success' %}fa-circle-check{% else %}fa-circle-exclamation{% endif %}"></i>
+                <span>{{ message }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
         {% endwith %}
 
         <div id="tab-overview" class="tab-panel active">
@@ -781,7 +978,8 @@
                     <div class="metric-label">Completed Checks</div>
                     <div class="metric-val">
                         {% set count = namespace(value=0) %}
-                        {% for c in checks %}{% if c.status == 'Verified' %}{% set count.value = count.value + 1 %}{% endif %}{% endfor %}
+                        {% for c in checks %}{% if c.status == 'Verified' %}{% set count.value = count.value + 1 %}{%
+                        endif %}{% endfor %}
                         {{ count.value }}
                     </div>
                 </div>
@@ -789,7 +987,8 @@
                     <div class="metric-label">Pending Verification</div>
                     <div class="metric-val">
                         {% set count = namespace(value=0) %}
-                        {% for c in checks %}{% if c.status not in ['Verified', 'Flagged — Image Unclear'] %}{% set count.value = count.value + 1 %}{% endif %}{% endfor %}
+                        {% for c in checks %}{% if c.status not in ['Verified', 'Flagged — Image Unclear'] %}{% set
+                        count.value = count.value + 1 %}{% endif %}{% endfor %}
                         {{ count.value }}
                     </div>
                 </div>
@@ -811,26 +1010,29 @@
                         </thead>
                         <tbody>
                             {% if checks %}
-                                {% for check in checks[:5] %}
-                                <tr>
-                                    <td style="font-weight: 600;">{{ check.type }}</td>
-                                    <td style="font-family: var(--mono); font-size: 13px;">{{ check.date }}</td>
-                                    <td>
-                                        <span class="badge {% if check.payment_status == 'Completed' %}badge-success{% else %}badge-pending{% endif %}">
-                                            {{ check.payment_status }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <span class="badge {% if check.status == 'Verified' %}badge-success{% elif check.status == 'Flagged — Image Unclear' %}badge-error{% else %}badge-pending{% endif %}">
-                                            {{ check.status }}
-                                        </span>
-                                    </td>
-                                </tr>
-                                {% endfor %}
+                            {% for check in checks[:5] %}
+                            <tr>
+                                <td style="font-weight: 600;">{{ check.type }}</td>
+                                <td style="font-family: var(--mono); font-size: 13px;">{{ check.date }}</td>
+                                <td>
+                                    <span
+                                        class="badge {% if check.payment_status == 'Completed' %}badge-success{% else %}badge-pending{% endif %}">
+                                        {{ check.payment_status }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span
+                                        class="badge {% if check.status == 'Verified' %}badge-success{% elif check.status == 'Flagged — Image Unclear' %}badge-error{% else %}badge-pending{% endif %}">
+                                        {{ check.status }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
                             {% else %}
-                                <tr>
-                                    <td colspan="4" style="text-align: center; color: var(--muted); padding: 32px;">No background screening traces tracked to this user workspace account.</td>
-                                </tr>
+                            <tr>
+                                <td colspan="4" style="text-align: center; color: var(--muted); padding: 32px;">No
+                                    background screening traces tracked to this user workspace account.</td>
+                            </tr>
                             {% endif %}
                         </tbody>
                     </table>
@@ -856,29 +1058,32 @@
                         </thead>
                         <tbody>
                             {% if requests %}
-                                {% for r in requests %}
-                                <tr>
-                                    <td style="font-weight: 600;">{{ r.type }}</td>
-                                    <td style="font-family: var(--mono); font-size: 13px;">{{ r.date }}</td>
-                                    <td>
-                                        <span class="badge {% if r.payment_status == 'Completed' %}badge-success{% else %}badge-pending{% endif %}">
-                                            {{ r.payment_status }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <span class="badge {% if r.status == 'Verified' %}badge-success{% elif r.status == 'Flagged — Image Unclear' %}badge-error{% else %}badge-pending{% endif %}">
-                                            {{ r.status }}
-                                        </span>
-                                    </td>
-                                    <td style="color: var(--error); font-size: 13px;">
-                                        {{ r.rejection_reason if r.rejection_reason else '—' }}
-                                    </td>
-                                </tr>
-                                {% endfor %}
+                            {% for r in requests %}
+                            <tr>
+                                <td style="font-weight: 600;">{{ r.type }}</td>
+                                <td style="font-family: var(--mono); font-size: 13px;">{{ r.date }}</td>
+                                <td>
+                                    <span
+                                        class="badge {% if r.payment_status == 'Completed' %}badge-success{% else %}badge-pending{% endif %}">
+                                        {{ r.payment_status }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span
+                                        class="badge {% if r.status == 'Verified' %}badge-success{% elif r.status == 'Flagged — Image Unclear' %}badge-error{% else %}badge-pending{% endif %}">
+                                        {{ r.status }}
+                                    </span>
+                                </td>
+                                <td style="color: var(--error); font-size: 13px;">
+                                    {{ r.rejection_reason if r.rejection_reason else '—' }}
+                                </td>
+                            </tr>
+                            {% endfor %}
                             {% else %}
-                                <tr>
-                                    <td colspan="5" style="text-align: center; color: var(--muted); padding: 32px;">No historical background requests mapped to this profile context ledger.</td>
-                                </tr>
+                            <tr>
+                                <td colspan="5" style="text-align: center; color: var(--muted); padding: 32px;">No
+                                    historical background requests mapped to this profile context ledger.</td>
+                            </tr>
                             {% endif %}
                         </tbody>
                     </table>
@@ -891,7 +1096,8 @@
                 <div class="service-item-card">
                     <div class="service-meta">
                         <h4>Identity Verification & Validation</h4>
-                        <p>Cross-references National Registry matrices to affirm valid passport, citizenship status, and baseline legal existence traces.</p>
+                        <p>Cross-references National Registry matrices to affirm valid passport, citizenship status, and
+                            baseline legal existence traces.</p>
                     </div>
                     <div class="service-pricing-row">
                         <span class="info-label">Standard Fee</span>
@@ -902,7 +1108,8 @@
                 <div class="service-item-card">
                     <div class="service-meta">
                         <h4>Criminal Record & Background Check</h4>
-                        <p>Submits biometric/credential parameters against regulatory fingerprint catalogs to ensure clean criminal records history profiles.</p>
+                        <p>Submits biometric/credential parameters against regulatory fingerprint catalogs to ensure
+                            clean criminal records history profiles.</p>
                     </div>
                     <div class="service-pricing-row">
                         <span class="info-label">Standard Fee</span>
@@ -913,7 +1120,8 @@
                 <div class="service-item-card">
                     <div class="service-meta">
                         <h4>Credit & Financial Check</h4>
-                        <p>Compiles financial records histories, credit history profiles scores, judgment listings, and debt-to-income trace indicators.</p>
+                        <p>Compiles financial records histories, credit history profiles scores, judgment listings, and
+                            debt-to-income trace indicators.</p>
                     </div>
                     <div class="service-pricing-row">
                         <span class="info-label">Standard Fee</span>
@@ -924,13 +1132,40 @@
                 <div class="service-item-card">
                     <div class="service-meta">
                         <h4>Professional License Verification</h4>
-                        <p>Validates academic qualifications, certified designations, and active trade organization board registration states directly with institutions.</p>
+                        <p>Validates academic qualifications, certified designations, and active trade organization
+                            board registration states directly with institutions.</p>
                     </div>
                     <div class="service-pricing-row">
                         <span class="info-label">Standard Fee</span>
                         <span class="price-tag">R320.00</span>
                     </div>
                 </div>
+
+                <div class="service-item-card">
+                    <div class="service-meta">
+                        <h4>Criminal Record & Background Check</h4>
+                        <p>Submits biometric/credential parameters against regulatory fingerprint catalogs to ensure
+                            clean criminal records history profiles.</p>
+                    </div>
+                    <div class="service-pricing-row">
+                        <span class="info-label">Standard Fee</span>
+                        <span class="price-tag">R550.00</span>
+                    </div>
+                </div>
+
+                <div class="service-item-card">
+                    <div class="service-meta">
+                        <h4>Criminal Record & Background Check</h4>
+                        <p>Submits biometric/credential parameters against regulatory fingerprint catalogs to ensure
+                            clean criminal records history profiles.</p>
+                    </div>
+                    <div class="service-pricing-row">
+                        <span class="info-label">Standard Fee</span>
+                        <span class="price-tag">R550.00</span>
+                    </div>
+                </div>
+
+
             </div>
         </div>
 
@@ -954,23 +1189,76 @@
                         <div class="info-label">Security Workspace Token Initialization Date</div>
                         <div class="info-value">{{ user_profile.created_at if user_profile else 'Unknown' }}</div>
                     </div>
+                    <div style="display: flex; gap: 0.75rem; margin-top: 0.5rem;">
+                        <button type="button" class="btn-table-row" id="edit-indiv-btn"
+                            onclick="enableProfileEditing('indiv')"><i class="fa-solid fa-pen-to-square"></i> Edit
+                            Profile</button>
+                        <button type="submit" class="btn-portal-primary" id="save-indiv-btn"
+                            style="display: none; padding: 0.5rem 1rem;"><i class="fa-solid fa-floppy-disk"></i> Save
+                            Changes</button>
+                    </div>
+                    </form>
                 </div>
-                
-                <div class="profile-card">
-                    <h3>Compliance Clearances System Guidelines</h3>
-                    <p style="font-size: 13px; color: var(--muted); margin: 0 0 14px 0; line-height: 1.5;">
-                        Your verification logs map strictly to individual validation paths. To transform this environment space into a multi-candidate corporate entity pipeline dashboard, coordinate validation transitions with system security administrators at:
+
+                <div class="analytics-card" style="gap: 1rem;">
+                    <div class="card-label"
+                        style="border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; font-family: var(--font-mono); font-size: 0.75rem; text-transform: uppercase;">
+                        Change Password Securely</div>
+                    <form id="indiv-password-form"
+                        style="display: flex; flex-direction: column; gap: 1rem; width: 100%;">
+                        <div class="form-group">
+                            <label>Current Password</label>
+                            <input type="password" required class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label>New Password</label>
+                            <input type="password" id="indiv-new-password" required class="form-control"
+                                oninput="checkPasswordStrength(this.value, 'indiv-strength')">
+                            <div style="display: flex; gap: 4px; margin-top: 6px;" id="indiv-strength">
+                                <div
+                                    style="flex: 1; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px;">
+                                </div>
+                                <div
+                                    style="flex: 1; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px;">
+                                </div>
+                                <div
+                                    style="flex: 1; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px;">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Confirm New Password</label>
+                            <input type="password" required class="form-control">
+                        </div>
+                        <button type="submit" class="btn-table-row"
+                            style="align-self: flex-start; margin-top: 0.5rem;">Update Security Hash</button>
+                    </form>
+                </div>
+
+                <div class="analytics-card" style="gap: 1rem; border: 1px solid rgba(255, 74, 74, 0.2);">
+                    <div class="card-label"
+                        style="border-bottom: 1px solid rgba(255, 74, 74, 0.1); padding-bottom: 0.5rem; font-family: var(--font-mono); font-size: 0.75rem; text-transform: uppercase; color: #ff4a4a;">
+                        Danger Zone</div>
+                    <p style="margin: 0; font-size: 0.85rem; color: var(--brand-muted); line-height: 1.4;">
+                        Once you eliminate your structural account nodes, your data mappings, verification records, and
+                        uploaded vectors are immediately expunged from memory.
                     </p>
-                    <span style="font-family: var(--mono); color: var(--lime); font-size: 13px;">compliance@insphiredops.co.za</span>
+                    <button type="button" class="btn-table-row"
+                        style="color: #ff4a4a; border-color: rgba(255, 74, 74, 0.3); background: rgba(255, 74, 74, 0.05); align-self: flex-start;"
+                        onclick="confirmAccountDeletion('indiv')">
+                        <i class="fa-solid fa-trash-can"></i> Delete My Account
+                    </button>
                 </div>
             </div>
+
         </div>
-    </main>
+</div>
+</main>
 </div>
 
 <div class="modal-overlay" id="requestModal">
     <div class="modal-shell" onclick="event.stopPropagation()">
-        
+
         <div class="modal-header-block">
             <h3 id="modal-step-title">New Verification Request (Step 1/3)</h3>
             <button class="modal-close-trigger" onclick="closeModal()">
@@ -981,54 +1269,77 @@
             </div>
         </div>
 
-<form id="verificationForm" action="{{ url_for('initiate_individual_payment') }}" method="POST" enctype="multipart/form-data" onsubmit="return interceptWizardSubmission(event)">
+        <form id="verificationForm" action="{{ url_for('initiate_individual_payment') }}" method="POST"
+            enctype="multipart/form-data" onsubmit="return interceptWizardSubmission(event)">
             <div class="modal-body-form-wrapper">
-                
+
                 <div class="modal-step active" id="mstep-1">
                     <div style="margin-bottom: 20px;">
-                        <label class="input-label-string" for="verification_type">Target Verification Product Domain</label>
-                        <select class="form-dropdown-control" id="verification_type" name="verification_type" onchange="calculateIndividualCost()">
-                            <option value="Identity Verification & Validation" data-price="450" selected>Identity Verification &amp; Validation — R450.00</option>
-                            <option value="Criminal Record & Background Check" data-price="550">Criminal Record &amp; Background Check — R550.00</option>
-                            <option value="Credit & Financial Check" data-price="380">Credit &amp; Financial Check — R380.00</option>
-                            <option value="Professional License Verification" data-price="320">Professional License Verification — R320.00</option>
-                            <option value="Global Compliance Screening" data-price="620">Global Compliance Screening — R620.00</option>
-                            <option value="Social Media & Digital Footprint" data-price="280">Social Media &amp; Digital Footprint — R280.00</option>
+                        <label class="input-label-string" for="verification_type">Target Verification Product
+                            Domain</label>
+                        <select class="form-dropdown-control" id="verification_type" name="verification_type"
+                            onchange="calculateIndividualCost()">
+                            <option value="Identity Verification & Validation" data-price="450" selected>Identity
+                                Verification &amp; Validation — R450.00</option>
+                            <option value="Criminal Record & Background Check" data-price="550">Criminal Record &amp;
+                                Background Check — R550.00</option>
+                            <option value="Credit & Financial Check" data-price="380">Credit &amp; Financial Check —
+                                R380.00</option>
+                            <option value="Professional License Verification" data-price="320">Professional License
+                                Verification — R320.00</option>
+                            <option value="Global Compliance Screening" data-price="620">Global Compliance Screening —
+                                R620.00</option>
+                            <option value="Social Media & Digital Footprint" data-price="280">Social Media &amp; Digital
+                                Footprint — R280.00</option>
                         </select>
                     </div>
 
                     <div style="margin-bottom: 20px;">
-                        <label class="input-label-string" style="margin-bottom: 8px; display:block;">Settlement Preference Matrix</label>
+                        <label class="input-label-string" style="margin-bottom: 8px; display:block;">Settlement
+                            Preference Matrix</label>
                         <div style="display: grid; grid-template-columns: 1s 1fr; gap: 12px;">
-                            <label style="background: rgba(255,255,255,0.02); border: 1px solid var(--border); padding: 12px; border-radius: 6px; display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                                <input type="radio" name="payment_method" value="gateway" id="pay_gateway" checked onchange="togglePaymentWizardFlow('gateway')">
+                            <label
+                                style="background: rgba(255,255,255,0.02); border: 1px solid var(--border); padding: 12px; border-radius: 6px; display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                                <input type="radio" name="payment_method" value="gateway" id="pay_gateway" checked
+                                    onchange="togglePaymentWizardFlow('gateway')">
                                 <div>
-                                    <span style="display:block; font-size:13px; font-weight:600; color:var(--white);"><i class="fa-solid fa-credit-card text-cyan"></i> Instant Checkout</span>
-                                    <span style="font-size:11px; color:var(--muted);">Pay securely via Credit Card / Instant EFT (PayFast)</span>
+                                    <span style="display:block; font-size:13px; font-weight:600; color:var(--white);"><i
+                                            class="fa-solid fa-credit-card text-cyan"></i> Instant Checkout</span>
+                                    <span style="font-size:11px; color:var(--muted);">Pay securely via Credit Card /
+                                        Instant EFT (PayFast)</span>
                                 </div>
                             </label>
-                            <label style="background: rgba(255,255,255,0.02); border: 1px solid var(--border); padding: 12px; border-radius: 6px; display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                                <input type="radio" name="payment_method" value="manual_eft" id="pay_meft" onchange="togglePaymentWizardFlow('manual_eft')">
+                            <label
+                                style="background: rgba(255,255,255,0.02); border: 1px solid var(--border); padding: 12px; border-radius: 6px; display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                                <input type="radio" name="payment_method" value="manual_eft" id="pay_meft"
+                                    onchange="togglePaymentWizardFlow('manual_eft')">
                                 <div>
-                                    <span style="display:block; font-size:13px; font-weight:600; color:var(--white);"><i class="fa-solid fa-building-columns"></i> Bank Transfer</span>
-                                    <span style="font-size:11px; color:var(--muted);">Manual Electronic Funds Transfer (Requires PoP upload)</span>
+                                    <span style="display:block; font-size:13px; font-weight:600; color:var(--white);"><i
+                                            class="fa-solid fa-building-columns"></i> Bank Transfer</span>
+                                    <span style="font-size:11px; color:var(--muted);">Manual Electronic Funds Transfer
+                                        (Requires PoP upload)</span>
                                 </div>
                             </label>
                         </div>
                     </div>
 
-                    <div id="criminal-notice" style="display:none; background:rgba(251,191,36,0.06); border:1px solid rgba(251,191,36,0.18); padding:14px; border-radius:8px; font-size:13px; color:var(--warning); line-height:1.4;">
+                    <div id="criminal-notice"
+                        style="display:none; background:rgba(251,191,36,0.06); border:1px solid rgba(251,191,36,0.18); padding:14px; border-radius:8px; font-size:13px; color:var(--warning); line-height:1.4;">
                         <i class="fa-solid fa-fingerprint" style="margin-right:6px;"></i>
-                        <strong>Notice:</strong> Selecting a SAPS Criminal Background Verification pipeline check asset requires valid digital credential files or formal coordination with an approved regional biometric processing clerk center.
+                        <strong>Notice:</strong> Selecting a SAPS Criminal Background Verification pipeline check asset
+                        requires valid digital credential files or formal coordination with an approved regional
+                        biometric processing clerk center.
                     </div>
                 </div>
 
                 <div class="modal-step" id="mstep-2">
                     <p style="font-size:13px; color:var(--muted); margin:0 0 16px 0;">
-                        Attach your core identity cards, passport documents, or certification arrays to initialize validation for: <strong id="step2-service-label" style="color:var(--white);"></strong>.
+                        Attach your core identity cards, passport documents, or certification arrays to initialize
+                        validation for: <strong id="step2-service-label" style="color:var(--white);"></strong>.
                     </p>
                     <div style="margin-bottom: 12px;">
-                        <input type="file" id="doc-files" name="verification_documents" multiple style="display: none;" onchange="updateDocLabel(this)">
+                        <input type="file" id="doc-files" name="verification_documents" multiple style="display: none;"
+                            onchange="updateDocLabel(this)">
                         <label class="upload-dropzone-panel" for="doc-files">
                             <i class="fa-solid fa-cloud-arrow-up"></i>
                             <span id="doc-label">Click to upload your core verification documents</span>
@@ -1039,7 +1350,8 @@
 
                 <div class="modal-step" id="mstep-3">
                     <p style="font-size:13px; color:var(--muted); margin:0 0 16px 0;">
-                        Please complete your manual bank electronic funds transfer (EFT) using the routing registry metrics matrix details outlined below:
+                        Please complete your manual bank electronic funds transfer (EFT) using the routing registry
+                        metrics matrix details outlined below:
                     </p>
 
                     <div class="eft-routing-manifest">
@@ -1047,7 +1359,8 @@
                         <div class="eft-meta-row"><span>Account Title</span><span>VerifyMe Ops Center</span></div>
                         <div class="eft-meta-row"><span>Account Number</span><span>62901122334</span></div>
                         <div class="eft-meta-row"><span>Branch Routing Code</span><span>250655</span></div>
-                        <div class="eft-meta-row"><span>Required Reference</span><span id="eft-dynamic-ref" class="mono-text" style="color:var(--lime);">VFY-IND-REF</span></div>
+                        <div class="eft-meta-row"><span>Required Reference</span><span id="eft-dynamic-ref"
+                                class="mono-text" style="color:var(--lime);">VFY-IND-REF</span></div>
                     </div>
 
                     <div class="summary-matrix-block">
@@ -1063,7 +1376,8 @@
 
                     <div>
                         <label class="input-label-string">Attach Bank Wire Voucher / Receipt Reference</label>
-                        <input type="file" id="pop-upload" name="proof_of_payment" style="display: none;" onchange="updatePOPLabel(this)">
+                        <input type="file" id="pop-upload" name="proof_of_payment" style="display: none;"
+                            onchange="updatePOPLabel(this)">
                         <label class="upload-dropzone-panel" for="pop-upload">
                             <i class="fa-solid fa-receipt"></i>
                             <span id="pop-label">Click to upload bank transfer receipt</span>
@@ -1073,9 +1387,10 @@
                 </div>
 
             </div>
-            
+
             <div class="modal-footer-nav">
-                <button class="btn-sec" type="button" id="btn-back" onclick="modalBack()" style="display: none;">← Back</button>
+                <button class="btn-sec" type="button" id="btn-back" onclick="modalBack()" style="display: none;">←
+                    Back</button>
                 <button class="btn-prime" type="button" id="btn-next" onclick="window.modalNext()">Continue →</button>
             </div>
         </form>
@@ -1098,7 +1413,7 @@
 
     // ── SIDEBAR NAVIGATION TRACES ───────────────────────────
     if (typeof openSidebar !== 'function') {
-        window.openSidebar = function() {
+        window.openSidebar = function () {
             const sidebar = document.getElementById('dbSidebar');
             const overlay = document.getElementById('sidebarOverlay');
             if (sidebar) sidebar.classList.add('open');
@@ -1107,7 +1422,7 @@
     }
 
     if (typeof closeSidebar !== 'function') {
-        window.closeSidebar = function() {
+        window.closeSidebar = function () {
             const sidebar = document.getElementById('dbSidebar');
             const overlay = document.getElementById('sidebarOverlay');
             if (sidebar) sidebar.classList.remove('open');
@@ -1117,7 +1432,7 @@
 
     // ── TAB ROUTING ROUTER MODULE ───────────────────────────
     if (typeof switchTab !== 'function') {
-        window.switchTab = function(name, btn) {
+        window.switchTab = function (name, btn) {
             document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
             document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
 
@@ -1157,7 +1472,7 @@
     function onServiceChange() {
         const typeSelect = document.getElementById('verification_type');
         if (!typeSelect) return;
-        
+
         const val = typeSelect.value;
         const isCriminal = val.toLowerCase().includes('criminal');
 
@@ -1173,7 +1488,7 @@
     function buildPaymentSummary() {
         const typeSelect = document.getElementById('verification_type');
         if (!typeSelect) return;
-        
+
         const val = typeSelect.value;
         const price = prices[val] || 450;
 
@@ -1190,7 +1505,7 @@
         renderStep();
         const modal = document.getElementById('requestModal');
         if (modal) modal.classList.add('open');
-        
+
         // Ensure default state checks execute
         const gatewayRadio = document.getElementById('pay_gateway');
         if (gatewayRadio && gatewayRadio.checked) {
@@ -1209,7 +1524,7 @@
         const popInput = document.getElementById('pop-upload');
         if (docInput) docInput.value = "";
         if (popInput) popInput.value = "";
-        
+
         document.getElementById('doc-label').textContent = 'Click to upload your core verification documents';
         document.getElementById('pop-label').textContent = 'Click to upload bank transfer receipt';
     }
@@ -1222,7 +1537,7 @@
         const pct = { 1: '33.3%', 2: '66.6%', 3: '100%' };
         const progressBar = document.getElementById('wizard-progress');
         const stepTitle = document.getElementById('modal-step-title');
-        
+
         if (progressBar) progressBar.style.width = pct[currentStep];
         if (stepTitle) stepTitle.textContent = `New Verification Request (Step ${currentStep}/3)`;
 
@@ -1232,7 +1547,7 @@
         const isGateway = gatewayRadio ? gatewayRadio.checked : false;
 
         if (backBtn) backBtn.style.display = currentStep > 1 ? 'block' : 'none';
-        
+
         if (nextBtn) {
             nextBtn.style.display = 'block';
             if (currentStep === 2 && isGateway) {
@@ -1247,10 +1562,10 @@
 
     function interceptWizardSubmission(event) {
         // Allow the backend form to handle default processing actions natively
-        return true; 
+        return true;
     }
 
-    window.modalNext = function() {
+    window.modalNext = function () {
         const gatewayRadio = document.getElementById('pay_gateway');
         const isGateway = gatewayRadio ? gatewayRadio.checked : false;
         const formElement = document.getElementById('verificationForm');
@@ -1309,7 +1624,7 @@
                     nextBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Uploading EFT records...`;
                 }
                 console.log("🚀 Submitting manual EFT payload arrays to local Flask app filesystem...");
-                formElement.submit(); 
+                formElement.submit();
             }
             return;
         }
@@ -1333,7 +1648,7 @@
 
         document.getElementById('verification_type')?.addEventListener('change', onServiceChange);
 
-        document.getElementById('doc-files')?.addEventListener('change', function() {
+        document.getElementById('doc-files')?.addEventListener('change', function () {
             const count = this.files.length;
             const label = document.getElementById('doc-label');
             if (label) {
@@ -1341,7 +1656,7 @@
             }
         });
 
-        document.getElementById('pop-upload')?.addEventListener('change', function() {
+        document.getElementById('pop-upload')?.addEventListener('change', function () {
             const label = document.getElementById('pop-label');
             if (label && this.files[0]) {
                 label.textContent = `✓ POP: ${this.files[0].name}`;

@@ -3,20 +3,33 @@
 
 {% block head %}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}?v=2.2">
+<link
+    href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap"
+    rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}?v={{ range(1, 9999) | random }}">
 {% endblock %}
 
+{% block body_class %}dashboard-page{% endblock %}
 {% block content %}
 <div class="dashboard-container">
 
-    <aside class="dashboard-sidebar" style="display: flex; flex-direction: column; justify-content: space-between; height: 100vh;">
+    <aside class="dashboard-sidebar">
         <div>
-            <div class="sidebar-brand" style="margin-bottom: 2.5rem;">
-                <span class="matrix-tag" style="display: flex; align-items: center; gap: 0.75rem; font-size: 1.15rem; letter-spacing: 0.5px;">
-                    <img src="{{ url_for('static', filename='images/VM_Icon.png') }}" alt="VM" style="height: 32px; width: auto; object-fit: contain;">
-                    VerifyMe
+            <div class="sidebar-brand">
+                <span class="matrix-tag"
+                    style="display: flex; align-items: center; gap: 0.75rem; font-size: 1.15rem; letter-spacing: 0.5px;">
+                    <img src="{{ url_for('static', filename='images/VM_Icon.png') }}" alt="VM"
+                        style="height: 32px; width: auto; object-fit: contain;">
+
+                    <div style="display: flex; flex-direction: column; align-items: flex-start; line-height: 1.1;">
+                        <div class="title" style="color: #ffffff; font-weight: 700;">VerifyMe</div>
+                        <div class="sub-title"
+                            style="font-size: 0.68rem; color: #4eb637; text-transform: uppercase; letter-spacing: 1px; margin-top: 2px;">
+                            Technologies</div>
+                    </div>
                 </span>
             </div>
+
             <nav class="sidebar-menu">
                 <button class="menu-item active" onclick="switchTab('overview', this)">
                     <i class="fa-solid fa-chart-pie menu-icon"></i> Overview
@@ -27,8 +40,8 @@
                 <button class="menu-item" onclick="switchTab('requests', this)">
                     <i class="fa-solid fa-file-invoice-dollar menu-icon"></i> Requests
                 </button>
-                <button class="menu-item" onclick="switchTab('settings', this)">
-                    <i class="fa-solid fa-sliders menu-icon"></i> Settings
+                <button class="menu-item" onclick="switchTab('services', this)">
+                    <i class="fa-solid fa-layer-group menu-icon"></i> Services
                 </button>
                 <button class="menu-item" onclick="switchTab('profile', this)">
                     <i class="fa-solid fa-building menu-icon"></i> Company Profile
@@ -36,15 +49,25 @@
             </nav>
         </div>
 
-        <div class="sidebar-footer" style="padding: 1.25rem; border-top: 1px solid rgba(255,255,255,0.05);">
-            <a href="{{ url_for('logout') }}" class="menu-item logout-btn" style="display: flex; align-items: center; width: 100%; padding: 0.75rem 1rem; color: #ff4a4a; text-decoration: none; border-radius: 6px; transition: background 0.2s;">
-                <i class="fa-solid fa-right-from-bracket menu-icon" style="margin-right: 0.75rem;"></i> Logout
+        <div class="sidebar-footer">
+            <a href="{{ url_for('logout') }}" class="menu-item logout-btn">
+                <i class="fa-solid fa-right-from-bracket menu-icon"></i> Logout
             </a>
         </div>
     </aside>
-
+    <div class="mobile-nav-header" style="display: none;">
+        <span class="matrix-tag" style="display: flex; align-items: center; gap: 0.5rem; font-size: 1rem;">
+            <img src="{{ url_for('static', filename='images/VM_Icon.png') }}" alt="VM"
+                style="height: 24px; width: auto;">
+            VerifyMe
+        </span>
+        <button class="hamburger-toggle-btn" onclick="toggleMobileSidebar()">
+            <i class="fa-solid fa-bars"></i>
+        </button>
+    </div>
     <main class="dashboard-main">
-        <div class="top-utility-ribbon" style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.05);">
+        <div class="top-utility-ribbon"
+            style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.05);">
             <div class="ribbon-left-context">
                 <span style="color: #a3a3a3; font-size: 0.95rem;">
                     <i class="fa-solid fa-building text-cyan"></i> Enterprise Client:
@@ -52,7 +75,8 @@
                 </span>
             </div>
 
-            <div class="notification-wrapper" onclick="toggleNotificationDropdown()" style="position: relative; cursor: pointer;">
+            <div class="notification-wrapper" onclick="toggleNotificationDropdown()"
+                style="position: relative; cursor: pointer;">
                 <i class="fa-solid fa-bell utility-bell"></i>
                 <span class="notification-badge-dot"></span>
 
@@ -72,7 +96,8 @@
         {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
         {% for category, message in messages %}
-        <div class="alert-notice-box {% if category == 'error' %}flagged-border{% endif %}" style="margin-bottom: 1.5rem; display: block;">
+        <div class="alert-notice-box {% if category == 'error' %}flagged-border{% endif %}"
+            style="margin-bottom: 1.5rem; display: block;">
             <strong><i class="fa-solid fa-circle-info"></i> System:</strong> {{ message }}
         </div>
         {% endfor %}
@@ -80,10 +105,12 @@
         {% endwith %}
 
         <div id="tab-overview" class="tab-content active-content">
-            <header class="workspace-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+            <header class="workspace-header"
+                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
                 <div>
                     <h1 style="margin: 0; font-size: 1.75rem;">{{ session['display_name'] }} Workspace</h1>
-                    <p class="subtitle" style="margin: 0.25rem 0 0 0; color: #a3a3a3;">Monitor high-level background screening metrics.</p>
+                    <p class="subtitle" style="margin: 0.25rem 0 0 0; color: #a3a3a3;">Monitor high-level background
+                        screening metrics.</p>
                 </div>
                 <button class="btn-action-cyan" onclick="openScreeningModal()">
                     <i class="fa-solid fa-plus-circle"></i> Initiate New Screening
@@ -97,14 +124,16 @@
                     <span class="card-trend upward"><i class="fa-solid fa-rotate"></i> Live SQL Database Synced</span>
                 </div>
                 <div class="analytics-card">
-                    <span class="card-label"><i class="fa-solid fa-circle-check text-cyan"></i> Verification Cleared</span>
+                    <span class="card-label"><i class="fa-solid fa-circle-check text-cyan"></i> Verification
+                        Cleared</span>
                     <div class="card-value cyan-text">
                         {{ candidates|selectattr('status', 'equalto', 'Cleared')|list|length if candidates else 0 }}
                     </div>
                     <span class="card-subtext">Ready for HR processing</span>
                 </div>
-                <div class="analytics-card flagged-border">
-                    <span class="card-label"><i class="fa-solid fa-triangle-exclamation text-burgundy"></i> Attention Required</span>
+                <div class="analytics-card">
+                    <span class="card-label"><i class="fa-solid fa-triangle-exclamation text-burgundy"></i> Attention
+                        Required</span>
                     <div class="card-value burgundy-text">
                         {{ candidates|selectattr('status', 'equalto', 'Flagged')|list|length if candidates else 0 }}
                     </div>
@@ -113,7 +142,9 @@
             </section>
 
             <section class="table-container">
-                <div class="table-header"><h3>Active Pipeline Node Stream</h3></div>
+                <div class="table-header">
+                    <h3>Active Pipeline Node Stream</h3>
+                </div>
                 <table class="matrix-table">
                     <thead>
                         <tr>
@@ -126,28 +157,33 @@
                     </thead>
                     <tbody>
                         {% if candidates %}
-                            {% for candidate in candidates %}
-                            <tr>
-                                <td class="font-bold text-white">{{ candidate.name }}</td>
-                                <td class="mono-text">{{ candidate.email }}</td>
-                                <td>{{ candidate.type }}</td>
-                                <td>{{ candidate.date }}</td>
-                                <td>
-                                    {% if candidate.status == 'Cleared' %}
-                                    <span class="status-badge badge-cleared"><i class="fa-solid fa-circle-check"></i> Cleared</span>
-                                    {% elif candidate.status == 'Flagged' %}
-                                    <span class="status-badge badge-flagged" style="color:#ff4a4a;"><i class="fa-solid fa-triangle-exclamation"></i> Flagged</span>
-                                    {% elif candidate.status == 'Processing' %}
-                                    <span class="status-badge badge-processing"><i class="fa-solid fa-spinner fa-spin"></i> Processing</span>
-                                    {% else %}
-                                    <span class="status-badge badge-pending"><i class="fa-solid fa-hourglass-half"></i> Pending Input</span>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            {% endfor %}
+                        {% for candidate in candidates %}
+                        <tr>
+                            <td class="font-bold text-white">{{ candidate.name }}</td>
+                            <td class="mono-text">{{ candidate.email }}</td>
+                            <td>{{ candidate.type }}</td>
+                            <td>{{ candidate.date }}</td>
+                            <td>
+                                {% if candidate.status == 'Cleared' %}
+                                <span class="status-badge badge-cleared"><i class="fa-solid fa-circle-check"></i>
+                                    Cleared</span>
+                                {% elif candidate.status == 'Flagged' %}
+                                <span class="status-badge badge-flagged" style="color:#ff4a4a;"><i
+                                        class="fa-solid fa-triangle-exclamation"></i> Flagged</span>
+                                {% elif candidate.status == 'Processing' %}
+                                <span class="status-badge badge-processing"><i class="fa-solid fa-spinner fa-spin"></i>
+                                    Processing</span>
+                                {% else %}
+                                <span class="status-badge badge-pending"><i class="fa-solid fa-hourglass-half"></i>
+                                    Pending Input</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
                         {% else %}
                         <tr>
-                            <td colspan="5" style="text-align: center; color: #a3a3a3; padding: 2rem;">No active candidate background track nodes initiated yet.</td>
+                            <td colspan="5" style="text-align: center; color: #a3a3a3; padding: 2rem;">No active
+                                candidate background track nodes initiated yet.</td>
                         </tr>
                         {% endif %}
                     </tbody>
@@ -156,10 +192,12 @@
         </div>
 
         <div id="tab-candidates" class="tab-content">
-            <header class="workspace-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+            <header class="workspace-header"
+                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
                 <div>
                     <h1 style="margin: 0; font-size: 1.75rem;">Candidate Registry</h1>
-                    <p class="subtitle" style="margin: 0.25rem 0 0 0; color: #a3a3a3;">Individual verification matrix trace.</p>
+                    <p class="subtitle" style="margin: 0.25rem 0 0 0; color: #a3a3a3;">Individual verification matrix
+                        trace.</p>
                 </div>
                 <button class="btn-action-cyan" onclick="openScreeningModal()">
                     <i class="fa-solid fa-plus-circle"></i> Initiate New Screening
@@ -178,25 +216,31 @@
                     </thead>
                     <tbody>
                         {% if candidates %}
-                            {% for candidate in candidates %}
-                            <tr>
-                                <td class="font-bold text-white">{{ candidate.name }}</td>
-                                <td class="mono-text">{{ candidate.email }}</td>
-                                <td>{{ candidate.type }}</td>
-                                <td>{{ candidate.date }}</td>
-                                <td>
-                                    {% if candidate.status == 'Cleared' %}
-                                    <span class="status-badge badge-cleared"><i class="fa-solid fa-circle-check"></i> Cleared</span>
-                                    {% elif candidate.status == 'Flagged' %}
-                                    <span class="status-badge badge-flagged" style="color:#ff4a4a;"><i class="fa-solid fa-triangle-exclamation"></i> Flagged</span>
-                                    {% else %}
-                                    <span class="status-badge badge-pending"><i class="fa-solid fa-hourglass-half"></i> Pending</span>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            {% endfor %}
+                        {% for candidate in candidates %}
+                        <tr>
+                            <td class="font-bold text-white">{{ candidate.name }}</td>
+                            <td class="mono-text">{{ candidate.email }}</td>
+                            <td>{{ candidate.type }}</td>
+                            <td>{{ candidate.date }}</td>
+                            <td>
+                                {% if candidate.status == 'Cleared' %}
+                                <span class="status-badge badge-cleared"><i class="fa-solid fa-circle-check"></i>
+                                    Cleared</span>
+                                {% elif candidate.status == 'Flagged' %}
+                                <span class="status-badge badge-flagged" style="color:#ff4a4a;"><i
+                                        class="fa-solid fa-triangle-exclamation"></i> Flagged</span>
+                                {% else %}
+                                <span class="status-badge badge-pending"><i class="fa-solid fa-hourglass-half"></i>
+                                    Pending</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
                         {% else %}
-                        <tr><td colspan="5" style="text-align: center; color: #a3a3a3; padding: 2rem;">No candidates mapped onto this account layout.</td></tr>
+                        <tr>
+                            <td colspan="5" style="text-align: center; color: #a3a3a3; padding: 2rem;">No candidates
+                                mapped onto this account layout.</td>
+                        </tr>
                         {% endif %}
                     </tbody>
                 </table>
@@ -207,7 +251,8 @@
             <header class="workspace-header" style="margin-bottom: 2rem;">
                 <div>
                     <h1 style="margin: 0; font-size: 1.75rem;">Order Requests History</h1>
-                    <p class="subtitle" style="margin: 0.25rem 0 0 0; color: #a3a3a3;">Track batch volumes and processing invoice balances.</p>
+                    <p class="subtitle" style="margin: 0.25rem 0 0 0; color: #a3a3a3;">Track batch volumes and
+                        processing invoice balances.</p>
                 </div>
             </header>
             <section class="table-container">
@@ -222,227 +267,458 @@
                     </thead>
                     <tbody>
                         {% if candidates %}
-                            {% for candidate in candidates %}
-                            <tr>
-                                <td class="mono-text">VFY-TX-{{ 4000 + candidate.id|int }}</td>
-                                <td>{{ candidate.type }}</td>
-                                <td>1 Batch Node</td>
-                                <td><span class="status-badge badge-cleared"><i class="fa-solid fa-circle-check"></i> Account Settled</span></td>
-                            </tr>
-                            {% endfor %}
+                        {% for candidate in candidates %}
+                        <tr>
+                            <td class="mono-text">VFY-TX-{{ 4000 + candidate.id|int }}</td>
+                            <td>{{ candidate.type }}</td>
+                            <td>1 Batch Node</td>
+                            <td><span class="status-badge badge-cleared"><i class="fa-solid fa-circle-check"></i>
+                                    Account Settled</span></td>
+                        </tr>
+                        {% endfor %}
                         {% else %}
-                        <tr><td colspan="4" style="text-align: center; color: #a3a3a3; padding: 2rem;">No corporate transaction statements registered.</td></tr>
+                        <tr>
+                            <td colspan="4" style="text-align: center; color: #a3a3a3; padding: 2rem;">No corporate
+                                transaction statements registered.</td>
+                        </tr>
                         {% endif %}
                     </tbody>
                 </table>
             </section>
         </div>
 
-        <div id="tab-settings" class="tab-content">
-            <header class="workspace-header" style="margin-bottom: 2rem;">
-                <div>
-                    <h1 style="margin: 0; font-size: 1.75rem;">System Configurations</h1>
-                    <p class="subtitle" style="margin: 0.25rem 0 0 0; color: #a3a3a3;">Manage webhook bindings and global API tokens.</p>
-                </div>
-            </header>
-            <section class="analytics-card" style="max-width: 600px;">
-                <h4 style="margin-top:0;"><i class="fa-solid fa-key text-cyan"></i> API Authorization Node</h4>
-                <div class="form-group">
-                    <label>Sandbox Authorization Key</label>
-                    <input type="text" class="form-control" value="vfy_live_auth_node_{{ session['user_id'] }}bb829" readonly>
-                </div>
-                <button class="btn-portal-primary" style="max-width:200px; padding:0.6rem;" onclick="alert('Configuration Matrix Saved!')">
-                    <i class="fa-solid fa-floppy-disk"></i> Save Environment
-                </button>
-            </section>
-        </div>
-
         <div id="tab-profile" class="tab-content">
             <header class="workspace-header" style="margin-bottom: 2rem;">
                 <div>
-                    <h1 style="margin: 0; font-size: 1.75rem;">Company Profile</h1>
-                    <p class="subtitle" style="margin: 0.25rem 0 0 0; color: #a3a3a3;">Enterprise details and corporate metadata contacts.</p>
+                    <h1 style="margin: 0; font-size: 1.75rem; font-family: inherit;">Company Profile</h1>
+                    <p class="subtitle" style="margin: 0.25rem 0 0 0; color: #a3a3a3; font-size: 0.9rem;">Enterprise
+                        details and corporate metadata contacts.</p>
                 </div>
             </header>
-            <section class="analytics-card" style="max-width: 600px;">
-                <h4 style="margin-top:0; color:#ffffff;"><i class="fa-solid fa-building-user text-cyan"></i> Profile Ledger</h4>
-                <div style="display:flex; flex-direction:column; gap:1.25rem; margin-top:1.5rem;">
-                    <div class="form-group">
-                        <label>Registered Legal Trading Entity Name</label>
-                        <input type="text" class="form-control" value="{{ session['display_name'] }}" readonly>
+
+            <div class="settings-grid"
+                style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 1.5rem; align-items: start; max-width: 1100px;">
+
+                <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+
+                    <div class="analytics-card"
+                        style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem;">
+                        <div class="card-label"
+                            style="border-bottom: 1px solid var(--border, rgba(255,255,255,0.1)); padding-bottom: 0.5rem; font-family: var(--font-mono, monospace); font-size: 0.75rem; text-transform: uppercase; color: var(--brand-lime, #4eb637); letter-spacing: 0.5px;">
+                            Company Information</div>
+
+                        <form id="corp-info-form"
+                            style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.25rem; width: 100%;">
+                            <div class="form-group" style="grid-column: span 2;">
+                                <label>Company Name</label>
+                                <input type="text" class="form-control" value="{{ session['display_name'] }}" readonly
+                                    style="opacity: 0.6; cursor: not-allowed;">
+                            </div>
+
+                            <div class="form-group">
+                                <label>CIPC Registration Number</label>
+                                <input type="text" class="form-control" value="2024/123456/07" readonly
+                                    style="opacity: 0.6; cursor: not-allowed;">
+                            </div>
+
+                            <div class="form-group">
+                                <label>Corporate Account Key Node</label>
+                                <input type="text" class="form-control" value="VFY-CORP-00{{ session['user_id'] }}"
+                                    readonly style="opacity: 0.6; cursor: not-allowed;">
+                            </div>
+
+                            <div class="form-group">
+                                <label>Contact Person Name</label>
+                                <input type="text" name="contact_name" class="form-control profile-editable"
+                                    value="Contact Person Name" readonly>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Phone Number</label>
+                                <input type="text" name="phone" class="form-control profile-editable"
+                                    value="011 456 7890" readonly>
+                            </div>
+
+                            <div class="form-group" style="grid-column: span 2;">
+                                <label>Company Email Address</label>
+                                <input type="email" class="form-control" value="{{ session['user_email'] }}" readonly
+                                    style="opacity: 0.6; cursor: not-allowed;">
+                            </div>
+
+                            <div style="grid-column: span 2; display: flex; gap: 0.75rem; margin-top: 0.25rem;">
+                                <button type="button" class="btn-table-row" id="edit-corp-btn"
+                                    onclick="enableProfileEditing('corp')"><i class="fa-solid fa-pen-to-square"></i>
+                                    Edit Profile</button>
+                                <button type="submit" class="btn-portal-primary" id="save-corp-btn"
+                                    style="display: none; padding: 0.5rem 1rem;"><i class="fa-solid fa-floppy-disk"></i>
+                                    Save Changes</button>
+                            </div>
+                        </form>
                     </div>
-                    <div class="form-group">
-                        <label>Primary Account Operations Email</label>
-                        <input type="text" class="form-control" value="{{ session['user_email'] }}" readonly>
-                    </div>
-                    <div class="form-group">
-                        <label>Corporate Account Key Node</label>
-                        <input type="text" class="form-control" value="VFY-CORP-00{{ session['user_id'] }}" readonly>
+
+                    <div class="analytics-card"
+                        style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; border: 1px solid rgba(255, 74, 74, 0.2); background: rgba(255, 74, 74, 0.01);">
+                        <div class="card-label"
+                            style="border-bottom: 1px solid rgba(255, 74, 74, 0.1); padding-bottom: 0.5rem; font-family: var(--font-mono, monospace); font-size: 0.75rem; text-transform: uppercase; color: #ff4a4a; letter-spacing: 0.5px;">
+                            Danger Zone</div>
+                        <p style="margin: 0; font-size: 0.85rem; color: #a3a3a3; line-height: 1.5;">
+                            Terminating this enterprise identity container irreversibly deletes all candidate lists,
+                            background screenings, financial payment records, and uploaded files.
+                        </p>
+                        <button type="button" class="btn-table-row"
+                            style="color: #ff4a4a; border-color: rgba(255, 74, 74, 0.3); background: rgba(255, 74, 74, 0.05); align-self: flex-start;"
+                            onclick="confirmAccountDeletion('corp')">
+                            <i class="fa-solid fa-trash-can"></i> Delete Profile Account
+                        </button>
                     </div>
                 </div>
-            </section>
+
+                <div class="analytics-card"
+                    style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem;">
+                    <div class="card-label"
+                        style="border-bottom: 1px solid var(--border, rgba(255,255,255,0.1)); padding-bottom: 0.5rem; font-family: var(--font-mono, monospace); font-size: 0.75rem; text-transform: uppercase; color: #eef2ef; letter-spacing: 0.5px;">
+                        Change Workspace Password</div>
+
+                    <form id="corp-password-form"
+                        style="display: flex; flex-direction: column; gap: 1.25rem; width: 100%;">
+                        <div class="form-group">
+                            <label>Current Password</label>
+                            <input type="password" required class="form-control">
+                        </div>
+
+                        <div class="form-group">
+                            <label>New Password</label>
+                            <input type="password" id="corp-new-password" required class="form-control"
+                                oninput="checkPasswordStrength(this.value, 'corp-strength')">
+                            <div id="corp-strength" style="display: flex; gap: 4px; margin-top: 6px; width: 100%;">
+                                <div
+                                    style="flex: 1; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px;">
+                                </div>
+                                <div
+                                    style="flex: 1; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px;">
+                                </div>
+                                <div
+                                    style="flex: 1; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px;">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Confirm New Password</label>
+                            <input type="password" required class="form-control">
+                        </div>
+
+                        <button type="submit" class="btn-table-row"
+                            style="align-self: flex-start; margin-top: 0.25rem;">Update Security Hash</button>
+                    </form>
+                </div>
+
+            </div>
         </div>
-    </main>
-</div>
 
-<div id="screening-modal" class="modal-overlay">
-    <div class="modal-card" style="max-width: 550px;">
-
-        <div class="modal-header">
-            <h3 id="wizard-step-title">Initiate Background Run (Step 1/3)</h3>
-            <button class="close-modal-btn" onclick="closeScreeningModal()">&times;</button>
-        </div>
-
-        <div class="wizard-progress-bar">
-            <div id="wizard-progress" class="wizard-progress-fill" style="width: 33.3%;"></div>
-        </div>
-
-        <form id="multi-step-screening-form" method="POST" action="{{ url_for('initiate_screening') }}" enctype="multipart/form-data">
-            <input type="hidden" name="payment_ref" id="hidden-payment-ref-input">
-
-            <div id="wizard-step-1" class="wizard-step-block">
-                <div class="form-group">
-                    <label for="vector-select">Select Screening Vector Type</label>
-                    <select id="vector-select" name="screening_type" class="form-control" onchange="calculateCost()" style="background:#1f2521; color:#fff;">
-                        <option value="Identity Verification &amp; Validation" data-price="450">Identity Verification &amp; Validation — R450.00 / candidate</option>
-                        <option value="Criminal Record &amp; Background Check" data-price="550">Criminal Record &amp; Background Check — R550.00 / candidate</option>
-                        <option value="Credit &amp; Financial Check" data-price="380">Credit &amp; Financial Check — R380.00 / candidate</option>
-                        <option value="Professional License Verification" data-price="320">Professional License Verification — R320.00 / candidate</option>
-                        <option value="Global Compliance Screening" data-price="620">Global Compliance Screening — R620.00 / candidate</option>
-                        <option value="Social Media &amp; Digital Footprint" data-price="280">Social Media &amp; Digital Footprint — R280.00 / candidate</option>
-                    </select>
+        <div id="tab-services" class="tab-content">
+            <header class="workspace-header" style="margin-bottom: 2rem;">
+                <div>
+                    <h1 style="margin: 0; font-size: 1.75rem;">Verification Matrix</h1>
+                    <p class="subtitle" style="margin: 0.25rem 0 0 0; color: #a3a3a3;">
+                        Select a vector path to view individual parameters, turnaround configurations, and transaction
+                        metrics.
+                    </p>
                 </div>
+            </header>
 
-                <div class="form-group">
-                    <label for="candidate-count">Number of Target Candidates in Batch</label>
-                    <input type="number" id="candidate-count" name="candidate_count" class="form-control" value="1" min="1" max="100" oninput="calculateCost()" required>
-                </div>
+            <div
+                style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem; max-width: 1200px; margin-bottom: 2rem;">
 
-                <div class="form-group">
-                    <label for="csv-upload">Upload Candidate Registry (CSV Format: Name, Email)</label>
-                    <div class="csv-upload-dropzone">
-                        <input type="file" id="csv-upload" name="candidate_csv" accept=".csv" onchange="updateCSVLabel(this)">
-                        <span id="csv-label">
-                            <i class="fa-solid fa-file-csv style-icon" style="font-size: 1.5rem; display:block; margin-bottom:0.5rem;"></i>
-                            Drag & Drop or click to upload candidates.csv
-                        </span>
+                <div class="analytics-card"
+                    style="padding: 1.5rem; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid var(--border); background: var(--bg-card-dark); min-height: 240px; border-radius: var(--radius-md);">
+                    <div>
+
+                        <h3 style="margin: 0 0 0.5rem 0; font-size: 1.15rem; color: #ffffff; font-weight: 600;">National
+                            Identity & Passport</h3>
+                        <p style="margin: 0; font-size: 0.85rem; color: #a3a3a3; line-height: 1.5;">Direct DHA registry
+                            cross-referencing, validation tracing, and automated biometric verification streams.</p>
+                    </div>
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.05);">
+                        <span
+                            style="font-size: 0.8rem; font-weight: 500; color: #8a9e8d; font-family: var(--font-mono);">STANDARD
+                            FEE</span>
+                        <span style="font-size: 1.2rem; font-weight: 700; color: var(--brand-lime);">R45.00</span>
                     </div>
                 </div>
 
-                <div id="fingerprint-notice" class="alert-notice-box" style="display: none;">
-                    <strong><i class="fa-solid fa-triangle-exclamation"></i> Biometric Notice:</strong> Criminal record checks require fingerprint verification. Candidates will be prompted to complete their verification loops at a local PostNet branch.
+                <div class="analytics-card"
+                    style="padding: 1.5rem; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid var(--border); background: var(--bg-card-dark); min-height: 240px; border-radius: var(--radius-md);">
+                    <div>
+
+                        <h3 style="margin: 0 0 0.5rem 0; font-size: 1.15rem; color: #ffffff; font-weight: 600;">SAPS
+                            Criminal Background</h3>
+                        <p style="margin: 0; font-size: 0.85rem; color: #a3a3a3; line-height: 1.5;">Gold-standard AFIS
+                            fingerprint data mapping, digital records processing, and criminal court case audits.</p>
+                    </div>
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.05);">
+                        <span
+                            style="font-size: 0.8rem; font-weight: 500; color: #8a9e8d; font-family: var(--font-mono);">STANDARD
+                            FEE</span>
+                        <span style="font-size: 1.2rem; font-weight: 700; color: var(--brand-lime);">R180.00</span>
+                    </div>
                 </div>
 
-                <div class="wizard-footer-actions" style="display: flex; justify-content: space-between; margin-top: 20px;">
-                    <div></div> 
-                    <button type="button" class="btn-action-cyan" onclick="goToStep(2)">
-                        Proceed to Billing <i class="fa-solid fa-arrow-right"></i>
-                    </button>
+                <div class="analytics-card"
+                    style="padding: 1.5rem; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid var(--border); background: var(--bg-card-dark); min-height: 240px; border-radius: var(--radius-md);">
+                    <div>
+
+                        <h3 style="margin: 0 0 0.5rem 0; font-size: 1.15rem; color: #ffffff; font-weight: 600;">
+                            Qualifications & Degrees</h3>
+                        <p style="margin: 0; font-size: 0.85rem; color: #a3a3a3; line-height: 1.5;">SAQA verification
+                            pipelines along with direct local and global academic institution credential audits.</p>
+                    </div>
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.05);">
+                        <span
+                            style="font-size: 0.8rem; font-weight: 500; color: #8a9e8d; font-family: var(--font-mono);">STANDARD
+                            FEE</span>
+                        <span style="font-size: 1.2rem; font-weight: 700; color: var(--brand-lime);">R95.00</span>
+                    </div>
+                </div>
+
+                <div class="analytics-card"
+                    style="padding: 1.5rem; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid var(--border); background: var(--bg-card-dark); min-height: 240px; border-radius: var(--radius-md);">
+                    <div>
+
+                        <h3 style="margin: 0 0 0.5rem 0; font-size: 1.15rem; color: #ffffff; font-weight: 600;">Credit
+                            Risk Assessment</h3>
+                        <p style="margin: 0; font-size: 0.85rem; color: #a3a3a3; line-height: 1.5;">Comprehensive
+                            TransUnion data access showing credit indices, judgements, and historical liability metrics.
+                        </p>
+                    </div>
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.05);">
+                        <span
+                            style="font-size: 0.8rem; font-weight: 500; color: #8a9e8d; font-family: var(--font-mono);">STANDARD
+                            FEE</span>
+                        <span style="font-size: 1.2rem; font-weight: 700; color: var(--brand-lime);">R75.00</span>
+                    </div>
+                </div>
+
+                <div class="analytics-card"
+                    style="padding: 1.5rem; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid var(--border); background: var(--bg-card-dark); min-height: 240px; border-radius: var(--radius-md);">
+                    <div>
+
+                        <h3 style="margin: 0 0 0.5rem 0; font-size: 1.15rem; color: #ffffff; font-weight: 600;">Driver's
+                            License Status</h3>
+                        <p style="margin: 0; font-size: 0.85rem; color: #a3a3a3; line-height: 1.5;">Direct link up with
+                            eNaTIS infrastructure verifying validity, restrictions, and endorsement arrays.</p>
+                    </div>
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.05);">
+                        <span
+                            style="font-size: 0.8rem; font-weight: 500; color: #8a9e8d; font-family: var(--font-mono);">STANDARD
+                            FEE</span>
+                        <span style="font-size: 1.2rem; font-weight: 700; color: var(--brand-lime);">R60.00</span>
+                    </div>
+                </div>
+
+                <div class="analytics-card"
+                    style="padding: 1.5rem; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid var(--border); background: var(--bg-card-dark); min-height: 240px; border-radius: var(--radius-md);">
+                    <div>
+
+                        <h3 style="margin: 0 0 0.5rem 0; font-size: 1.15rem; color: #ffffff; font-weight: 600;">Driver's
+                            License Status</h3>
+                        <p style="margin: 0; font-size: 0.85rem; color: #a3a3a3; line-height: 1.5;">Direct link up with
+                            eNaTIS infrastructure verifying validity, restrictions, and endorsement arrays.</p>
+                    </div>
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.05);">
+                        <span
+                            style="font-size: 0.8rem; font-weight: 500; color: #8a9e8d; font-family: var(--font-mono);">STANDARD
+                            FEE</span>
+                        <span style="font-size: 1.2rem; font-weight: 700; color: var(--brand-lime);">R60.00</span>
+                    </div>
                 </div>
             </div>
+        </div>
 
-            <div id="wizard-step-2" class="wizard-step-block" style="display: none;">
-                <div class="billing-summary-card">
-                    <h4>Cost Evaluation Summary</h4>
-                    <div class="billing-row">
-                        <span>Calculated Line Items:</span>
-                        <span id="summary-text">1 candidate(s) &times; Identity Verification &amp; Validation</span>
-                    </div>
-                    <div class="billing-row total-row">
-                        <span>Total Due (ZAR):</span>
-                        <span id="total-price-display">R450.00</span>
-                    </div>
+        <div id="screening-modal" class="modal-overlay" style="display: none;">
+            <div class="modal-card" style="max-width: 550px;">
+                <div class="modal-header">
+                    <h3 id="wizard-step-title">Initiate Background Run (Step 1/3)</h3>
+                    <button class="close-modal-btn" onclick="closeScreeningModal()">&times;</button>
                 </div>
 
-                <div class="form-group" style="margin-top: 1.5rem; margin-bottom: 1.5rem;">
-                    <label style="color: #ffffff; font-weight: 600; margin-bottom: 0.75rem; display: block;">Select Corporate Settlement Channel</label>
-
-                    <div style="background: rgba(255,255,255,0.03); padding: 0.75rem 1rem; border-radius: 6px; margin-bottom: 0.5rem; border: 1px solid rgba(255,255,255,0.05);">
-                        <input type="radio" name="payment_method" value="card" id="corp_pay_card" checked onchange="toggleDashboardPaymentPanels('gateway')">
-                        <label for="corp_pay_card" style="display: inline; cursor: pointer; color: #fff; margin-left: 0.5rem;">
-                            <i class="fa-solid fa-credit-card text-cyan" style="margin-right: 0.25rem;"></i>
-                            <strong>Credit / Debit Card</strong> (Instant Automated Deployment)
-                        </label>
-                    </div>
-
-                    <div style="background: rgba(255,255,255,0.03); padding: 0.75rem 1rem; border-radius: 6px; margin-bottom: 0.5rem; border: 1px solid rgba(255,255,255,0.05);">
-                        <input type="radio" name="payment_method" value="instant_eft" id="corp_pay_ieft" onchange="toggleDashboardPaymentPanels('gateway')">
-                        <label for="corp_pay_ieft" style="display: inline; cursor: pointer; color: #fff; margin-left: 0.5rem;">
-                            <i class="fa-solid fa-bolt" style="color: #ff9f43; margin-right: 0.25rem;"></i>
-                            <strong>Secure Instant EFT</strong> (PayFast Gateway Redirection)
-                        </label>
-                    </div>
-
-                    <div style="background: rgba(255,255,255,0.03); padding: 0.75rem 1rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05);">
-                        <input type="radio" name="payment_method" value="manual_eft" id="corp_pay_meft" onchange="toggleDashboardPaymentPanels('manual')">
-                        <label for="corp_pay_meft" style="display: inline; cursor: pointer; color: #fff; margin-left: 0.5rem;">
-                            <i class="fa-solid fa-building-columns" style="color: #a3a3a3; margin-right: 0.25rem;"></i>
-                            <strong>Traditional Manual Corporate EFT</strong> (Requires POP Document)
-                        </label>
-                    </div>
+                <div class="wizard-progress-bar">
+                    <div id="wizard-progress" class="wizard-progress-fill" style="width: 33.3%;"></div>
                 </div>
 
-                <div class="wizard-footer-actions" style="display: flex; justify-content: space-between; margin-top: 20px;">
-                    <button type="button" class="btn-table-row" onclick="goToStep(1)">
-                        <i class="fa-solid fa-arrow-left"></i> Back
-                    </button>
-                    <button type="button" class="btn-action-cyan" id="billing-continue-btn" onclick="handleBillingTransition()">
-                        Proceed to Checkout <i class="fa-solid fa-arrow-right"></i>
-                    </button>
-                </div>
-            </div>
+                <form id="multi-step-screening-form" method="POST" action="{{ url_for('initiate_screening') }}" enctype="multipart/form-data">
+                    <input type="hidden" name="payment_ref" id="hidden-payment-ref-input">
 
-            <div id="wizard-step-3" class="wizard-step-block" style="display: none;">
-                <div id="dash-panel-gateway-notice" class="alert-notice-box" style="display: block; background: rgba(0, 242, 254, 0.05); border-color: #00f2fe; margin-bottom: 1.5rem;">
-                    <strong><i class="fa-solid fa-shield-halved"></i> Payment Gateway Routing:</strong> Your selection processes instantly. Press deployment below to route through secure end-to-end authorization networks.
-                </div>
+                    <div id="wizard-step-1" class="wizard-step-block">
+                        <div class="form-group">
+                            <label for="vector-select">Select Screening Vector Type</label>
+                            <select id="vector-select" name="screening_type" class="form-control" onchange="calculateCost()" style="background:#1f2521; color:#fff;">
+                                <option value="Identity Verification &amp; Validation" data-price="45">Identity Verification &amp; Validation — R45.00 / candidate</option>
+                                <option value="Criminal Record &amp; Background Check" data-price="180">Criminal Record &amp; Background Check — R180.00 / candidate</option>
+                                <option value="Credit &amp; Financial Check" data-price="75">Credit &amp; Financial Check — R75.00 / candidate</option>
+                                <option value="Professional License Verification" data-price="95">Professional License Verification — R95.00 / candidate</option>
+                                <option value="Driver's License Status" data-price="60">Driver's License Status Check — R60.00 / candidate</option>
+                            </select>
+                        </div>
 
-                <div id="dash-panel-manual-eft" style="display: none;">
-                    <div class="banking-details-box" style="margin-bottom: 1.5rem; background: rgba(255,255,255,0.02); padding: 15px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
-                        <h5 style="margin-top:0; color:#00f2fe;"><i class="fa-solid fa-building-columns text-cyan"></i> Electronic Funds Transfer (EFT) Target Node</h5>
-                        <p style="font-size:13px; color:#a3a3a3;">Please dispatch complete settlement to our banking terminal infrastructure below:</p>
-                        <ul style="font-size:13px; list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:4px;">
-                            <li><strong>Bank Brand:</strong> FNB Corporate Banking SA</li>
-                            <li><strong>Account Name:</strong> InspHired Recruitment Solutions</li>
-                            <li><strong>Account Number:</strong> 62910488219</li>
-                            <li><strong>Branch Routing Code:</strong> 250655</li>
-                            <li><strong>Payment Reference Tag:</strong> <span class="mono-text text-cyan" id="payment-ref">VFY-TX-6009</span></li>
-                        </ul>
-                    </div>
+                        <div class="form-group">
+                            <label for="candidate-count">Number of Target Candidates in Batch</label>
+                            <input type="number" id="candidate-count" name="candidate_count" class="form-control" value="1" min="1" max="100" oninput="calculateCost()" required>
+                        </div>
 
-                    <div class="form-group">
-                        <label>Upload Bank Transfer Confirmation (PDF / Image)</label>
-                        <div class="csv-upload-dropzone" style="border-style: solid; border-color: #4eb637;">
-                            <input type="file" id="pop-upload" name="pop_receipt" accept=".pdf,image/*" onchange="updatePOPLabel(this)">
-                            <span id="pop-label">
-                                <i class="fa-solid fa-receipt style-icon" style="font-size: 1.5rem; display:block; margin-bottom:0.5rem;"></i>
-                                Attach Electronic Proof of Payment (PoP)
-                            </span>
+                        <div class="form-group">
+                            <label for="csv-upload">Upload Candidate Registry (CSV Format: Name, Email)</label>
+                            <div class="csv-upload-dropzone">
+                                <input type="file" id="csv-upload" name="candidate_csv" accept=".csv" onchange="updateCSVLabel(this)">
+                                <span id="csv-label">
+                                    <i class="fa-solid fa-file-csv style-icon" style="font-size: 1.5rem; display:block; margin-bottom:0.5rem;"></i>
+                                    Drag & Drop or click to upload candidates.csv
+                                </span>
+                            </div>
+                        </div>
+
+                        <div id="fingerprint-notice" class="alert-notice-box" style="display: none;">
+                            <strong><i class="fa-solid fa-triangle-exclamation"></i> Biometric Notice:</strong> Criminal record checks require fingerprint verification. Candidates will be prompted to complete their verification loops at a local branch.
+                        </div>
+
+                        <div class="wizard-footer-actions" style="display: flex; justify-content: space-between; margin-top: 20px;">
+                            <div></div>
+                            <button type="button" class="btn-action-cyan" onclick="goToStep(2)">
+                                Proceed to Billing <i class="fa-solid fa-arrow-right"></i>
+                            </button>
                         </div>
                     </div>
-                </div>
 
-                <div class="wizard-footer-actions" style="display: flex; justify-content: space-between; margin-top: 20px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.05);">
-                    <button type="button" class="btn-table-row" onclick="goToStep(2)">
-                        <i class="fa-solid fa-arrow-left"></i> Back
-                    </button>
-                    <button type="submit" id="final-deploy-btn" class="btn-portal-primary" style="margin: 0; width: auto; padding: 0.75rem 1.5rem;">
-                        <i class="fa-solid fa-rocket"></i> Deploy Core Request
-                    </button>
-                </div>
+                    <div id="wizard-step-2" class="wizard-step-block" style="display: none;">
+                        <div class="billing-summary-card">
+                            <h4>Cost Evaluation Summary</h4>
+                            <div class="billing-row">
+                                <span>Calculated Line Items:</span>
+                                <span id="summary-text">1 candidate(s) &times; Identity Verification &amp; Validation</span>
+                            </div>
+                            <div class="billing-row total-row">
+                                <span>Total Due (ZAR):</span>
+                                <span id="total-price-display">R45.00</span>
+                            </div>
+                        </div>
+
+                        <div class="form-group" style="margin-top: 1.5rem; margin-bottom: 1.5rem;">
+                            <label style="font-size: 0.85rem; font-family: var(--font-mono); color: var(--brand-muted); text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 0.75rem;">
+                                Settlement Preference Matrix
+                            </label>
+
+                            <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                                <label style="display: flex; align-items: center; gap: 1rem; background: var(--bg-card-dark); border: 1px solid var(--border); padding: 1.25rem; border-radius: var(--radius-md); cursor: pointer;">
+                                    <input type="radio" name="payment_method" value="card" id="corp_pay_card" checked onchange="toggleDashboardPaymentPanels('gateway')" style="accent-color: var(--brand-lime); width: 16px; height: 16px; margin: 0;">
+                                    <div style="display: flex; align-items: center; gap: 0.75rem; width: 100%;">
+                                        <i class="fa-solid fa-credit-card" style="color: var(--brand-white); font-size: 1.1rem; width: 20px; text-align: center;"></i>
+                                        <div>
+                                            <div style="font-weight: 700; color: var(--brand-white); font-size: 0.95rem;">Instant Checkout</div>
+                                            <div style="font-size: 0.8rem; color: var(--brand-muted); margin-top: 0.25rem;">Pay securely via Credit Card / Instant EFT</div>
+                                        </div>
+                                    </div>
+                                </label>
+
+                                <label style="display: flex; align-items: center; gap: 1rem; background: var(--bg-card-dark); border: 1px solid var(--border); padding: 1.25rem; border-radius: var(--radius-md); cursor: pointer;">
+                                    <input type="radio" name="payment_method" value="manual_eft" id="corp_pay_meft" onchange="toggleDashboardPaymentPanels('manual')" style="accent-color: var(--brand-lime); width: 16px; height: 16px; margin: 0;">
+                                    <div style="display: flex; align-items: center; gap: 0.75rem; width: 100%;">
+                                        <i class="fa-solid fa-building-columns" style="color: var(--brand-white); font-size: 1.1rem; width: 20px; text-align: center;"></i>
+                                        <div>
+                                            <div style="font-weight: 700; color: var(--brand-white); font-size: 0.95rem;">Bank Transfer</div>
+                                            <div style="font-size: 0.8rem; color: var(--brand-muted); margin-top: 0.25rem;">Manual Electronic Funds Transfer (Requires PoP)</div>
+                                        </div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="wizard-footer-actions" style="display: flex; justify-content: space-between; margin-top: 20px;">
+                            <button type="button" class="btn-table-row" onclick="goToStep(1)">
+                                <i class="fa-solid fa-arrow-left"></i> Back
+                            </button>
+                            <button type="button" class="btn-action-cyan" id="billing-continue-btn" onclick="handleBillingTransition()">
+                                Proceed to Checkout <i class="fa-solid fa-arrow-right"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="wizard-step-3" class="wizard-step-block" style="display: none;">
+                        <div id="dash-panel-gateway-notice" class="alert-notice-box" style="display: block; background: rgba(0, 242, 254, 0.05); border-color: #00f2fe; margin-bottom: 1.5rem;">
+                            <strong><i class="fa-solid fa-shield-halved"></i> Payment Gateway Routing:</strong> Your selection processes instantly. Press deployment below to route through secure authorization networks.
+                        </div>
+
+                        <div id="dash-panel-manual-eft" style="display: none;">
+                            <div class="banking-details-box" style="margin-bottom: 1.5rem; background: rgba(255,255,255,0.02); padding: 15px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
+                                <h5 style="margin-top:0; color:#00f2fe;"><i class="fa-solid fa-building-columns text-cyan"></i> Electronic Funds Transfer (EFT) Target</h5>
+                                <ul style="font-size:13px; list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:4px;">
+                                    <li><strong>Bank Brand:</strong> FNB Corporate Banking SA</li>
+                                    <li><strong>Account Name:</strong> VerifyMe Solutions</li>
+                                    <li><strong>Account Number:</strong> 62910488219</li>
+                                    <li><strong>Branch Code:</strong> 250655</li>
+                                    <li><strong>Payment Reference:</strong> <span class="mono-text text-cyan" id="payment-ref">VFY-TX-6009</span></li>
+                                </ul>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Upload Bank Transfer Confirmation (PDF / Image)</label>
+                                <div class="csv-upload-dropzone" style="border-style: solid; border-color: #4eb637;">
+                                    <input type="file" id="pop-upload" name="pop_receipt" accept=".pdf,image/*" onchange="updatePOPLabel(this)">
+                                    <span id="pop-label">
+                                        <i class="fa-solid fa-receipt style-icon" style="font-size: 1.5rem; display:block; margin-bottom:0.5rem;"></i>
+                                        Attach Electronic Proof of Payment (PoP)
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="wizard-footer-actions" style="display: flex; justify-content: space-between; margin-top: 20px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.05);">
+                            <button type="button" class="btn-table-row" onclick="goToStep(2)">
+                                <i class="fa-solid fa-arrow-left"></i> Back
+                            </button>
+                            <button type="submit" id="final-deploy-btn" class="btn-portal-primary" style="margin: 0; width: auto; padding: 0.75rem 1.5rem;">
+                                <i class="fa-solid fa-rocket"></i> Deploy Core Request
+                            </button>
+                        </div>
+                    </div>
+                </form>
             </div>
-        </form>
-    </div>
+        </div>
+    </main>
 </div>
 
 <script>
     let currentStep = 1;
 
+    function toggleMobileSidebar() {
+        const sidebar = document.querySelector('.dashboard-sidebar');
+        if (!sidebar) return;
+        sidebar.classList.toggle('mobile-open');
+        const toggleBtnIcon = document.querySelector('.hamburger-toggle-btn i');
+        if (toggleBtnIcon) {
+            toggleBtnIcon.className = sidebar.classList.contains('mobile-open') ? 'fa-solid fa-xmark' : 'fa-solid fa-bars';
+        }
+    }
+
     function switchTab(tabName, clickedBtn) {
         document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active-content'));
-        document.querySelectorAll('.sidebar-menu .menu-item').forEach(btn => btn.classList.remove('active'));
-        document.getElementById('tab-' + tabName).classList.add('active-content');
-        clickedBtn.classList.add('active');
+        document.querySelectorAll('.dashboard-sidebar .menu-item, .sidebar-menu .menu-item').forEach(btn => btn.classList.remove('active'));
+
+        const targetTab = document.getElementById('tab-' + tabName);
+        if (targetTab) {
+            targetTab.classList.add('active-content');
+        }
+        if (clickedBtn) clickedBtn.classList.add('active');
+
+        const sidebar = document.querySelector('.dashboard-sidebar');
+        if (sidebar && sidebar.classList.contains('mobile-open')) {
+            toggleMobileSidebar();
+        }
     }
 
     function toggleNotificationDropdown() {
@@ -450,9 +726,31 @@
         if (dropdown) dropdown.classList.toggle('open-dropdown');
     }
 
+    /* --- GATED MODAL ENTRY POINTS --- */
     function openScreeningModal(preSelectedService = null) {
         currentStep = 1;
-        goToStep(1);
+
+        // Force modal visible first before updating subcomponents
+        const modal = document.getElementById('screening-modal');
+        if (modal) {
+            modal.classList.add('open');
+            modal.style.display = 'flex';
+        }
+
+        // Reset step forms cleanly
+        document.getElementById('wizard-step-1').style.display = 'block';
+        document.getElementById('wizard-step-2').style.display = 'none';
+        document.getElementById('wizard-step-3').style.display = 'none';
+        document.getElementById('wizard-progress').style.width = '33.3%';
+        document.getElementById('wizard-step-title').innerText = `Initiate Background Run (Step 1/3)`;
+
+        // Reset Form Inputs
+        const csvUpload = document.getElementById('csv-upload');
+        if (csvUpload) csvUpload.value = "";
+        const csvLabel = document.getElementById('csv-label');
+        if (csvLabel) {
+            csvLabel.innerHTML = `<i class="fa-solid fa-file-csv style-icon" style="font-size: 1.5rem; display:block; margin-bottom:0.5rem;"></i> Drag & Drop or click to upload candidates.csv`;
+        }
 
         const defaultRadio = document.getElementById('corp_pay_card');
         if (defaultRadio) defaultRadio.checked = true;
@@ -471,12 +769,14 @@
 
         if (displayRefNode) displayRefNode.innerText = generatedRef;
         if (hiddenRefInput) hiddenRefInput.value = generatedRef;
-
-        document.getElementById('screening-modal').classList.add('open');
     }
 
     function closeScreeningModal() {
-        document.getElementById('screening-modal').classList.remove('open');
+        const modal = document.getElementById('screening-modal');
+        if (modal) {
+            modal.classList.remove('open');
+            modal.style.display = 'none';
+        }
     }
 
     function updateCSVLabel(input) {
@@ -543,9 +843,11 @@
     }
 
     function goToStep(stepNumber) {
+        // Form boundaries error handling validation
         if (stepNumber === 2 && currentStep === 1) {
             const csvFile = document.getElementById('csv-upload').files;
             const countValue = document.getElementById('candidate-count').value;
+            
             if (!csvFile.length || !countValue || countValue < 1) {
                 alert("Please declare your target candidate count metrics and upload the candidate registry .csv file to proceed.");
                 return;
@@ -553,8 +855,7 @@
         }
 
         currentStep = stepNumber;
-        
-        // DYNAMIC DISPLAY PROPERTY RESET ENGINE (FIXED HIDDEN WIZARD BLOCK)
+
         document.getElementById('wizard-step-1').style.display = 'none';
         document.getElementById('wizard-step-2').style.display = 'none';
         document.getElementById('wizard-step-3').style.display = 'none';
@@ -568,22 +869,6 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
-        const screeningForm = document.getElementById('multi-step-screening-form');
-        if (screeningForm) {
-            screeningForm.addEventListener('submit', function (e) {
-                const selectedMethodNode = document.querySelector('input[name=\"payment_method\"]:checked');
-                if (!selectedMethodNode) return;
-
-                if (selectedMethodNode.value === 'manual_eft') {
-                    const popFile = document.getElementById('pop-upload').files;
-                    if (!popFile || !popFile.length) {
-                        e.preventDefault();
-                        alert("Please upload your manual banking proof of payment transfer receipt to deploy this request node.");
-                    }
-                }
-            });
-        }
-
         const backdropOverlay = document.getElementById('screening-modal');
         if (backdropOverlay) {
             backdropOverlay.addEventListener('click', function (e) {
