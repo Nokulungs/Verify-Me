@@ -729,6 +729,7 @@
     /* --- GATED MODAL ENTRY POINTS --- */
     function openScreeningModal(preSelectedService = null) {
         currentStep = 1;
+        clearWizardError();
 
         // Force modal visible first before updating subcomponents
         const modal = document.getElementById('screening-modal');
@@ -777,17 +778,44 @@
             modal.classList.remove('open');
             modal.style.display = 'none';
         }
+        clearWizardError();
     }
 
+    // UPDATED: Automatically updates candidate metrics input box out of CSV line count natively
     function updateCSVLabel(input) {
         if (input.files && input.files.length > 0) {
-            document.getElementById('csv-label').innerHTML = `<i class="fa-solid fa-circle-check text-cyan" style="font-size: 1.5rem; display:block; margin-bottom:0.5rem;"></i> Registry Loaded: <b>${input.files[0].name}</b>`;
+            const file = input.files[0];
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                const text = e.target.result;
+                const rows = text.split(/\r?\n/).filter(line => line.trim() !== "");
+                
+                let candidateCount = rows.length;
+                if (rows.length > 0 && (rows[0].toLowerCase().includes('name') || rows[0].toLowerCase().includes('email'))) {
+                    candidateCount = rows.length - 1;
+                }
+                if (candidateCount < 1) candidateCount = 1;
+
+                const countInput = document.getElementById('candidate-count');
+                if (countInput) {
+                    countInput.value = candidateCount;
+                    calculateCost();
+                }
+
+                document.getElementById('csv-label').innerHTML = `
+                    <i class="fa-solid fa-circle-check text-cyan" style="font-size: 1.5rem; display:block; margin-bottom:0.5rem;"></i> 
+                    Registry Loaded: <b>${file.name}</b> (${candidateCount} candidates detected)
+                `;
+            };
+            reader.readAsText(file);
         }
     }
 
     function updatePOPLabel(input) {
         if (input.files && input.files.length > 0) {
             document.getElementById('pop-label').innerHTML = `<i class="fa-solid fa-circle-check text-cyan" style="font-size: 1.5rem; display:block; margin-bottom:0.5rem;"></i> Attached: <b>${input.files[0].name}</b>`;
+            clearWizardError();
         }
     }
 
@@ -843,13 +871,15 @@
     }
 
     function goToStep(stepNumber) {
+        clearWizardError();
+
         // Form boundaries error handling validation
         if (stepNumber === 2 && currentStep === 1) {
             const csvFile = document.getElementById('csv-upload').files;
             const countValue = document.getElementById('candidate-count').value;
             
             if (!csvFile.length || !countValue || countValue < 1) {
-                alert("Please declare your target candidate count metrics and upload the candidate registry .csv file to proceed.");
+                showWizardError("Please declare your target candidate count metrics and upload the candidate registry .csv file to proceed.");
                 return;
             }
         }
@@ -868,7 +898,55 @@
         document.getElementById('wizard-step-title').innerText = `Initiate Background Run (Step ${stepNumber}/3)`;
     }
 
+    /* --- EVENT INITIALIZATION HOOKS --- */
     document.addEventListener('DOMContentLoaded', () => {
+        const screeningForm = document.getElementById('multi-step-screening-form');
+        if (screeningForm) {
+            screeningForm.addEventListener('submit', function (e) {
+                clearWizardError();
+                
+                const selectedMethodNode = document.querySelector('input[name=\"payment_method\"]:checked');
+                if (!selectedMethodNode) return;
+
+                // 1. HARD VALIDATION FOR BANK TRANSFERS (STEP 3)
+                if (selectedMethodNode.value === 'manual_eft') {
+                    const popFile = document.getElementById('pop-upload').files;
+                    if (!popFile || !popFile.length) {
+                        e.preventDefault(); // Stop page submission
+                        
+                        showWizardError("Deployment Denied: Manual bank settlement selected. Please attach your transaction proof-of-payment (PoP) file node.");
+                        
+                        const popDropzone = document.querySelector('#dash-panel-manual-eft .csv-upload-dropzone');
+                        if (popDropzone) {
+                            popDropzone.style.borderColor = '#ff4a4a';
+                            popDropzone.style.background = 'rgba(255, 74, 74, 0.03)';
+                        }
+                        return;
+                    }
+                }
+
+                // 2. COUNTERCHECK REGISTRY QUANTITY MATCH BEFORE BACKEND ROUTING
+                const csvFile = document.getElementById('csv-upload').files;
+                const countInput = document.getElementById('candidate-count');
+                
+                if (csvFile.length && countInput) {
+                    const declaredCount = parseInt(countInput.value) || 0;
+                    const labelText = document.getElementById('csv-label').innerText;
+                    const matches = labelText.match(/(\d+)\s+candidates\s+detected/i);
+                    
+                    if (matches && matches[1]) {
+                        const actualDetectedCount = parseInt(matches[1]);
+                        
+                        if (actualDetectedCount !== declaredCount) {
+                            e.preventDefault(); // Stop execution path instantly
+                            goToStep(1); // Auto drop-back to Step 1
+                            showWizardError(`Registry Validation Mismatch: You declared a metric of ${declaredCount} candidate(s), but the uploaded registry contains ${actualDetectedCount} rows.`);
+                        }
+                    }
+                }
+            });
+        }
+
         const backdropOverlay = document.getElementById('screening-modal');
         if (backdropOverlay) {
             backdropOverlay.addEventListener('click', function (e) {
@@ -876,5 +954,53 @@
             });
         }
     });
+
+    function showWizardError(message) {
+        let errorBanner = document.getElementById('wizard-error-banner');
+        if (!errorBanner) {
+            errorBanner = document.createElement('div');
+            errorBanner.id = 'wizard-error-banner';
+            errorBanner.style.cssText = `
+                background: rgba(235, 64, 52, 0.15);
+                border: 1px solid #eb4034;
+                color: #ff5246;
+                padding: 0.85rem 1.25rem;
+                border-radius: 6px;
+                font-size: 0.88rem;
+                margin-top: 1rem;
+                margin-bottom: 1rem;
+                display: flex;
+                align-items: center;
+                gap: 0.75rem;
+                font-weight: 500;
+                animation: fadeIn 0.2s ease-in-out;
+                width: 100%;
+                box-sizing: border-box;
+            `;
+            
+            // Insert right underneath the step title heading
+            const stepTitle = document.getElementById('wizard-step-title');
+            if (stepTitle) {
+                stepTitle.parentNode.insertBefore(errorBanner, stepTitle.nextSibling);
+            }
+        }
+        errorBanner.innerHTML = `<i class="fa-solid fa-triangle-exclamation" style="color: #ff5246;"></i> <span>${message}</span>`;
+        errorBanner.style.display = 'flex';
+        
+        // Scroll the modal down slightly if needed to make sure they see it
+        errorBanner.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    function clearWizardError() {
+        const errorBanner = document.getElementById('wizard-error-banner');
+        if (errorBanner) {
+            errorBanner.style.display = 'none';
+        }
+        const popDropzone = document.querySelector('#dash-panel-manual-eft .csv-upload-dropzone');
+        if (popDropzone) {
+            popDropzone.style.borderColor = '';
+            popDropzone.style.background = '';
+        }
+    }
 </script>
 {% endblock %}

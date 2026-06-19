@@ -493,7 +493,6 @@ def initiate_screening():
 
     # Valuation Pricing Framework Models Matrix Tiers
     cost_per_candidate = calculate_individual_cost(screening_type)
-    total_due_amount = cost_per_candidate * candidate_count
 
     # 1. Store Candidate Registry File (Step 1)
     csv_path = None
@@ -529,6 +528,11 @@ def initiate_screening():
             flash('No functional candidates verified inside data stream registry.', 'error')
             return redirect(url_for('dashboard_corporate'))
 
+        # FIX FOR ISSUE 3: ENFORCE RIGID COUNT MATCH
+        if len(staged_rows) != candidate_count:
+            flash(f"Registry Validation Mismatch: You declared a target metric of {candidate_count} candidate(s), but your uploaded CSV file contains {len(staged_rows)} rows. Please ensure they match exactly.", 'error')
+            return redirect(url_for('dashboard_corporate'))
+
     except Exception as e:
         flash(f'Bulk metrics processing exception generated: {str(e)}', 'error')
         return redirect(url_for('dashboard_corporate'))
@@ -547,9 +551,20 @@ def initiate_screening():
             pop_saved_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
             pop_file.save(pop_saved_path)
 
-        # Write all parsed candidates directly into SQL tables
+        duplicates_skipped = 0
         with get_db_connection() as conn:
             for c_name, c_email in staged_rows:
+                # FIX FOR ISSUE 2: IDENTIFY AND SKIP REPEAT ENTRIES
+                existing = conn.execute('''
+                    SELECT 1 FROM screenings 
+                    WHERE user_id = ? AND candidate_email = ? AND screening_type = ?
+                    LIMIT 1
+                ''', (session['user_id'], c_email, screening_type)).fetchone()
+                
+                if existing:
+                    duplicates_skipped += 1
+                    continue
+
                 conn.execute('''
                     INSERT INTO screenings (
                         user_id, candidate_name, candidate_email, screening_type, status, payment_method, payment_status, payment_ref, pop_file_path
@@ -557,13 +572,31 @@ def initiate_screening():
                 ''', (session['user_id'], c_name, c_email, screening_type, 'Awaiting Review', 'manual_eft', 'Pending Review', payment_ref, pop_saved_path))
             conn.commit()
 
-        flash(f'Successfully staged {len(staged_rows)} pipeline items under Reference {payment_ref}. Automated launch requires administrator validation.', 'success')
+        if duplicates_skipped == len(staged_rows):
+            flash("Batch processing skipped: All candidates in this file are already registered for this screening type.", "warning")
+        elif duplicates_skipped > 0:
+            flash(f"Staged pipeline records under Reference {payment_ref}. Loaded {len(staged_rows) - duplicates_skipped} new entries ({duplicates_skipped} duplicates automatically skipped).", "success")
+        else:
+            flash(f'Successfully staged {len(staged_rows)} pipeline items under Reference {payment_ref}. Automated launch requires administrator validation.', 'success')
+            
         return redirect(url_for('dashboard_corporate'))
 
     # WORKFLOW CASE B: PayFast Automated Checkout Linkages (Credit Card / Instant EFT)
     else:
+        duplicates_skipped = 0
         with get_db_connection() as conn:
             for c_name, c_email in staged_rows:
+                # FIX FOR ISSUE 2: IDENTIFY AND SKIP REPEAT ENTRIES
+                existing = conn.execute('''
+                    SELECT 1 FROM screenings 
+                    WHERE user_id = ? AND candidate_email = ? AND screening_type = ?
+                    LIMIT 1
+                ''', (session['user_id'], c_email, screening_type)).fetchone()
+                
+                if existing:
+                    duplicates_skipped += 1
+                    continue
+
                 conn.execute('''
                     INSERT INTO screenings (
                         user_id, candidate_name, candidate_email, screening_type, status, payment_method, payment_status, payment_ref
@@ -571,12 +604,16 @@ def initiate_screening():
                 ''', (session['user_id'], c_name, c_email, screening_type, 'Awaiting Payment', payment_method, 'Pending Checkout', payment_ref))
             conn.commit()
 
-        # Transit structural pipeline directly into dynamic secure gateway link generator
-        return redirect(url_for('payfast_checkout', record_id="BATCH", custom_ref=payment_ref, custom_amt=total_due_amount))
+        if duplicates_skipped == len(staged_rows):
+            flash("Batch processing skipped: All candidates in this file are already registered for this screening type.", "warning")
+            return redirect(url_for('dashboard_corporate'))
+            
+        # Re-evaluate payment amount for non-duplicate entities only
+        active_count = len(staged_rows) - duplicates_skipped
+        updated_bill_amount = cost_per_candidate * active_count
 
-
-# --- CANDIDATE PORTAL DOCUMENT UPLOAD SYSTEM ---
-
+        # Transit directly into dynamic gateway link generator
+        return redirect(url_for('payfast_checkout', record_id="BATCH", custom_ref=payment_ref, custom_amt=updated_bill_amount))
 @app.route('/collect/upload-credentials/<int:candidate_id>', methods=['GET', 'POST'])
 def candidate_upload_portal(candidate_id):
     if request.method == 'POST':
@@ -739,8 +776,11 @@ def payfast_checkout():
     payfast_data = {
         'merchant_id': app.config['PAYFAST_MERCHANT_ID'],
         'merchant_key': app.config['PAYFAST_MERCHANT_KEY'],
-        'return_url': f"{app.config['BASE_URL']}/payment-success?ref={custom_ref}",
-        'cancel_url': f"{app.config['BASE_URL']}/payment-cancelled",
+        'return_url': f"{app.config['BASE_URL']}/payment-success?ref={custom_ref}&record_id={record_id}",
+        # =========================================================
+        # FIX FOR ISSUE 1: PASS THE REF TOKEN TO THE CANCEL LINK
+        # =========================================================
+        'cancel_url': f"{app.config['BASE_URL']}/payment-cancelled?ref={custom_ref}&record_id={record_id}",
         'notify_url': f"{app.config['BASE_URL']}/payfast-webhook",
         'name_first': session.get('display_name', 'Verified Applicant'),
         'email_address': session.get('user_email', 'noreply@verifyme.co.za'),
@@ -749,7 +789,7 @@ def payfast_checkout():
         'item_name': f"VerifyMe Audit Ref {custom_ref}"
     }
 
-    # Generate cryptographic security signature string
+    # ... [Keep signature generation and form returning layout completely identical] ...
     payload_string = ""
     for key, val in payfast_data.items():
         if val:
@@ -762,7 +802,6 @@ def payfast_checkout():
     security_signature = hashlib.md5(payload_string.encode('utf-8')).hexdigest()
     payfast_data['signature'] = security_signature
 
-    # Generate a secure auto-submitting form page to redirect the user to the sandbox gateway smoothly
     form_inputs = "".join([f'<input type="hidden" name="{k}" value="{v}">' for k, v in payfast_data.items()])
     
     html_redirect_payload = f"""
@@ -808,12 +847,42 @@ def payment_success():
 
 @app.route('/payment-cancelled')
 def payment_cancelled():
-    flash("Transaction cancelled by applicant. Gateway connection dropped.", "warning")
+    custom_ref = request.args.get('ref', '')
+    record_id = request.args.get('record_id', '')
+
+    with get_db_connection() as conn:
+        # 1. INDIVIDUAL WORKFLOW CLEANUP: Targets individual_audits table
+        if record_id and record_id != 'BATCH':
+            try:
+                conn.execute("""
+                    DELETE FROM individual_audits 
+                    WHERE id = ? 
+                      AND (payment_status = 'Pending' OR status = 'Awaiting Payment')
+                      AND payment_status != 'Pending Review'
+                """, (record_id,))
+                conn.commit()
+            except Exception as e:
+                print(f"SecOps Node Error: Failed to purge cancelled individual audit ID {record_id}: {e}")
+
+        # 2. CORPORATE BATCH WORKFLOW CLEANUP: Targets screenings table
+        elif custom_ref:
+            try:
+                conn.execute("""
+                    DELETE FROM screenings 
+                    WHERE payment_ref = ? 
+                      AND (payment_status = 'Pending Checkout' OR status = 'Awaiting Payment')
+                      AND payment_status != 'Pending Review'
+                """, (custom_ref,))
+                conn.commit()
+            except Exception as e:
+                print(f"SecOps Node Error: Failed to purge cancelled corporate reference {custom_ref}: {e}")
+
+    flash("Transaction cancelled by applicant or session dropped. Safe-state states preserved.", "warning")
+    
     if session.get('applicant_type') == 'company':
         return redirect(url_for('dashboard_corporate'))
     return redirect(url_for('dashboard_individual'))
-
-
+    
 @app.route('/payfast-webhook', methods=['POST'])
 def payfast_webhook():
     # Asynchronous background instant payment notification loop tracking
