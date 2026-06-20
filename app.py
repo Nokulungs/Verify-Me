@@ -851,38 +851,54 @@ def payment_cancelled():
     record_id = request.args.get('record_id', '')
 
     with get_db_connection() as conn:
-        # 1. INDIVIDUAL WORKFLOW CLEANUP: Targets individual_audits table
+        # 1. TARGETED ID CLEANUP (Explicit Single Record Row Deletions)
         if record_id and record_id != 'BATCH':
             try:
+                # Force cast string parameters to integers to prevent SQLite typing drops
+                target_id = int(record_id)
                 conn.execute("""
                     DELETE FROM individual_audits 
                     WHERE id = ? 
                       AND (payment_status = 'Pending' OR status = 'Awaiting Payment')
                       AND payment_status != 'Pending Review'
-                """, (record_id,))
+                """, (target_id,))
                 conn.commit()
+                print(f"SecOps Node: Cleaned up canceled individual audit ID {target_id}")
+            except ValueError:
+                print(f"SecOps Warning: Could not cast record_id '{record_id}' to integer.")
             except Exception as e:
-                print(f"SecOps Node Error: Failed to purge cancelled individual audit ID {record_id}: {e}")
+                print(f"SecOps Node Error: Failed to purge canceled individual audit ID {record_id}: {e}")
 
-        # 2. CORPORATE BATCH WORKFLOW CLEANUP: Targets screenings table
-        elif custom_ref:
+        # 2. FALLBACK REFERENCE CLEANUP (Runs if record_id is missing or set to 'BATCH')
+        if custom_ref:
             try:
+                # Clear from screenings (Corporate pipeline context)
                 conn.execute("""
                     DELETE FROM screenings 
                     WHERE payment_ref = ? 
                       AND (payment_status = 'Pending Checkout' OR status = 'Awaiting Payment')
                       AND payment_status != 'Pending Review'
                 """, (custom_ref,))
+                
+                # ALSO clear from individual_audits if the reference belongs to an individual check
+                conn.execute("""
+                    DELETE FROM individual_audits 
+                    WHERE payment_ref = ? 
+                      AND (payment_status = 'Pending' OR status = 'Awaiting Payment')
+                      AND payment_status != 'Pending Review'
+                """, (custom_ref,))
+                
                 conn.commit()
+                print(f"SecOps Node: Executed fallback reference clearance for tracking token {custom_ref}")
             except Exception as e:
-                print(f"SecOps Node Error: Failed to purge cancelled corporate reference {custom_ref}: {e}")
+                print(f"SecOps Node Error: Fallback tracking token clearance exception: {e}")
 
-    flash("Transaction cancelled by applicant or session dropped. Safe-state states preserved.", "warning")
+    flash("Transaction canceled by applicant. Gateway connection dropped and unverified entries cleared.", "warning")
     
     if session.get('applicant_type') == 'company':
         return redirect(url_for('dashboard_corporate'))
     return redirect(url_for('dashboard_individual'))
-    
+     
 @app.route('/payfast-webhook', methods=['POST'])
 def payfast_webhook():
     # Asynchronous background instant payment notification loop tracking
