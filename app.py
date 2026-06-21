@@ -912,7 +912,7 @@ def payment_cancelled():
                 cursor.execute("""
                     DELETE FROM screenings 
                     WHERE payment_ref = %s 
-                      AND (payment_status IN ('Pending Checkout', 'Pending', 'Pending Review') 
+                      AND (payment_status IN ('Pending Checkout', 'Pending', 'Cancelled', 'Pending Review') 
                            OR status IN ('Awaiting Payment', 'Awaiting Review'))
                 """, (custom_ref,))
                 
