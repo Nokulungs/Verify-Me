@@ -949,7 +949,7 @@ def payment_cancelled():
     flash("Transaction canceled by applicant. Gateway connection dropped and duplicate entries cleared.", "error")
     
     if session.get('applicant_type') == 'company':
-        return redirect(url_for('dashboard/corporate'))
+        return redirect(url_for('dashboard_corporate'))
     return redirect(url_for('dashboard_individual'))
     
 @app.route('/payfast-webhook', methods=['POST'])
