@@ -123,6 +123,7 @@
                     <div class="card-value shared-count-value">{{ candidates|length if candidates else 0 }}</div>
                     <span class="card-trend upward"><i class="fa-solid fa-rotate"></i> Live SQL Database Synced</span>
                 </div>
+
                 <div class="analytics-card">
                     <span class="card-label"><i class="fa-solid fa-circle-check text-cyan"></i> Verification
                         Cleared</span>
@@ -131,13 +132,32 @@
                     </div>
                     <span class="card-subtext">Ready for HR processing</span>
                 </div>
+
                 <div class="analytics-card">
-                    <span class="card-label"><i class="fa-solid fa-triangle-exclamation text-burgundy"></i> Attention
-                        Required</span>
+                    <span class="card-label"><i class="fa-solid fa-shield-halved text-burgundy"></i> Profile
+                        Discrepancies</span>
                     <div class="card-value burgundy-text">
                         {{ candidates|selectattr('status', 'equalto', 'Flagged')|list|length if candidates else 0 }}
                     </div>
                     <span class="card-subtext">Discrepancy review advised</span>
+                </div>
+
+                <div class="analytics-card">
+                    <span class="card-label"><i class="fa-solid fa-triangle-exclamation text-amber"></i> Attention
+                        Required</span>
+                    <div class="card-value amber-text">
+                        {{ attention_required_count if attention_required_count else 0 }}
+                    </div>
+                    <span class="card-subtext">Candidates awaiting document upload</span>
+                </div>
+
+                <div class="analytics-card">
+                    <span class="card-label"><i class="fa-solid fa-receipt text-burgundy"></i> Awaiting
+                        Settlement</span>
+                    <div class="card-value burgundy-text">
+                        {{ unpaid_count if unpaid_count else 0 }}
+                    </div>
+                    <span class="card-subtext">Unpaid temporary batch items</span>
                 </div>
             </section>
 
@@ -271,9 +291,31 @@
                         <tr>
                             <td class="mono-text">VFY-TX-{{ 4000 + candidate.id|int }}</td>
                             <td>{{ candidate.type }}</td>
-                            <td>1 Batch Node</td>
-                            <td><span class="status-badge badge-cleared"><i class="fa-solid fa-circle-check"></i>
-                                    Account Settled</span></td>
+                            <td class="mono-text">{{ candidate.payment_ref if candidate.payment_ref else 'N/A' }}</td>
+                            <td>
+                                {% if candidate.payment_status in ['Completed', 'Paid'] %}
+                                <span class="status-badge badge-cleared">
+                                    <i class="fa-solid fa-circle-check"></i> Account Settled
+                                </span>
+                                {% elif candidate.payment_status in ['Pending Checkout', 'Pending', 'Cancelled'] or
+                                candidate.status == 'Awaiting Payment' %}
+                                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                    <span class="status-badge badge-flagged"
+                                        style="color:#ff4a4a; background: rgba(255,74,74,0.05); border-color: rgba(255,74,74,0.2); font-weight: 500;">
+                                        <i class="fa-solid fa-hourglass-half"></i> Unpaid
+                                    </span>
+                                    <a href="{{ url_for('payfast_checkout', record_id='BATCH', custom_ref=candidate.payment_ref, custom_amt='450.00') }}"
+                                        class="btn-action-cyan"
+                                        style="padding: 0.25rem 0.6rem; font-size: 0.75rem; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px; text-decoration: none;">
+                                        <i class="fa-solid fa-credit-card"></i> Pay Now
+                                    </a>
+                                </div>
+                                {% else %}
+                                <span class="status-badge badge-processing">
+                                    <i class="fa-solid fa-spinner fa-spin"></i> {{ candidate.payment_status }}
+                                </span>
+                                {% endif %}
+                            </td>
                         </tr>
                         {% endfor %}
                         {% else %}
@@ -552,42 +594,55 @@
                     <div id="wizard-progress" class="wizard-progress-fill" style="width: 33.3%;"></div>
                 </div>
 
-                <form id="multi-step-screening-form" method="POST" action="{{ url_for('initiate_screening') }}" enctype="multipart/form-data">
+                <form id="multi-step-screening-form" method="POST" action="{{ url_for('initiate_screening') }}"
+                    enctype="multipart/form-data">
                     <input type="hidden" name="payment_ref" id="hidden-payment-ref-input">
 
                     <div id="wizard-step-1" class="wizard-step-block">
                         <div class="form-group">
                             <label for="vector-select">Select Screening Vector Type</label>
-                            <select id="vector-select" name="screening_type" class="form-control" onchange="calculateCost()" style="background:#1f2521; color:#fff;">
-                                <option value="Identity Verification &amp; Validation" data-price="45">Identity Verification &amp; Validation — R45.00 / candidate</option>
-                                <option value="Criminal Record &amp; Background Check" data-price="180">Criminal Record &amp; Background Check — R180.00 / candidate</option>
-                                <option value="Credit &amp; Financial Check" data-price="75">Credit &amp; Financial Check — R75.00 / candidate</option>
-                                <option value="Professional License Verification" data-price="95">Professional License Verification — R95.00 / candidate</option>
-                                <option value="Driver's License Status" data-price="60">Driver's License Status Check — R60.00 / candidate</option>
+                            <select id="vector-select" name="screening_type" class="form-control"
+                                onchange="calculateCost()" style="background:#1f2521; color:#fff;">
+                                <option value="Identity Verification &amp; Validation" data-price="45">Identity
+                                    Verification &amp; Validation — R45.00 / candidate</option>
+                                <option value="Criminal Record &amp; Background Check" data-price="180">Criminal Record
+                                    &amp; Background Check — R180.00 / candidate</option>
+                                <option value="Credit &amp; Financial Check" data-price="75">Credit &amp; Financial
+                                    Check — R75.00 / candidate</option>
+                                <option value="Professional License Verification" data-price="95">Professional License
+                                    Verification — R95.00 / candidate</option>
+                                <option value="Driver's License Status" data-price="60">Driver's License Status Check —
+                                    R60.00 / candidate</option>
                             </select>
                         </div>
 
                         <div class="form-group">
                             <label for="candidate-count">Number of Target Candidates in Batch</label>
-                            <input type="number" id="candidate-count" name="candidate_count" class="form-control" value="1" min="1" max="100" oninput="calculateCost()" required>
+                            <input type="number" id="candidate-count" name="candidate_count" class="form-control"
+                                value="1" min="1" max="100" oninput="calculateCost()" required>
                         </div>
 
                         <div class="form-group">
                             <label for="csv-upload">Upload Candidate Registry (CSV Format: Name, Email)</label>
                             <div class="csv-upload-dropzone">
-                                <input type="file" id="csv-upload" name="candidate_csv" accept=".csv" onchange="updateCSVLabel(this)">
+                                <input type="file" id="csv-upload" name="candidate_csv" accept=".csv"
+                                    onchange="updateCSVLabel(this)">
                                 <span id="csv-label">
-                                    <i class="fa-solid fa-file-csv style-icon" style="font-size: 1.5rem; display:block; margin-bottom:0.5rem;"></i>
+                                    <i class="fa-solid fa-file-csv style-icon"
+                                        style="font-size: 1.5rem; display:block; margin-bottom:0.5rem;"></i>
                                     Drag & Drop or click to upload candidates.csv
                                 </span>
                             </div>
                         </div>
 
                         <div id="fingerprint-notice" class="alert-notice-box" style="display: none;">
-                            <strong><i class="fa-solid fa-triangle-exclamation"></i> Biometric Notice:</strong> Criminal record checks require fingerprint verification. Candidates will be prompted to complete their verification loops at a local branch.
+                            <strong><i class="fa-solid fa-triangle-exclamation"></i> Biometric Notice:</strong> Criminal
+                            record checks require fingerprint verification. Candidates will be prompted to complete
+                            their verification loops at a local branch.
                         </div>
 
-                        <div class="wizard-footer-actions" style="display: flex; justify-content: space-between; margin-top: 20px;">
+                        <div class="wizard-footer-actions"
+                            style="display: flex; justify-content: space-between; margin-top: 20px;">
                             <div></div>
                             <button type="button" class="btn-action-cyan" onclick="goToStep(2)">
                                 Proceed to Billing <i class="fa-solid fa-arrow-right"></i>
@@ -600,7 +655,8 @@
                             <h4>Cost Evaluation Summary</h4>
                             <div class="billing-row">
                                 <span>Calculated Line Items:</span>
-                                <span id="summary-text">1 candidate(s) &times; Identity Verification &amp; Validation</span>
+                                <span id="summary-text">1 candidate(s) &times; Identity Verification &amp;
+                                    Validation</span>
                             </div>
                             <div class="billing-row total-row">
                                 <span>Total Due (ZAR):</span>
@@ -609,79 +665,110 @@
                         </div>
 
                         <div class="form-group" style="margin-top: 1.5rem; margin-bottom: 1.5rem;">
-                            <label style="font-size: 0.85rem; font-family: var(--font-mono); color: var(--brand-muted); text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 0.75rem;">
+                            <label
+                                style="font-size: 0.85rem; font-family: var(--font-mono); color: var(--brand-muted); text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 0.75rem;">
                                 Settlement Preference Matrix
                             </label>
 
                             <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-                                <label style="display: flex; align-items: center; gap: 1rem; background: var(--bg-card-dark); border: 1px solid var(--border); padding: 1.25rem; border-radius: var(--radius-md); cursor: pointer;">
-                                    <input type="radio" name="payment_method" value="card" id="corp_pay_card" checked onchange="toggleDashboardPaymentPanels('gateway')" style="accent-color: var(--brand-lime); width: 16px; height: 16px; margin: 0;">
+                                <label
+                                    style="display: flex; align-items: center; gap: 1rem; background: var(--bg-card-dark); border: 1px solid var(--border); padding: 1.25rem; border-radius: var(--radius-md); cursor: pointer;">
+                                    <input type="radio" name="payment_method" value="card" id="corp_pay_card" checked
+                                        onchange="toggleDashboardPaymentPanels('gateway')"
+                                        style="accent-color: var(--brand-lime); width: 16px; height: 16px; margin: 0;">
                                     <div style="display: flex; align-items: center; gap: 0.75rem; width: 100%;">
-                                        <i class="fa-solid fa-credit-card" style="color: var(--brand-white); font-size: 1.1rem; width: 20px; text-align: center;"></i>
+                                        <i class="fa-solid fa-credit-card"
+                                            style="color: var(--brand-white); font-size: 1.1rem; width: 20px; text-align: center;"></i>
                                         <div>
-                                            <div style="font-weight: 700; color: var(--brand-white); font-size: 0.95rem;">Instant Checkout</div>
-                                            <div style="font-size: 0.8rem; color: var(--brand-muted); margin-top: 0.25rem;">Pay securely via Credit Card / Instant EFT</div>
+                                            <div
+                                                style="font-weight: 700; color: var(--brand-white); font-size: 0.95rem;">
+                                                Instant Checkout</div>
+                                            <div
+                                                style="font-size: 0.8rem; color: var(--brand-muted); margin-top: 0.25rem;">
+                                                Pay securely via Credit Card / Instant EFT</div>
                                         </div>
                                     </div>
                                 </label>
 
-                                <label style="display: flex; align-items: center; gap: 1rem; background: var(--bg-card-dark); border: 1px solid var(--border); padding: 1.25rem; border-radius: var(--radius-md); cursor: pointer;">
-                                    <input type="radio" name="payment_method" value="manual_eft" id="corp_pay_meft" onchange="toggleDashboardPaymentPanels('manual')" style="accent-color: var(--brand-lime); width: 16px; height: 16px; margin: 0;">
+                                <label
+                                    style="display: flex; align-items: center; gap: 1rem; background: var(--bg-card-dark); border: 1px solid var(--border); padding: 1.25rem; border-radius: var(--radius-md); cursor: pointer;">
+                                    <input type="radio" name="payment_method" value="manual_eft" id="corp_pay_meft"
+                                        onchange="toggleDashboardPaymentPanels('manual')"
+                                        style="accent-color: var(--brand-lime); width: 16px; height: 16px; margin: 0;">
                                     <div style="display: flex; align-items: center; gap: 0.75rem; width: 100%;">
-                                        <i class="fa-solid fa-building-columns" style="color: var(--brand-white); font-size: 1.1rem; width: 20px; text-align: center;"></i>
+                                        <i class="fa-solid fa-building-columns"
+                                            style="color: var(--brand-white); font-size: 1.1rem; width: 20px; text-align: center;"></i>
                                         <div>
-                                            <div style="font-weight: 700; color: var(--brand-white); font-size: 0.95rem;">Bank Transfer</div>
-                                            <div style="font-size: 0.8rem; color: var(--brand-muted); margin-top: 0.25rem;">Manual Electronic Funds Transfer (Requires PoP)</div>
+                                            <div
+                                                style="font-weight: 700; color: var(--brand-white); font-size: 0.95rem;">
+                                                Bank Transfer</div>
+                                            <div
+                                                style="font-size: 0.8rem; color: var(--brand-muted); margin-top: 0.25rem;">
+                                                Manual Electronic Funds Transfer (Requires PoP)</div>
                                         </div>
                                     </div>
                                 </label>
                             </div>
                         </div>
 
-                        <div class="wizard-footer-actions" style="display: flex; justify-content: space-between; margin-top: 20px;">
+                        <div class="wizard-footer-actions"
+                            style="display: flex; justify-content: space-between; margin-top: 20px;">
                             <button type="button" class="btn-table-row" onclick="goToStep(1)">
                                 <i class="fa-solid fa-arrow-left"></i> Back
                             </button>
-                            <button type="button" class="btn-action-cyan" id="billing-continue-btn" onclick="handleBillingTransition()">
+                            <button type="button" class="btn-action-cyan" id="billing-continue-btn"
+                                onclick="handleBillingTransition()">
                                 Proceed to Checkout <i class="fa-solid fa-arrow-right"></i>
                             </button>
                         </div>
                     </div>
 
                     <div id="wizard-step-3" class="wizard-step-block" style="display: none;">
-                        <div id="dash-panel-gateway-notice" class="alert-notice-box" style="display: block; background: rgba(0, 242, 254, 0.05); border-color: #00f2fe; margin-bottom: 1.5rem;">
-                            <strong><i class="fa-solid fa-shield-halved"></i> Payment Gateway Routing:</strong> Your selection processes instantly. Press deployment below to route through secure authorization networks.
+                        <div id="dash-panel-gateway-notice" class="alert-notice-box"
+                            style="display: block; background: rgba(0, 242, 254, 0.05); border-color: #00f2fe; margin-bottom: 1.5rem;">
+                            <strong><i class="fa-solid fa-shield-halved"></i> Payment Gateway Routing:</strong> Your
+                            selection processes instantly. Press deployment below to route through secure authorization
+                            networks.
                         </div>
 
                         <div id="dash-panel-manual-eft" style="display: none;">
-                            <div class="banking-details-box" style="margin-bottom: 1.5rem; background: rgba(255,255,255,0.02); padding: 15px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
-                                <h5 style="margin-top:0; color:#00f2fe;"><i class="fa-solid fa-building-columns text-cyan"></i> Electronic Funds Transfer (EFT) Target</h5>
-                                <ul style="font-size:13px; list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:4px;">
+                            <div class="banking-details-box"
+                                style="margin-bottom: 1.5rem; background: rgba(255,255,255,0.02); padding: 15px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
+                                <h5 style="margin-top:0; color:#00f2fe;"><i
+                                        class="fa-solid fa-building-columns text-cyan"></i> Electronic Funds Transfer
+                                    (EFT) Target</h5>
+                                <ul
+                                    style="font-size:13px; list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:4px;">
                                     <li><strong>Bank Brand:</strong> FNB Corporate Banking SA</li>
                                     <li><strong>Account Name:</strong> VerifyMe Solutions</li>
                                     <li><strong>Account Number:</strong> 62910488219</li>
                                     <li><strong>Branch Code:</strong> 250655</li>
-                                    <li><strong>Payment Reference:</strong> <span class="mono-text text-cyan" id="payment-ref">VFY-TX-6009</span></li>
+                                    <li><strong>Payment Reference:</strong> <span class="mono-text text-cyan"
+                                            id="payment-ref">VFY-TX-6009</span></li>
                                 </ul>
                             </div>
 
                             <div class="form-group">
                                 <label>Upload Bank Transfer Confirmation (PDF / Image)</label>
                                 <div class="csv-upload-dropzone" style="border-style: solid; border-color: #4eb637;">
-                                    <input type="file" id="pop-upload" name="pop_receipt" accept=".pdf,image/*" onchange="updatePOPLabel(this)">
+                                    <input type="file" id="pop-upload" name="pop_receipt" accept=".pdf,image/*"
+                                        onchange="updatePOPLabel(this)">
                                     <span id="pop-label">
-                                        <i class="fa-solid fa-receipt style-icon" style="font-size: 1.5rem; display:block; margin-bottom:0.5rem;"></i>
+                                        <i class="fa-solid fa-receipt style-icon"
+                                            style="font-size: 1.5rem; display:block; margin-bottom:0.5rem;"></i>
                                         Attach Electronic Proof of Payment (PoP)
                                     </span>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="wizard-footer-actions" style="display: flex; justify-content: space-between; margin-top: 20px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.05);">
+                        <div class="wizard-footer-actions"
+                            style="display: flex; justify-content: space-between; margin-top: 20px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.05);">
                             <button type="button" class="btn-table-row" onclick="goToStep(2)">
                                 <i class="fa-solid fa-arrow-left"></i> Back
                             </button>
-                            <button type="submit" id="final-deploy-btn" class="btn-portal-primary" style="margin: 0; width: auto; padding: 0.75rem 1.5rem;">
+                            <button type="submit" id="final-deploy-btn" class="btn-portal-primary"
+                                style="margin: 0; width: auto; padding: 0.75rem 1.5rem;">
                                 <i class="fa-solid fa-rocket"></i> Deploy Core Request
                             </button>
                         </div>
@@ -786,11 +873,11 @@
         if (input.files && input.files.length > 0) {
             const file = input.files[0];
             const reader = new FileReader();
-            
-            reader.onload = function(e) {
+
+            reader.onload = function (e) {
                 const text = e.target.result;
                 const rows = text.split(/\r?\n/).filter(line => line.trim() !== "");
-                
+
                 let candidateCount = rows.length;
                 if (rows.length > 0 && (rows[0].toLowerCase().includes('name') || rows[0].toLowerCase().includes('email'))) {
                     candidateCount = rows.length - 1;
@@ -877,7 +964,7 @@
         if (stepNumber === 2 && currentStep === 1) {
             const csvFile = document.getElementById('csv-upload').files;
             const countValue = document.getElementById('candidate-count').value;
-            
+
             if (!csvFile.length || !countValue || countValue < 1) {
                 showWizardError("Please declare your target candidate count metrics and upload the candidate registry .csv file to proceed.");
                 return;
@@ -904,7 +991,7 @@
         if (screeningForm) {
             screeningForm.addEventListener('submit', function (e) {
                 clearWizardError();
-                
+
                 const selectedMethodNode = document.querySelector('input[name=\"payment_method\"]:checked');
                 if (!selectedMethodNode) return;
 
@@ -913,9 +1000,9 @@
                     const popFile = document.getElementById('pop-upload').files;
                     if (!popFile || !popFile.length) {
                         e.preventDefault(); // Stop page submission
-                        
+
                         showWizardError("Deployment Denied: Manual bank settlement selected. Please attach your transaction proof-of-payment (PoP) file node.");
-                        
+
                         const popDropzone = document.querySelector('#dash-panel-manual-eft .csv-upload-dropzone');
                         if (popDropzone) {
                             popDropzone.style.borderColor = '#ff4a4a';
@@ -928,15 +1015,15 @@
                 // 2. COUNTERCHECK REGISTRY QUANTITY MATCH BEFORE BACKEND ROUTING
                 const csvFile = document.getElementById('csv-upload').files;
                 const countInput = document.getElementById('candidate-count');
-                
+
                 if (csvFile.length && countInput) {
                     const declaredCount = parseInt(countInput.value) || 0;
                     const labelText = document.getElementById('csv-label').innerText;
                     const matches = labelText.match(/(\d+)\s+candidates\s+detected/i);
-                    
+
                     if (matches && matches[1]) {
                         const actualDetectedCount = parseInt(matches[1]);
-                        
+
                         if (actualDetectedCount !== declaredCount) {
                             e.preventDefault(); // Stop execution path instantly
                             goToStep(1); // Auto drop-back to Step 1
@@ -977,7 +1064,7 @@
                 width: 100%;
                 box-sizing: border-box;
             `;
-            
+
             // Insert right underneath the step title heading
             const stepTitle = document.getElementById('wizard-step-title');
             if (stepTitle) {
@@ -986,7 +1073,7 @@
         }
         errorBanner.innerHTML = `<i class="fa-solid fa-triangle-exclamation" style="color: #ff5246;"></i> <span>${message}</span>`;
         errorBanner.style.display = 'flex';
-        
+
         // Scroll the modal down slightly if needed to make sure they see it
         errorBanner.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }

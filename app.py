@@ -453,21 +453,52 @@ def purge_user(user_id):
 
 # --- SECURED CORPORATE WORKSPACE & DATA PROCESSING ---
 @app.route('/dashboard/corporate')
+@app.route('/dashboard-corporate')
 def dashboard_corporate():
     if 'user_id' not in session or session.get('applicant_type') != 'company':
         flash('Access denied. Corporate clearance required.', 'error')
         return redirect(url_for('login'))
 
+    user_id = session['user_id']
+
     with get_db_connection() as conn:
         cursor = conn.cursor(cursor_factory=RealDictCursor)
+        
+        # 1. Fetch candidate screening records
         cursor.execute('''
-            SELECT id, candidate_name AS name, candidate_email AS email, screening_type AS type, status, payment_status, DATE(created_at) AS date 
-            FROM screenings WHERE user_id = %s ORDER BY created_at DESC
-        ''', (session['user_id'],))
+            SELECT id, candidate_name AS name, candidate_email AS email, 
+                   screening_type AS type, status, payment_status, payment_ref,
+                   DATE(created_at) AS date 
+            FROM screenings 
+            WHERE user_id = %s 
+            ORDER BY created_at DESC
+        ''', (user_id,))
         candidates = cursor.fetchall()
+        
+        # 2. Count candidates who need to upload documents (Status: Awaiting Document Upload)
+        cursor.execute('''
+            SELECT COUNT(*) FROM screenings 
+            WHERE user_id = %s AND status = 'Awaiting Document Upload'
+        ''', (user_id,))
+        attention_required_count = cursor.fetchone()['count']
+        
+        # 3. Count entries awaiting gateway settlement (Unpaid/Cancelled Checkout tracking)
+        cursor.execute('''
+            SELECT COUNT(*) FROM screenings 
+            WHERE user_id = %s AND (payment_status IN ('Pending Checkout', 'Pending', 'Cancelled') OR status = 'Awaiting Payment')
+        ''', (user_id,))
+        unpaid_count = cursor.fetchone()['count']
+        
         cursor.close()
 
-    return render_template('dashboard_corporate.html', candidates=candidates, hide_navbar=True, hide_footer=True)
+    return render_template(
+        'dashboard_corporate.html', 
+        candidates=candidates, 
+        attention_required_count=attention_required_count,
+        unpaid_count=unpaid_count,
+        hide_navbar=True, 
+        hide_footer=True
+    )
 
 @app.route('/initiate-screening', methods=['POST'])
 def initiate_screening():
@@ -941,7 +972,7 @@ def payfast_webhook():
         except Exception as e:
             print(f"Webhook database callback error: {e}")
     return "OK", 200
-    
+
 @app.route('/logout')
 def logout():
     session.clear()
