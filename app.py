@@ -29,11 +29,9 @@ class Config:
     PAYFAST_POST_URL = os.environ.get('PAYFAST_POST_URL', 'https://sandbox.payfast.co.za/eng/process')
 
 app = Flask(__name__)
-
 app.config.from_object(Config)
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
-DATABASE = os.path.join(BASE_DIR, 'verifyme.db')
 
 # --- FILE CAPTURE CONFIGURATIONS ---
 UPLOAD_FOLDER = os.path.join('static', 'uploads', 'receipts')
@@ -65,34 +63,26 @@ def calculate_individual_cost(verification_type):
     return prices.get(verification_type, 450.00)
 
 # --- DATABASE MANAGEMENT ARCHITECTURE ---
-
 DATABASE_URL = os.environ.get('DATABASE_URL')
 
 def get_db_connection():
-    """
-    Establishes a connection thread pool link directly to Render Postgres 
-    or falls back to a safe local testing connection profile.
-    """
     if DATABASE_URL:
-        # Connect directly to your live Render/Supabase Cloud DB
         conn = psycopg2.connect(DATABASE_URL)
     else:
-        # Local development fallback parameters if you don't have DATABASE_URL set locally
         conn = psycopg2.connect(
             host="localhost",
             database="verifyme",
             user="postgres",
-            password="yourpassword", # Put your local pgAdmin password here
+            password="yourpassword",
             port="5432"
         )
     return conn
 
 def init_db():
-    """Initializes the verification schemas using standard PostgreSQL dialects."""
+    """Initializes verification schemas inside PostgreSQL."""
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    # 1. Accounts Ledger (Using SERIAL for autoincrement keys instead of SQLite's AUTOINCREMENT)
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS users (
             id SERIAL PRIMARY KEY,
@@ -107,7 +97,6 @@ def init_db():
         )
     ''')
     
-    # 2. Corporate Screenings Table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS screenings (
             id SERIAL PRIMARY KEY,
@@ -127,7 +116,6 @@ def init_db():
         )
     ''')
 
-    # 3. Individual Self-Verification Audit Ledger
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS individual_audits (
             id SERIAL PRIMARY KEY,
@@ -144,10 +132,8 @@ def init_db():
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
-    
     conn.commit()
 
-    # Seed Admin Account Slot Safely
     try:
         cursor.execute("SELECT 1 FROM users WHERE applicant_type = 'admin'")
         if not cursor.fetchone():
@@ -161,11 +147,10 @@ def init_db():
         print(f"Admin seeding diagnostic notice: {e}")
     finally:
         cursor.close()
-        cursor.close()
+        conn.close()
 
-# Initialize tables immediately on server thread start
+# Initialize tables on start
 init_db()
-
 
 # --- DECORATOR INTERCEPT FOR SECURE ROLE ACCESS ---
 def role_required(allowed_roles):
@@ -181,15 +166,12 @@ def role_required(allowed_roles):
         return decorated_function
     return decorator
 
-
 # --- PUBLIC & AUTH ROUTING CHANNELS ---
-
 @app.route('/')
 def index():
     return render_template('index.html')
 
 def is_strong_password(password):
-    """Enforces 8 length, 1 number, 1 special character."""
     if len(password) < 8:
         return False, "Password must be at least 8 characters long."
     if not any(char.isdigit() for char in password):
@@ -201,7 +183,6 @@ def is_strong_password(password):
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        # Safely capture string parameters with fallback empty targets
         email = (request.form.get('email') or '').strip().lower()
         password = request.form.get('password') or ''
         applicant_type = (request.form.get('applicant_type') or '').strip()
@@ -211,26 +192,15 @@ def register():
         company_name = (request.form.get('company_name') or '').strip()
         company_contact = (request.form.get('company_contact') or '').strip()
 
-        # 1. Base Field Blank-State Validations
-        if not email:
-            flash('Infrastructure authentication failure: Email field cannot be left blank.', 'error')
-            return render_template('auth/register.html')
-            
-        if not applicant_type:
-            flash('Infrastructure authentication failure: Please select an account operational type profile.', 'error')
+        if not email or not applicant_type or not password:
+            flash('Infrastructure authentication failure: Core fields cannot be left blank.', 'error')
             return render_template('auth/register.html')
 
-        if not password:
-            flash('Infrastructure authentication failure: Password security parameter cannot be left blank.', 'error')
-            return render_template('auth/register.html')
-
-        # 2. Strong Password Complexity Enforcement
         is_valid, password_error_msg = is_strong_password(password)
         if not is_valid:
             flash(password_error_msg, 'error')
             return render_template('auth/register.html')
 
-        # 3. Conditional Operational Account Validations
         if applicant_type == 'individual':
             company_name, company_contact = None, None
             if not individual_name or not individual_id:
@@ -242,13 +212,11 @@ def register():
                 flash('Please complete your Registered Entity and Representative corporate validation fields.', 'error')
                 return render_template('auth/register.html')
 
-        # 4. Generate Standard Cryptographic Secure Hash String
         password_hash = generate_password_hash(password, method='pbkdf2:sha256')
 
-        # 5. Database Pipeline Core Entry Execution
-        with get_db_connection() as conn:
-            cursor = conn.cursor()
-            try:
+        try:
+            with get_db_connection() as conn:
+                cursor = conn.cursor()
                 cursor.execute('''
                     INSERT INTO users (
                         email, password_hash, applicant_type, individual_name, individual_id, company_name, company_contact
@@ -257,35 +225,27 @@ def register():
                 conn.commit()
                 cursor.close()
                 
-                flash('Workspace profile structured successfully! Please sign in.', 'success')
-                return redirect(url_for('login'))
-                
-            except sqlite3.IntegrityError:
-                flash('This exact email workspace slot is already registered within our system network.', 'error')
-                return render_template('auth/register.html')
+            flash('Workspace profile structured successfully! Please sign in.', 'success')
+            return redirect(url_for('login'))
+        except psycopg2.IntegrityError:
+            flash('This exact email workspace slot is already registered within our system network.', 'error')
+            return render_template('auth/register.html')
 
     return render_template('auth/register.html')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        # Safely capture parameters with fallback values
         email = (request.form.get('email') or '').strip().lower()
         password = request.form.get('password') or ''
 
-        # 1. Server-Side Native Blank-State Validations
-        if not email:
-            flash('Infrastructure authentication failure: Email parameter cannot be left blank.', 'error')
-            return render_template('auth/login.html')
-            
-        if not password:
-            flash('Infrastructure authentication failure: Password security verification parameter cannot be left blank.', 'error')
+        if not email or not password:
+            flash('Infrastructure authentication failure: Parameters cannot be left blank.', 'error')
             return render_template('auth/login.html')
 
         try:
             with get_db_connection() as conn:
                 cursor = conn.cursor(cursor_factory=RealDictCursor)
-                # 🛠️ FIXED: Separate the execution from the fetching step
                 cursor.execute('SELECT * FROM users WHERE email = %s', (email,))
                 user = cursor.fetchone()
                 cursor.close()
@@ -294,17 +254,14 @@ def login():
             flash('A core infrastructure network data error occurred. Please try again.', 'error')
             return render_template('auth/login.html')
 
-        # 2. Development Bypass, Admin Architecture, and Hash Validations
         is_valid_admin = (email == 'admin@insphiredops.co.za' and password == 'adminsecret')
         is_valid_hash = user and check_password_hash(user['password_hash'], password)
 
         if is_valid_admin or is_valid_hash:
-            # If they used the correct admin credentials but the DB was using plain text, auto-heal on the fly!
             if is_valid_admin and user and user['password_hash'] == 'adminsecret':
                 try:
                     corrected_hash = generate_password_hash("adminsecret", method='pbkdf2:sha256')
                     with get_db_connection() as repair_conn:
-                        # 🛠️ FIXED: Explicitly initialize the repair_cursor object
                         repair_cursor = repair_conn.cursor()
                         repair_cursor.execute("UPDATE users SET password_hash = %s WHERE email = %s", (corrected_hash, email))
                         repair_conn.commit()
@@ -312,94 +269,103 @@ def login():
                     print("🔧 Security Ledger Auto-Healed: Fixed plain-text admin password hash in database.")
                 except Exception as repair_err:
                     print(f"🔧 Security Ledger Auto-Heal Failed: {repair_err}")
-                    pass
 
-            # 3. Clean Session Security State Configuration Binding
-            session.clear()  # Drop any lingering session tracking states safely
+            session.clear()
             session['user_id'] = user['id'] if user else 1
             session['user_email'] = email
             session['applicant_type'] = user['applicant_type'] if user else 'admin'
             
-            # 4. Context-Specific Role Redirection Paths
             if session['applicant_type'] == 'company':
                 session['display_name'] = user['company_name'] if user else 'Corporate Entity'
                 flash(f"Welcome back to workspace network context: {session['display_name']}", 'success')
                 return redirect(url_for('dashboard_corporate'))
-                
             elif session['applicant_type'] == 'admin':
                 session['display_name'] = user['individual_name'] if user else 'SecOps Specialist'
                 flash("Administrative operational clearance granted.", 'success')
                 return redirect(url_for('admin_dashboard'))
-                
             else:
                 session['display_name'] = user['individual_name'] if user else 'Verified Account'
                 flash(f"Welcome back, {session['display_name']}!", 'success')
                 return redirect(url_for('dashboard_individual'))
         
-        # 5. Mismatched or Invalid Input Rejection Strategy
         flash('Invalid credentials validation parameters provided.', 'error')
         return render_template('auth/login.html')
 
     return render_template('auth/login.html')
-# ─── THE ADMINISTRATIVE MASTER WORKSPACE VAULT ───────────
 
+# ─── THE ADMINISTRATIVE MASTER WORKSPACE VAULT ───────────
 @app.route('/admin/workspace')
 @role_required(['admin'])
 def admin_dashboard():
-    conn = get_db_connection()
-    
-    total_users = cursor.execute("SELECT COUNT(*) FROM users WHERE applicant_type != 'admin'").fetchone()[0]
-    total_corp = cursor.execute("SELECT COUNT(*) FROM screenings").fetchone()[0]
-    total_indiv = cursor.execute("SELECT COUNT(*) FROM individual_audits").fetchone()[0]
-    
-    metrics = {
-        "total_users": total_users,
-        "total_corp": total_corp,
-        "total_indiv": total_indiv,
-        "gross_revenue": "Cross-Channel Verification Active"
-    }
+    with get_db_connection() as conn:
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        
+        cursor.execute("SELECT COUNT(*) FROM users WHERE applicant_type != 'admin'")
+        total_users = cursor.fetchone()['count']
+        
+        cursor.execute("SELECT COUNT(*) FROM screenings")
+        total_corp = cursor.fetchone()['count']
+        
+        cursor.execute("SELECT COUNT(*) FROM individual_audits")
+        total_indiv = cursor.fetchone()['count']
+        
+        metrics = {
+            "total_users": total_users,
+            "total_corp": total_corp,
+            "total_indiv": total_indiv,
+            "gross_revenue": "Cross-Channel Verification Active"
+        }
 
-    pending_eft_count = cursor.execute("SELECT COUNT(DISTINCT payment_ref) FROM screenings WHERE payment_method = 'manual_eft' AND payment_status = 'Pending'").fetchone()[0]
-    pending_eft_count += cursor.execute("SELECT COUNT(*) FROM individual_audits WHERE payment_method = 'manual_eft' AND payment_status = 'Pending'").fetchone()[0]
-    
-    ready_review_count = cursor.execute("SELECT COUNT(*) FROM screenings WHERE status = 'Ready for Review'").fetchone()[0]
-    ready_review_count += cursor.execute("SELECT COUNT(*) FROM individual_audits WHERE status = 'Ready for Review'").fetchone()[0]
-    
-    quick_alerts = {
-        "pending_efts": pending_eft_count,
-        "ready_reviews": ready_review_count
-    }
+        cursor.execute("SELECT COUNT(DISTINCT payment_ref) FROM screenings WHERE payment_method = 'manual_eft' AND payment_status = 'Pending'")
+        pending_eft_count = cursor.fetchone()['count']
+        
+        cursor.execute("SELECT COUNT(*) FROM individual_audits WHERE payment_method = 'manual_eft' AND payment_status = 'Pending'")
+        pending_eft_count += cursor.fetchone()['count']
+        
+        cursor.execute("SELECT COUNT(*) FROM screenings WHERE status = 'Ready for Review'")
+        ready_review_count = cursor.fetchone()['count']
+        
+        cursor.execute("SELECT COUNT(*) FROM individual_audits WHERE status = 'Ready for Review'")
+        ready_review_count += cursor.fetchone()['count']
+        
+        quick_alerts = {
+            "pending_efts": pending_eft_count,
+            "ready_reviews": ready_review_count
+        }
 
-    companies = cursor.execute("SELECT DISTINCT company_name FROM users WHERE company_name IS NOT NULL AND company_name != ''").fetchall()
-    selected_company = request.args.get('company_filter', '')
-    
-    query_corp = "SELECT s.*, u.company_name FROM screenings s JOIN users u ON s.user_id = u.id"
-    if selected_company:
-        corporate_candidates = cursor.execute(query_corp + " WHERE u.company_name = %s ORDER BY s.created_at DESC", (selected_company,)).fetchall()
-    else:
-        corporate_candidates = cursor.execute(query_corp + " ORDER BY s.created_at DESC").fetchall()
+        cursor.execute("SELECT DISTINCT company_name FROM users WHERE company_name IS NOT NULL AND company_name != ''")
+        companies = cursor.fetchall()
+        selected_company = request.args.get('company_filter', '')
+        
+        query_corp = "SELECT s.*, u.company_name FROM screenings s JOIN users u ON s.user_id = u.id"
+        if selected_company:
+            cursor.execute(query_corp + " WHERE u.company_name = %s ORDER BY s.created_at DESC", (selected_company,))
+        else:
+            cursor.execute(query_corp + " ORDER BY s.created_at DESC")
+        corporate_candidates = cursor.fetchall()
 
-    individual_requests = cursor.execute("""
-        SELECT a.*, u.email FROM individual_audits a JOIN users u ON a.user_id = u.id ORDER BY a.created_at DESC
-    """).fetchall()
+        cursor.execute("SELECT a.*, u.email FROM individual_audits a JOIN users u ON a.user_id = u.id ORDER BY a.created_at DESC")
+        individual_requests = cursor.fetchall()
 
-    payments_queue = cursor.execute('''
-        SELECT payment_ref, u.company_name AS party_name, screening_type AS service, payment_method, payment_status, pop_file_path,
-               COUNT(s.id) AS units, 'company' AS type
-        FROM screenings s JOIN users u ON s.user_id = u.id
-        WHERE payment_ref IS NOT NULL AND payment_ref != ''
-        GROUP BY payment_ref
-        UNION ALL
-        SELECT payment_ref, u.individual_name AS party_name, verification_type AS service, payment_method, payment_status, pop_file_path,
-               1 AS units, 'individual' AS type
-        FROM individual_audits a JOIN users u ON a.user_id = u.id
-        WHERE payment_ref IS NOT NULL AND payment_ref != ''
-        GROUP BY payment_ref
-        ORDER BY payment_status DESC
-    ''').fetchall()
+        cursor.execute('''
+            SELECT payment_ref, u.company_name AS party_name, screening_type AS service, payment_method, payment_status, pop_file_path,
+                   COUNT(s.id) AS units, 'company' AS type
+            FROM screenings s JOIN users u ON s.user_id = u.id
+            WHERE payment_ref IS NOT NULL AND payment_ref != ''
+            GROUP BY payment_ref, u.company_name, screening_type, payment_method, payment_status, pop_file_path
+            UNION ALL
+            SELECT payment_ref, u.individual_name AS party_name, verification_type AS service, payment_method, payment_status, pop_file_path,
+                   1 AS units, 'individual' AS type
+            FROM individual_audits a JOIN users u ON a.user_id = u.id
+            WHERE payment_ref IS NOT NULL AND payment_ref != ''
+            GROUP BY payment_ref, u.individual_name, verification_type, payment_method, payment_status, pop_file_path
+            ORDER BY payment_status DESC
+        ''')
+        payments_queue = cursor.fetchall()
 
-    users_ledger = cursor.execute("SELECT id, email, company_name, individual_name, applicant_type FROM users WHERE applicant_type != 'admin'").fetchall()
-    cursor.close()
+        cursor.execute("SELECT id, email, company_name, individual_name, applicant_type FROM users WHERE applicant_type != 'admin'")
+        users_ledger = cursor.fetchall()
+        cursor.close()
     
     return render_template(
         'admin_dashboard.html',
@@ -413,7 +379,6 @@ def admin_dashboard():
         users_ledger=users_ledger
     )
 
-
 @app.route('/admin/update-candidate-status', methods=['POST'])
 @role_required(['admin'])
 def update_candidate_status():
@@ -422,15 +387,16 @@ def update_candidate_status():
     track = request.form.get('track', 'corporate') 
     
     with get_db_connection() as conn:
+        cursor = conn.cursor()
         if track == 'corporate':
             cursor.execute("UPDATE screenings SET status = %s WHERE id = %s", (new_status, candidate_id))
         else:
             cursor.execute("UPDATE individual_audits SET status = %s WHERE id = %s", (new_status, candidate_id))
         conn.commit()
+        cursor.close()
     
     flash(f"Candidate status updated to [{new_status}] successfully.", "success")
     return redirect(url_for('admin_dashboard', tab=track))
-
 
 @app.route('/admin/flag-document', methods=['POST'])
 @role_required(['admin'])
@@ -441,15 +407,16 @@ def flag_document():
     
     status_label = "Flagged — Image Unclear"
     with get_db_connection() as conn:
+        cursor = conn.cursor()
         if track == 'corporate':
             cursor.execute("UPDATE screenings SET status = %s, rejection_reason = %s WHERE id = %s", (status_label, reason, record_id))
         else:
             cursor.execute("UPDATE individual_audits SET status = %s, rejection_reason = %s WHERE id = %s", (status_label, reason, record_id))
         conn.commit()
+        cursor.close()
     
     flash("Document flagged. Re-upload instruction triggered back to applicant panel.", "warning")
     return redirect(url_for('admin_dashboard', tab=track))
-
 
 @app.route('/admin/resolve-payment', methods=['POST'])
 @role_required(['admin'])
@@ -461,29 +428,30 @@ def resolve_payment():
     new_candidate_status = 'Awaiting Document Upload' if action == 'Confirm' else 'Awaiting Payment'
     
     with get_db_connection() as conn:
+        cursor = conn.cursor()
         cursor.execute("UPDATE screenings SET payment_status = %s, status = %s WHERE payment_ref = %s", (new_pay_status, new_candidate_status, pay_ref))
         cursor.execute("UPDATE individual_audits SET payment_status = %s, status = %s WHERE payment_ref = %s", (new_pay_status, 'Ready for Review' if action == 'Confirm' else 'Awaiting Payment', pay_ref))
         conn.commit()
+        cursor.close()
     
     flash(f"Financial Ledger Clearance executed: Reference {pay_ref} is now [{new_pay_status}].", "success")
     return redirect(url_for('admin_dashboard', tab='payments'))
-
 
 @app.route('/admin/purge-user/<int:user_id>', methods=['POST'])
 @role_required(['admin'])
 def purge_user(user_id):
     with get_db_connection() as conn:
+        cursor = conn.cursor()
         cursor.execute("DELETE FROM screenings WHERE user_id = %s", (user_id,))
         cursor.execute("DELETE FROM individual_audits WHERE user_id = %s", (user_id,))
         cursor.execute("DELETE FROM users WHERE id = %s", (user_id,))
         conn.commit()
+        cursor.close()
     
     flash("Master profile purged successfully.", "success")
     return redirect(url_for('admin_dashboard', tab='users'))
 
-
 # --- SECURED CORPORATE WORKSPACE & DATA PROCESSING ---
-
 @app.route('/dashboard/corporate')
 def dashboard_corporate():
     if 'user_id' not in session or session.get('applicant_type') != 'company':
@@ -491,17 +459,18 @@ def dashboard_corporate():
         return redirect(url_for('login'))
 
     with get_db_connection() as conn:
-        candidates = cursor.execute('''
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        cursor.execute('''
             SELECT id, candidate_name AS name, candidate_email AS email, screening_type AS type, status, payment_status, DATE(created_at) AS date 
             FROM screenings WHERE user_id = %s ORDER BY created_at DESC
-        ''', (session['user_id'],)).fetchall()
+        ''', (session['user_id'],))
+        candidates = cursor.fetchall()
+        cursor.close()
 
     return render_template('dashboard_corporate.html', candidates=candidates, hide_navbar=True, hide_footer=True)
 
-
 @app.route('/initiate-screening', methods=['POST'])
 def initiate_screening():
-    """Captures corporate multi-step parameters and splits workflows into live gateway tunnels or traditional POP ledgers."""
     if 'user_id' not in session or session.get('applicant_type') != 'company':
         flash('Unauthorized workspace session scope parameters.', 'error')
         return redirect(url_for('login'))
@@ -523,19 +492,16 @@ def initiate_screening():
         flash('Invalid verification array selection.', 'error')
         return redirect(url_for('dashboard_corporate'))
 
-    # Valuation Pricing Framework Models Matrix Tiers
     cost_per_candidate = calculate_individual_cost(screening_type)
 
-    # 1. Store Candidate Registry File (Step 1)
     csv_path = None
     if csv_file and csv_file.filename != '':
         filename = secure_filename(csv_file.filename)
         csv_path = os.path.join(app.config['UPLOAD_REGISTRY_DIR'], f"{payment_ref}_{filename}")
         csv_file.save(csv_path)
 
-    # 2. Parse candidate metrics natively out of raw bytes
     try:
-        csv_file.seek(0) # Reset stream tracker pointer element
+        csv_file.seek(0)
         file_bytes = csv_file.read()
         file_data = file_bytes.decode("utf-8-sig")
         
@@ -560,7 +526,6 @@ def initiate_screening():
             flash('No functional candidates verified inside data stream registry.', 'error')
             return redirect(url_for('dashboard_corporate'))
 
-        # FIX FOR ISSUE 3: ENFORCE RIGID COUNT MATCH
         if len(staged_rows) != candidate_count:
             flash(f"Registry Validation Mismatch: You declared a target metric of {candidate_count} candidate(s), but your uploaded CSV file contains {len(staged_rows)} rows. Please ensure they match exactly.", 'error')
             return redirect(url_for('dashboard_corporate'))
@@ -569,7 +534,6 @@ def initiate_screening():
         flash(f'Bulk metrics processing exception generated: {str(e)}', 'error')
         return redirect(url_for('dashboard_corporate'))
 
-    # WORKFLOW CASE A: Traditional Manual Bank Transfer Routing
     if payment_method == 'manual_eft':
         if 'pop_receipt' not in request.files:
             flash('Proof of payment document required for manual ledger checkout tracking.', 'error')
@@ -585,15 +549,14 @@ def initiate_screening():
 
         duplicates_skipped = 0
         with get_db_connection() as conn:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
             for c_name, c_email in staged_rows:
-                # FIX FOR ISSUE 2: IDENTIFY AND SKIP REPEAT ENTRIES
-                existing = cursor.execute('''
+                cursor.execute('''
                     SELECT 1 FROM screenings 
                     WHERE user_id = %s AND candidate_email = %s AND screening_type = %s
                     LIMIT 1
-                ''', (session['user_id'], c_email, screening_type)).fetchone()
-                
-                if existing:
+                ''', (session['user_id'], c_email, screening_type))
+                if cursor.fetchone():
                     duplicates_skipped += 1
                     continue
 
@@ -603,6 +566,7 @@ def initiate_screening():
                     ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                 ''', (session['user_id'], c_name, c_email, screening_type, 'Awaiting Review', 'manual_eft', 'Pending Review', payment_ref, pop_saved_path))
             conn.commit()
+            cursor.close()
 
         if duplicates_skipped == len(staged_rows):
             flash("Batch processing skipped: All candidates in this file are already registered for this screening type.", "warning")
@@ -613,19 +577,17 @@ def initiate_screening():
             
         return redirect(url_for('dashboard_corporate'))
 
-    # WORKFLOW CASE B: PayFast Automated Checkout Linkages (Credit Card / Instant EFT)
     else:
         duplicates_skipped = 0
         with get_db_connection() as conn:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
             for c_name, c_email in staged_rows:
-                # FIX FOR ISSUE 2: IDENTIFY AND SKIP REPEAT ENTRIES
-                existing = cursor.execute('''
+                cursor.execute('''
                     SELECT 1 FROM screenings 
                     WHERE user_id = %s AND candidate_email = %s AND screening_type = %s
                     LIMIT 1
-                ''', (session['user_id'], c_email, screening_type)).fetchone()
-                
-                if existing:
+                ''', (session['user_id'], c_email, screening_type))
+                if cursor.fetchone():
                     duplicates_skipped += 1
                     continue
 
@@ -635,17 +597,17 @@ def initiate_screening():
                     ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 ''', (session['user_id'], c_name, c_email, screening_type, 'Awaiting Payment', payment_method, 'Pending Checkout', payment_ref))
             conn.commit()
+            cursor.close()
 
         if duplicates_skipped == len(staged_rows):
             flash("Batch processing skipped: All candidates in this file are already registered for this screening type.", "warning")
             return redirect(url_for('dashboard_corporate'))
             
-        # Re-evaluate payment amount for non-duplicate entities only
         active_count = len(staged_rows) - duplicates_skipped
         updated_bill_amount = cost_per_candidate * active_count
 
-        # Transit directly into dynamic gateway link generator
         return redirect(url_for('payfast_checkout', record_id="BATCH", custom_ref=payment_ref, custom_amt=updated_bill_amount))
+
 @app.route('/collect/upload-credentials/<int:candidate_id>', methods=['GET', 'POST'])
 def candidate_upload_portal(candidate_id):
     if request.method == 'POST':
@@ -664,16 +626,21 @@ def candidate_upload_portal(candidate_id):
             qual_file.save(qual_path)
             
         with get_db_connection() as conn:
+            cursor = conn.cursor()
             cursor.execute('''
                 UPDATE screenings SET id_file_path = %s, qualification_file_path = %s, status = 'Ready for Review', rejection_reason = NULL 
                 WHERE id = %s
             ''', (id_path, qual_path, candidate_id))
             conn.commit()
+            cursor.close()
             
         return "<h3>Upload Complete. Your files have been securely transmitted to our administrative operators for compliance auditing.</h3>"
         
     with get_db_connection() as conn:
-        candidate = cursor.execute("SELECT * FROM screenings WHERE id = %s", (candidate_id,)).fetchone()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        cursor.execute("SELECT * FROM screenings WHERE id = %s", (candidate_id,))
+        candidate = cursor.fetchone()
+        cursor.close()
     if not candidate: 
         abort(404)
         
@@ -693,9 +660,7 @@ def candidate_upload_portal(candidate_id):
     </html>
     """
 
-
 # --- SECURED PERSONAL DASHBOARD CHANNELS (INDIVIDUALS) ---
-
 @app.route('/dashboard/individual')
 def dashboard_individual():
     if 'user_id' not in session or session.get('applicant_type') != 'individual':
@@ -703,27 +668,22 @@ def dashboard_individual():
         return redirect(url_for('login'))
 
     with get_db_connection() as conn:
-    # 1. Open the cursor with RealDictCursor so your dashboard templates don't break
         cursor = conn.cursor(cursor_factory=RealDictCursor)
     
-    # Query 1: Fetch the audit list rows
         cursor.execute('''
             SELECT id, verification_type AS type, status, payment_status, rejection_reason, DATE(created_at) AS date 
             FROM individual_audits 
             WHERE user_id = %s 
             ORDER BY created_at DESC
         ''', (session['user_id'],))
-        db_rows = cursor.fetchall()  # 🌟 Separate line for fetching all rows
+        db_rows = cursor.fetchall()
         
-    # Query 2: Fetch the user profile details
         cursor.execute('''
             SELECT email, individual_name, individual_id, created_at 
             FROM users 
             WHERE id = %s
         ''', (session['user_id'],))
-        user_profile = cursor.fetchone()  # 🌟 Separate line for fetching the single row
-        
-        # 2. Clean up the cursor channel
+        user_profile = cursor.fetchone()
         cursor.close()
 
     return render_template(
@@ -736,7 +696,6 @@ def dashboard_individual():
         hide_footer=True
     )
 
-
 @app.route('/submit-local-verification', methods=['POST'])
 @app.route('/submit-individual-verification', methods=['POST'])
 @app.route('/initiate_individual_payment', methods=['POST'])
@@ -744,7 +703,6 @@ def initiate_individual_payment():
     if 'user_id' not in session or session.get('applicant_type') != 'individual':
         return redirect(url_for('login'))
 
-    # 1. Parse Parameters Natively
     verification_type = request.form.get('verification_type')
     payment_method = request.form.get('payment_method', 'manual_eft')
     payment_ref = "VFY-IND-" + str(os.urandom(3).hex().upper())
@@ -752,12 +710,10 @@ def initiate_individual_payment():
     uploaded_docs = request.files.getlist('verification_documents')
     proof_of_payment = request.files.get('proof_of_payment')
 
-    # Fallback sanity enforcement checks
     if not verification_type or not uploaded_docs or not uploaded_docs[0].filename:
         flash('Verification core documents are required to initialize an audit request.', 'error')
         return redirect(url_for('dashboard_individual'))
 
-    # 2. Map Dynamic Status Codes Based on Choice Pathways
     if payment_method == 'gateway':
         initial_payment_status = 'Pending'
         initial_pipeline_status = 'Awaiting Payment'
@@ -773,7 +729,6 @@ def initiate_individual_payment():
         pop_saved_path = os.path.join(app.config['UPLOAD_FOLDER'], pop_filename)
         proof_of_payment.save(pop_saved_path)
 
-    # 3. Document Array File Parsing Mappings (up to 2 files)
     id_path, qual_path = None, None
     for idx, doc in enumerate(uploaded_docs[:2]):
         if doc and allowed_file(doc.filename):
@@ -785,22 +740,22 @@ def initiate_individual_payment():
             elif idx == 1:
                 qual_path = saved_path
 
-    # 4. Save Record to Database Ledger
     with get_db_connection() as conn:
         cursor = conn.cursor()
+        # 🛠️ FIXED FOR POSTGRES: Added "RETURNING id" clause to fetch inserted row id
         cursor.execute('''
             INSERT INTO individual_audits (
                 user_id, verification_type, payment_method, payment_status, 
                 payment_ref, pop_file_path, id_file_path, qualification_file_path, status
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id
         ''', (
             session['user_id'], verification_type, payment_method, initial_payment_status,
             payment_ref, pop_saved_path, id_path, qual_path, initial_pipeline_status
         ))
+        generated_id = cursor.fetchone()[0]
         conn.commit()
-        generated_id = cursor.lastrowid
+        cursor.close()
 
-    # 5. Route Dynamic Submissions
     if payment_method == 'gateway':
         total_bill = calculate_individual_cost(verification_type)
         return redirect(url_for('payfast_checkout', record_id=generated_id, custom_ref=payment_ref, custom_amt=total_bill))
@@ -808,9 +763,8 @@ def initiate_individual_payment():
     flash(f'Successfully initialized your {verification_type} audit pipeline. Awaiting manual bank clearance checking.', 'success')
     return redirect(url_for('dashboard_individual'))
 
-
 # --- ONLINE CHECKOUT LINKAGE PIPELINE ---
-
+# --- ONLINE CHECKOUT LINKAGE PIPELINE ---
 @app.route('/payfast-checkout')
 def payfast_checkout():
     if 'user_id' not in session:
@@ -820,24 +774,22 @@ def payfast_checkout():
     custom_ref = request.args.get('custom_ref')
     custom_amt = request.args.get('custom_amt', '450.00')
 
-    # Assemble transaction dictionary maps for signature processing
     payfast_data = {
         'merchant_id': app.config['PAYFAST_MERCHANT_ID'],
         'merchant_key': app.config['PAYFAST_MERCHANT_KEY'],
         'return_url': f"{app.config['BASE_URL']}/payment-success?ref={custom_ref}&record_id={record_id}",
-        # =========================================================
-        # FIX FOR ISSUE 1: PASS THE REF TOKEN TO THE CANCEL LINK
-        # =========================================================
         'cancel_url': f"{app.config['BASE_URL']}/payment-cancelled?ref={custom_ref}&record_id={record_id}",
         'notify_url': f"{app.config['BASE_URL']}/payfast-webhook",
         'name_first': session.get('display_name', 'Verified Applicant'),
         'email_address': session.get('user_email', 'noreply@verifyme.co.za'),
         'm_payment_id': f"{record_id}-{custom_ref}",
         'amount': f"{float(custom_amt):.2f}",
-        'item_name': f"VerifyMe Audit Ref {custom_ref}"
+        'item_name': f"VerifyMe Audit Ref {custom_ref}",
+        # 🌟 FIX: Use PayFast's official custom fields which are guaranteed to survive redirects
+        'custom_str1': str(record_id),
+        'custom_str2': str(custom_ref)
     }
 
-    # ... [Keep signature generation and form returning layout completely identical] ...
     payload_string = ""
     for key, val in payfast_data.items():
         if val:
@@ -864,106 +816,132 @@ def payfast_checkout():
     """
     return html_redirect_payload
 
-
-@app.route('/payment-success')
+@app.route('/payment-success', methods=['GET', 'POST'])
 def payment_success():
-    custom_ref = request.args.get('ref', '')
-    
+    # 🌟 FIX: Extract from custom fields, query args, or combined payment string
+    custom_ref = request.values.get('custom_str2') or request.values.get('ref') or request.values.get('custom_ref')
+    m_payment_id = request.values.get('m_payment_id', '')
+
+    if not custom_ref and '-' in m_payment_id:
+        try:
+            _, custom_ref = m_payment_id.split('-', 1)
+        except ValueError:
+            pass
+
     if custom_ref:
         try:
             with get_db_connection() as conn:
-                # 1. Update corporate screenings matching this reference
+                cursor = conn.cursor()
+                # Update corporate requests under this reference
                 cursor.execute(
                     "UPDATE screenings SET payment_status = 'Completed', status = 'Awaiting Document Upload' WHERE payment_ref = %s", 
                     (custom_ref,)
                 )
-                
-                # 2. FIXED: Update ALL individual audits belonging to this payment reference token all at once
+                # Update individual audits under this reference
                 cursor.execute(
-                    """
-                    UPDATE individual_audits 
-                    SET payment_status = 'Completed', status = 'Ready for Review' 
-                    WHERE payment_ref = %s
-                    """, 
+                    "UPDATE individual_audits SET payment_status = 'Completed', status = 'Ready for Review' WHERE payment_ref = %s", 
                     (custom_ref,)
                 )
                 conn.commit()
-                print(f"✅ SecOps: Successfully verified and updated all records under reference: {custom_ref}")
+                cursor.close()
+                print(f"✅ SecOps: Browser return success auto-update complete for reference: {custom_ref}")
+                flash(f"Payment verified successfully for reference: {custom_ref}", "success")
         except Exception as e:
             print(f"Fallback update error: {e}")
+    else:
+        print("⚠️ Warning: payment-success reached but no reference token could be extracted.")
 
     if session.get('applicant_type') == 'company':
         return redirect(url_for('dashboard_corporate'))
     return redirect(url_for('dashboard_individual'))
 
-
-@app.route('/payment-cancelled')
+@app.route('/payment-cancelled', methods=['GET', 'POST'])
 def payment_cancelled():
-    custom_ref = request.args.get('ref', '')
-    record_id = request.args.get('record_id', '')
+    # 🌟 FIX: Check everywhere for the identifying reference token
+    custom_ref = request.values.get('custom_str2') or request.values.get('ref') or request.values.get('custom_ref')
+    record_id = request.values.get('custom_str1') or request.values.get('record_id', '')
+    m_payment_id = request.values.get('m_payment_id', '')
+
+    if not custom_ref and '-' in m_payment_id:
+        try:
+            record_id, custom_ref = m_payment_id.split('-', 1)
+        except ValueError:
+            pass
 
     with get_db_connection() as conn:
-        # 1. Clear based on specific unique reference token if it exists (Clears ALL duplicates associated with this attempt)
+        cursor = conn.cursor()
+        
         if custom_ref:
             try:
-                # Clear from corporate pipeline context
+                # 1. Purge uncompleted batch screenings for corporate accounts
                 cursor.execute("""
                     DELETE FROM screenings 
                     WHERE payment_ref = %s 
-                      AND (payment_status = 'Pending Checkout' OR status = 'Awaiting Payment')
+                      AND (payment_status IN ('Pending Checkout', 'Pending', 'Pending Review') 
+                           OR status IN ('Awaiting Payment', 'Awaiting Review'))
                 """, (custom_ref,))
                 
-                # Clear from individual citizen records context
+                # 2. Purge uncompleted audits for individual accounts
                 cursor.execute("""
                     DELETE FROM individual_audits 
                     WHERE payment_ref = %s 
-                      AND (payment_status = 'Pending' OR status = 'Awaiting Payment')
+                      AND (payment_status IN ('Pending Checkout', 'Pending') 
+                           OR status IN ('Awaiting Payment', 'Ready for Review'))
                 """, (custom_ref,))
                 
                 conn.commit()
-                print(f"🛑 SecOps: Cleaned up all canceled ghost duplicates for tracking token {custom_ref}")
+                print(f"🛑 SecOps: Cleaned up canceled ghost records for reference token {custom_ref}")
             except Exception as e:
-                print(f"SecOps Node Error: Fallback tracking token clearance exception: {e}")
+                print(f"SecOps Node Error Context: {e}")
 
-        # 2. Secondary cleanup validation checkpoint via record_id 
         elif record_id and record_id != 'BATCH':
             try:
                 target_id = int(record_id)
                 cursor.execute("""
                     DELETE FROM individual_audits 
                     WHERE id = %s 
-                      AND (payment_status = 'Pending' OR status = 'Awaiting Payment')
+                      AND (payment_status IN ('Pending Checkout', 'Pending') 
+                           OR status = 'Awaiting Payment')
                 """, (target_id,))
                 conn.commit()
-            except ValueError:
+                print(f"🛑 SecOps: Cleaned up canceled single audit record for ID {target_id}")
+            except (ValueError, Exception) as e:
+                print(f"SecOps Single Record Deletion Error: {e}")
                 pass
+                
+        cursor.close()
 
-    flash("Transaction canceled by applicant. Gateway connection dropped and unverified duplicate entries cleared.", "error")
+    flash("Transaction canceled by applicant. Gateway connection dropped and duplicate entries cleared.", "error")
     
     if session.get('applicant_type') == 'company':
         return redirect(url_for('dashboard_corporate'))
     return redirect(url_for('dashboard_individual'))
-
+    
 @app.route('/payfast-webhook', methods=['POST'])
 def payfast_webhook():
-    # Asynchronous background instant payment notification loop tracking
     m_payment_id = request.form.get('m_payment_id', '')
     payment_status = request.form.get('payment_status')
+    custom_str1 = request.form.get('custom_str1', '')
+    custom_str2 = request.form.get('custom_str2', '')
 
-    if payment_status == 'COMPLETE' and m_payment_id:
+    if payment_status == 'COMPLETE':
         try:
-            record_id, payment_ref = m_payment_id.split('-', 1)
+            # Fallback split logic if custom strings are absent
+            record_id = custom_str1 if custom_str1 else m_payment_id.split('-', 1)[0]
+            payment_ref = custom_str2 if custom_str2 else m_payment_id.split('-', 1)[1]
+            
             with get_db_connection() as conn:
+                cursor = conn.cursor()
                 if record_id == 'BATCH':
                     cursor.execute("UPDATE screenings SET payment_status = 'Completed', status = 'Awaiting Document Upload' WHERE payment_ref = %s", (payment_ref,))
                 else:
-                    cursor.execute("UPDATE individual_audits SET payment_status = 'Completed', status = 'Ready for Review' WHERE id = %s", (record_id,))
+                    cursor.execute("UPDATE individual_audits SET payment_status = 'Completed', status = 'Ready for Review' WHERE id = %s", (int(record_id),))
                 conn.commit()
-        except Exception:
-            pass
+                cursor.close()
+        except Exception as e:
+            print(f"Webhook database callback error: {e}")
     return "OK", 200
-
-
+    
 @app.route('/logout')
 def logout():
     session.clear()
@@ -971,17 +949,13 @@ def logout():
     return redirect(url_for('login'))
 
 # --- ADMINISTRATIVE DATA EXPORT & SYSTEM ARCHIVE TRACKS ---
-
 @app.route('/admin/export-corporate/csv')
 @role_required(['admin'])
 def export_corporate_csv():
-    """Generates a streaming CSV report of the enterprise candidate screening matrix."""
     company_filter = request.args.get('company_filter', '')
-    
     output = io.StringIO()
     writer = csv.writer(output)
     
-    # Write structural CSV header fields
     writer.writerow([
         'Candidate ID', 'Registered Enterprise Name', 'Candidate Name', 
         'Candidate Email', 'Audit Vector Type', 'Current Status State', 
@@ -993,38 +967,30 @@ def export_corporate_csv():
     if company_filter:
         query += " WHERE u.company_name = %s"
         params = (company_filter,)
-    
     query += " ORDER BY s.created_at DESC"
     
     with get_db_connection() as conn:
-        records = cursor.execute(query, params).fetchall()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        cursor.execute(query, params)
+        records = cursor.fetchall()
+        cursor.close()
         
     for row in records:
         writer.writerow([
-            f"CC-{row['id']}",
-            row['company_name'],
-            row['candidate_name'],
-            row['candidate_email'],
-            row['screening_type'],
-            row['status'],
-            row['payment_method'],
-            row['payment_status'],
-            row['payment_ref'],
-            row['created_at']
+            f"CC-{row['id']}", row['company_name'], row['candidate_name'], row['candidate_email'],
+            row['screening_type'], row['status'], row['payment_method'], row['payment_status'],
+            row['payment_ref'], row['created_at']
         ])
         
-    response = Flask.response_class(
+    return Flask.response_class(
         output.getvalue(),
         mimetype='text/csv',
         headers={"Content-disposition": f"attachment; filename=corporate_screening_report_{datetime.now().strftime('%Y%m%d')}.csv"}
     )
-    return response
-
 
 @app.route('/admin/export-individual/csv')
 @role_required(['admin'])
 def export_individual_csv():
-    """Generates a streaming CSV data vault export of individual citizen direct checks."""
     output = io.StringIO()
     writer = csv.writer(output)
     
@@ -1035,51 +1001,47 @@ def export_individual_csv():
     ])
     
     with get_db_connection() as conn:
-        records = cursor.execute("""
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        cursor.execute("""
             SELECT a.*, u.email, u.individual_name, u.individual_id 
             FROM individual_audits a 
             JOIN users u ON a.user_id = u.id 
             ORDER BY a.created_at DESC
-        """).fetchall()
+        """)
+        records = cursor.fetchall()
+        cursor.close()
         
     for row in records:
         writer.writerow([
-            f"IND-{row['id']}",
-            row['email'],
-            row['individual_name'] if row['individual_name'] else 'Unspecified',
-            row['individual_id'] if row['individual_id'] else 'Unspecified',
-            row['verification_type'],
-            row['status'],
-            row['payment_method'],
-            row['payment_status'],
-            row['payment_ref'],
-            row['created_at']
+            f"IND-{row['id']}", row['email'], row['individual_name'] if row['individual_name'] else 'Unspecified',
+            row['individual_id'] if row['individual_id'] else 'Unspecified', row['verification_type'],
+            row['status'], row['payment_method'], row['payment_status'], row['payment_ref'], row['created_at']
         ])
         
-    response = Flask.response_class(
+    return Flask.response_class(
         output.getvalue(),
         mimetype='text/csv',
         headers={"Content-disposition": f"attachment; filename=individual_audit_report_{datetime.now().strftime('%Y%m%d')}.csv"}
     )
-    return response
-
 
 @app.route('/admin/export-profile/pdf/<int:user_id>')
 @role_required(['admin'])
 def export_profile_pdf(user_id):
-    """
-    Renders an elegant, browser-printable security audit certificate panel.
-    Adheres strictly to CSS design compliance rules with zero empty rulesets.
-    """
     with get_db_connection() as conn:
-        user_profile = cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,)).fetchone()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))
+        user_profile = cursor.fetchone()
+        
         if not user_profile:
+            cursor.close()
             abort(404)
             
         if user_profile['applicant_type'] == 'company':
-            history = cursor.execute("SELECT id, candidate_name AS name, screening_type AS item, status, created_at FROM screenings WHERE user_id = %s", (user_id,)).fetchall()
+            cursor.execute("SELECT id, candidate_name AS name, screening_type AS item, status, created_at FROM screenings WHERE user_id = %s", (user_id,))
         else:
-            history = cursor.execute("SELECT id, '-' AS name, verification_type AS item, status, created_at FROM individual_audits WHERE user_id = %s", (user_id,)).fetchall()
+            cursor.execute("SELECT id, '-' AS name, verification_type AS item, status, created_at FROM individual_audits WHERE user_id = %s", (user_id,))
+        history = cursor.fetchall()
+        cursor.close()
 
     html_print_layout = f"""
     <!DOCTYPE html>
@@ -1110,9 +1072,8 @@ def export_profile_pdf(user_id):
         <div class="cert-container">
             <div class="cert-header">
                 <div class="cert-title">System Account Audit Ledger Profile</div>
-                <div style="font-size: 0.85rem; color: #617c41; font-weight: 500; margin-top: 0.25rem;">VERIFYME MULTI-CHANNEL DATA PROTECTION HUB</div>
+                <div style="font-size: 0.85rem; color: #617c41; font-weight: 500; margin-top: 0.25rem;">VERIFYME DATA PROTECTION HUB</div>
             </div>
-            
             <div class="meta-grid">
                 <div>
                     <div class="meta-label">System Account Identifier</div>
@@ -1131,8 +1092,7 @@ def export_profile_pdf(user_id):
                     <div class="meta-value">{user_profile['company_name'] if user_profile['company_name'] else user_profile['individual_name']}</div>
                 </div>
             </div>
-
-            <h3 style="text-transform: uppercase; font-size: 1rem; color: #181c19; border-bottom: 1px solid #2e3830; padding-bottom: 0.5rem;">Associated Active Run Matrix Runway</h3>
+            <h3 style="text-transform: uppercase; font-size: 1rem; color: #181c19; border-bottom: 1px solid #2e3830; padding-bottom: 0.5rem;">Associated Active Run Matrix</h3>
             <table class="history-table">
                 <thead>
                     <tr>
@@ -1145,7 +1105,6 @@ def export_profile_pdf(user_id):
                 </thead>
                 <tbody>
     """
-    
     for item in history:
         html_print_layout += f"""
                     <tr>
@@ -1156,35 +1115,30 @@ def export_profile_pdf(user_id):
                         <td>{item['created_at']}</td>
                     </tr>
         """
-        
     html_print_layout += """
                 </tbody>
             </table>
-            <div style="margin-top: 4rem; text-align: center; font-size: 0.72rem; color: #8a9e8d; border-top: 1px dashed #2e3830; padding-top: 1rem;">
-                Cryptographic Attestation Token Generated Automatically — VerifyMe SecOps Node
-            </div>
         </div>
     </body>
     </html>
     """
     return html_print_layout
-# ─── SECURED ACCOUNT PROFILE & SECURITY AGENT MANAGEMENT CHANNELS ───
 
+# --- SECURED ACCOUNT PROFILE & SECURITY AGENT MANAGEMENT CHANNELS ---
 @app.route('/update-profile', methods=['POST'])
 def update_profile():
-    # 1. Primary Authorization Intercept Guard Check
     if 'user_id' not in session:
         flash("Session expired. Please re-authenticate.", "error")
         return redirect(url_for('login'))
             
-    # 2. FIXED INDENTATION: Moved out of the conditional block to run cleanly when logged in
     name = request.form.get('individual_name', '').strip()
     email = request.form.get('email', '').strip()
     individual_id = request.form.get('individual_id', '').strip()
     
-    # 3. Active SQLite Persistence Workspace Updates
     try:
         with get_db_connection() as conn:
+            # 🛠️ FIXED: Added cursor instantiation
+            cursor = conn.cursor()
             cursor.execute(
                 """
                 UPDATE users 
@@ -1194,20 +1148,18 @@ def update_profile():
                 (name, email, individual_id, session['user_id'])
             )
             conn.commit()
+            cursor.close()
             
-        # Dynamically refresh local session display state variables
         session['user_email'] = email
         session['display_name'] = name
-        
         flash("Profile parameter configurations updated successfully.", "success")
-    except sqlite3.IntegrityError:
+    except psycopg2.IntegrityError:
         flash("Operational conflict: This email account workspace mapping is already taken.", "error")
     except Exception as e:
         print(f"SecOps Core Database Write Error: {e}")
         flash("Internal system structural fault writing properties to data core.", "error")
         
     return redirect(url_for('dashboard_individual'))
-
 
 @app.route('/update-security-hash', methods=['POST'])
 def update_security_hash():
@@ -1220,18 +1172,20 @@ def update_security_hash():
     
     try:
         with get_db_connection() as conn:
-            # 1. Fetch live user hash layout strings from SQLite context
-            user = cursor.execute("SELECT password_hash FROM users WHERE id = %s", (session['user_id'],)).fetchone()
+            # 🛠️ FIXED: Added cursor factory to prevent key reading lookup failures
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute("SELECT password_hash FROM users WHERE id = %s", (session['user_id'],))
+            user = cursor.fetchone()
             
-            # 2. Assert and cryptographically evaluate verification validity rules
             if not user or not check_password_hash(user['password_hash'], current_password):
+                cursor.close()
                 flash("Authentication failed: Current cryptographic signature invalid.", "error")
                 return redirect(url_for('dashboard_individual'))
             
-            # 3. Generate updated secure password signature array maps
             secure_hash = generate_password_hash(new_password, method='pbkdf2:sha256')
             cursor.execute("UPDATE users SET password_hash = %s WHERE id = %s", (secure_hash, session['user_id']))
             conn.commit()
+            cursor.close()
             
         flash("Security hash matrices rewritten successfully.", "success")
     except Exception as e:
@@ -1240,7 +1194,6 @@ def update_security_hash():
         
     return redirect(url_for('dashboard_individual'))
 
-
 @app.route('/account/terminate/<account_type>', methods=['GET'])
 def terminate_account(account_type):
     if 'user_id' not in session:
@@ -1248,22 +1201,21 @@ def terminate_account(account_type):
         
     try:
         with get_db_connection() as conn:
-            # 1. Clear active multi-channel run tracks belonging to the target node
+            # 🛠️ FIXED: Created local cursor definition context block
+            cursor = conn.cursor()
             cursor.execute("DELETE FROM screenings WHERE user_id = %s", (session['user_id'],))
             cursor.execute("DELETE FROM individual_audits WHERE user_id = %s", (session['user_id'],))
-            
-            # 2. Purge structural entry registry node tracking definitions entirely
             cursor.execute("DELETE FROM users WHERE id = %s", (session['user_id'],))
             conn.commit()
+            cursor.close()
             
-        # 3. Destructure layout token values, clear cookies, and close sessions
         session.clear()
         flash("Account node eliminated. System mappings successfully cleared.", "warning")
         return redirect(url_for('login'))
-        
     except Exception as e:
         print(f"Critical Node Deletion Failure Context: {e}")
         flash("SecOps Block: Prevented account deletion due to processing error.", "error")
         return redirect(url_for('dashboard_individual'))
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
