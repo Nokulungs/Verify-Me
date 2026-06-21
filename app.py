@@ -453,7 +453,6 @@ def purge_user(user_id):
 
 # --- SECURED CORPORATE WORKSPACE & DATA PROCESSING ---
 @app.route('/dashboard/corporate')
-@app.route('/dashboard-corporate')
 def dashboard_corporate():
     if 'user_id' not in session or session.get('applicant_type') != 'company':
         flash('Access denied. Corporate clearance required.', 'error')
@@ -464,7 +463,7 @@ def dashboard_corporate():
     with get_db_connection() as conn:
         cursor = conn.cursor(cursor_factory=RealDictCursor)
         
-        # 1. Fetch candidate screening records
+        # Fetch candidate screening records
         cursor.execute('''
             SELECT id, candidate_name AS name, candidate_email AS email, 
                    screening_type AS type, status, payment_status, payment_ref,
@@ -475,14 +474,14 @@ def dashboard_corporate():
         ''', (user_id,))
         candidates = cursor.fetchall()
         
-        # 2. Count candidates who need to upload documents (Status: Awaiting Document Upload)
+        # Count candidates who need to upload documents
         cursor.execute('''
             SELECT COUNT(*) FROM screenings 
             WHERE user_id = %s AND status = 'Awaiting Document Upload'
         ''', (user_id,))
         attention_required_count = cursor.fetchone()['count']
         
-        # 3. Count entries awaiting gateway settlement (Unpaid/Cancelled Checkout tracking)
+        # Count entries awaiting gateway settlement
         cursor.execute('''
             SELECT COUNT(*) FROM screenings 
             WHERE user_id = %s AND (payment_status IN ('Pending Checkout', 'Pending', 'Cancelled') OR status = 'Awaiting Payment')
@@ -499,6 +498,11 @@ def dashboard_corporate():
         hide_navbar=True, 
         hide_footer=True
     )
+
+# 🌟 Create a clean mirror fallback so url_for('dashboard_corporate') never fails
+@app.route('/dashboard-corporate')
+def dashboard_corporate_fallback():
+    return redirect(url_for('dashboard_corporate'))
 
 @app.route('/initiate-screening', methods=['POST'])
 def initiate_screening():
