@@ -1191,7 +1191,7 @@
 
                 <div class="service-item-card">
                     <div class="service-meta">
-                        <h4>Credit & Financial Check</h4>
+                        <h4>Credit & Financial Checks</h4>
                         <p>Compiles financial records histories, credit history profiles scores, judgment listings, and
                             debt-to-income trace indicators.</p>
                     </div>
@@ -1215,9 +1215,8 @@
 
                 <div class="service-item-card">
                     <div class="service-meta">
-                        <h4>Criminal Record & Background Check</h4>
-                        <p>Submits biometric/credential parameters against regulatory fingerprint catalogs to ensure
-                            clean criminal records history profiles.</p>
+                        <h4>Global Compliance Screening</h4>
+                        <p>Screen candidates against sanctions, PEP, and AML databases for regulatory compliance.</p>
                     </div>
                     <div class="service-pricing-row">
                         <span class="info-label">Standard Fee</span>
@@ -1227,9 +1226,8 @@
 
                 <div class="service-item-card">
                     <div class="service-meta">
-                        <h4>Criminal Record & Background Check</h4>
-                        <p>Submits biometric/credential parameters against regulatory fingerprint catalogs to ensure
-                            clean criminal records history profiles.</p>
+                        <h4>Social Media & Digital Footprint Analysis</h4>
+                        <p>Analyzes social media activity and digital presence to assess candidate suitability.</p>
                     </div>
                     <div class="service-pricing-row">
                         <span class="info-label">Standard Fee</span>
@@ -1242,88 +1240,78 @@
         </div>
 
         <div id="tab-profile" class="tab-panel">
-            <div class="profile-grid">
-                <div class="profile-card">
-                    <h3>Account Metadata Parameters</h3>
-                    <div class="info-group">
-                        <div class="info-label">Legal Name Group String</div>
-                        <div class="info-value">{{ user_profile.individual_name if user_profile else 'Not Set' }}</div>
-                    </div>
-                    <div class="info-group">
-                        <div class="info-label">Registered Electronic Mail Workspace</div>
-                        <div class="info-value">{{ user_profile.email if user_profile else 'Not Set' }}</div>
-                    </div>
-                    <div class="info-group">
-                        <div class="info-label">National Identity / Passport Track Field</div>
-                        <div class="info-value">{{ user_profile.individual_id if user_profile else 'Not Set' }}</div>
-                    </div>
-                    <div class="info-group">
-                        <div class="info-label">Security Workspace Token Initialization Date</div>
-                        <div class="info-value">{{ user_profile.created_at if user_profile else 'Unknown' }}</div>
-                    </div>
-                    <div style="display: flex; gap: 0.75rem; margin-top: 0.5rem;">
-                        <button type="button" class="btn-table-row" id="edit-indiv-btn"
-                            onclick="enableProfileEditing('indiv')"><i class="fa-solid fa-pen-to-square"></i> Edit
-                            Profile</button>
-                        <button type="submit" class="btn-portal-primary" id="save-indiv-btn"
-                            style="display: none; padding: 0.5rem 1rem;"><i class="fa-solid fa-floppy-disk"></i> Save
-                            Changes</button>
-                    </div>
-                    </form>
-                </div>
+    <div class="profile-grid">
 
-                <div class="analytics-card" style="gap: 1rem;">
-                    <div class="card-label"
-                        style="border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; font-family: var(--font-mono); font-size: 0.75rem; text-transform: uppercase;">
-                        Change Password Securely</div>
-                    <form id="indiv-password-form"
-                        style="display: flex; flex-direction: column; gap: 1rem; width: 100%;">
-                        <div class="form-group">
-                            <label>Current Password</label>
-                            <input type="password" required class="form-control">
-                        </div>
-                        <div class="form-group">
-                            <label>New Password</label>
-                            <input type="password" id="indiv-new-password" required class="form-control"
-                                oninput="checkPasswordStrength(this.value, 'indiv-strength')">
-                            <div style="display: flex; gap: 4px; margin-top: 6px;" id="indiv-strength">
-                                <div
-                                    style="flex: 1; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px;">
-                                </div>
-                                <div
-                                    style="flex: 1; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px;">
-                                </div>
-                                <div
-                                    style="flex: 1; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px;">
-                                </div>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label>Confirm New Password</label>
-                            <input type="password" required class="form-control">
-                        </div>
-                        <button type="submit" class="btn-table-row"
-                            style="align-self: flex-start; margin-top: 0.5rem;">Update Security Hash</button>
-                    </form>
+        <div class="profile-card">
+            <h3>Account Metadata Parameters</h3>
+            <form id="indiv-profile-form" method="POST" action="/update-profile">
+                <div class="info-group">
+                    <div class="info-label">Legal Name Group String</div>
+                    <div class="info-value" id="val-indiv-name">{{ user_profile.individual_name if user_profile else 'Not Set' }}</div>
                 </div>
-
-                <div class="analytics-card" style="gap: 1rem; border: 1px solid rgba(255, 74, 74, 0.2);">
-                    <div class="card-label"
-                        style="border-bottom: 1px solid rgba(255, 74, 74, 0.1); padding-bottom: 0.5rem; font-family: var(--font-mono); font-size: 0.75rem; text-transform: uppercase; color: #ff4a4a;">
-                        Danger Zone</div>
-                    <p style="margin: 0; font-size: 0.85rem; color: var(--brand-muted); line-height: 1.4;">
-                        Once you eliminate your structural account nodes, your data mappings, verification records, and
-                        uploaded vectors are immediately expunged from memory.
-                    </p>
-                    <button type="button" class="btn-table-row"
-                        style="color: #ff4a4a; border-color: rgba(255, 74, 74, 0.3); background: rgba(255, 74, 74, 0.05); align-self: flex-start;"
-                        onclick="confirmAccountDeletion('indiv')">
-                        <i class="fa-solid fa-trash-can"></i> Delete My Account
+                <div class="info-group">
+                    <div class="info-label">Registered Electronic Mail Workspace</div>
+                    <div class="info-value" id="val-indiv-email">{{ user_profile.email if user_profile else 'Not Set' }}</div>
+                </div>
+                <div class="info-group">
+                    <div class="info-label">National Identity / Passport Track Field</div>
+                    <div class="info-value" id="val-indiv-id">{{ user_profile.individual_id if user_profile else 'Not Set' }}</div>
+                </div>
+                <div class="info-group">
+                    <div class="info-label">Security Workspace Token Initialization Date</div>
+                    <div class="info-value" id="val-indiv-created">{{ user_profile.created_at if user_profile else 'Unknown' }}</div>
+                </div>
+                
+                <div style="display: flex; gap: 0.75rem; margin-top: 1.5rem;">
+                    <button type="button" class="btn-table-row" id="edit-indiv-btn" onclick="enableProfileEditing('indiv')">
+                        <i class="fa-solid fa-pen-to-square"></i> Edit Profile
+                    </button>
+                    <button type="submit" class="btn-portal-primary" id="save-indiv-btn" style="display: none; padding: 0.5rem 1rem;">
+                        <i class="fa-solid fa-floppy-disk"></i> Save Changes
                     </button>
                 </div>
-            </div>
-
+            </form>
         </div>
+
+        <div class="analytics-card" style="gap: 1rem;">
+            <div class="card-label" style="border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; font-family: var(--font-mono); font-size: 0.75rem; text-transform: uppercase;">
+                Change Password Securely
+            </div>
+            <form id="indiv-password-form" method="POST" action="/update-security-hash" style="display: flex; flex-direction: column; gap: 1rem; width: 100%;">
+                <div class="form-group">
+                    <label>Current Password</label>
+                    <input type="password" name="current_password" required class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>New Password</label>
+                    <input type="password" name="new_password" id="indiv-new-password" required class="form-control" oninput="checkPasswordStrength(this.value, 'indiv-strength')">
+                    <div style="display: flex; gap: 4px; margin-top: 6px;" id="indiv-strength">
+                        <div style="flex: 1; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; transition: background 0.3s ease;"></div>
+                        <div style="flex: 1; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; transition: background 0.3s ease;"></div>
+                        <div style="flex: 1; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; transition: background 0.3s ease;"></div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Confirm New Password</label>
+                    <input type="password" id="indiv-confirm-password" required class="form-control">
+                </div>
+                <button type="submit" class="btn-table-row" style="align-self: flex-start; margin-top: 0.5rem;">Update Security Hash</button>
+            </form>
+        </div>
+
+        <div class="analytics-card" style="gap: 1rem; border: 1px solid rgba(255, 74, 74, 0.2);">
+            <div class="card-label" style="border-bottom: 1px solid rgba(255, 74, 74, 0.1); padding-bottom: 0.5rem; font-family: var(--font-mono); font-size: 0.75rem; text-transform: uppercase; color: #ff4a4a;">
+                Danger Zone
+            </div>
+            <p style="margin: 0; font-size: 0.85rem; color: var(--brand-muted); line-height: 1.4;">
+                Once you eliminate your structural account nodes, your data mappings, verification records, and uploaded vectors are immediately expunged from memory.
+            </p>
+            <button type="button" class="btn-table-row" style="color: #ff4a4a; border-color: rgba(255, 74, 74, 0.3); background: rgba(255, 74, 74, 0.05); align-self: flex-start;" onclick="confirmAccountDeletion('indiv')">
+                <i class="fa-solid fa-trash-can"></i> Delete My Account
+            </button>
+        </div>
+    </div>
+</div>
 </div>
 </main>
 </div>
@@ -1735,5 +1723,86 @@
             }
         });
     });
+    function enableProfileEditing(type) {
+    const editBtn = document.getElementById(`edit-${type}-btn`);
+    const saveBtn = document.getElementById(`save-${type}-btn`);
+    
+    if (!editBtn || !saveBtn) return;
+
+    editBtn.style.display = 'none';
+    saveBtn.style.display = 'inline-flex';
+
+    const fields = [
+        { id: `val-${type}-name`, name: 'individual_name', placeholder: 'Legal Name' },
+        { id: `val-${type}-email`, name: 'email', placeholder: 'Workspace Email' },
+        { id: `val-${type}-id`, name: 'individual_id', placeholder: 'Identity/Passport string' }
+    ];
+
+    fields.forEach(field => {
+        const container = document.getElementById(field.id);
+        if (container) {
+            const rawVal = container.textContent.trim();
+            const currentVal = (rawVal === 'Not Set' || rawVal === '') ? '' : rawVal;
+            
+            container.innerHTML = `
+                <input type="text" 
+                       name="${field.name}" 
+                       value="${currentVal}" 
+                       placeholder="${field.placeholder}" 
+                       class="form-control" 
+                       required
+                       style="width: 100%; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 6px; color: var(--white); padding: 0.4rem 0.7rem; margin-top: 4px; box-sizing: border-box;">
+            `;
+        }
+    });
+}
+
+/**
+ * Iterates real-time password complexity scores against metrics
+ */
+function checkPasswordStrength(password, indicatorId) {
+    const container = document.getElementById(indicatorId);
+    if (!container) return;
+
+    const bars = container.querySelectorAll('div');
+    bars.forEach(bar => bar.style.background = 'rgba(255,255,255,0.1)'); // Reset steps
+
+    if (!password) return;
+
+    let strengthScore = 0;
+    if (password.length >= 8) strengthScore++;
+    if (/[A-Z]/.test(password) && /[0-9]/.test(password)) strengthScore++;
+    if (/[^A-Za-z0-9]/.test(password)) strengthScore++;
+
+    const statusColors = ['#f87171', '#fbbf24', '#4eb637']; // Weak, Medium, Strong
+    const tint = statusColors[strengthScore - 1] || '#f87171';
+
+    for (let i = 0; i < strengthScore; i++) {
+        if (bars[i]) bars[i].style.background = tint;
+    }
+}
+
+/**
+ * Defensive safety interception prompt for permanent database wipes
+ */
+function confirmAccountDeletion(type) {
+    const warningText = "CRITICAL WARNING:\n\nAre you completely sure you want to proceed? Terminating your structural account node immediately expunges all background screening instances, compliance logs, database mappings, and validation credentials permanently from active system environments. This process cannot be reversed.";
+    if (confirm(warningText)) {
+        window.location.href = `/account/terminate/${type}`;
+    }
+}
+
+// Intercept security hash updates to confirm values match perfectly
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('indiv-password-form')?.addEventListener('submit', function(e) {
+        const newPass = document.getElementById('indiv-new-password').value;
+        const confirmPass = document.getElementById('indiv-confirm-password').value;
+
+        if (newPass !== confirmPass) {
+            e.preventDefault();
+            alert("Security validation fault: New password entry parameters do not match verification confirmation values.");
+        }
+    });
+});
 </script>
 {%endblock%}

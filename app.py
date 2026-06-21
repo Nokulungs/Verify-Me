@@ -3,6 +3,8 @@ import sqlite3
 import csv
 import io
 import urllib.parse
+import psycopg2
+from psycopg2.extras import RealDictCursor
 import hashlib
 import uuid
 from datetime import datetime
@@ -64,83 +66,104 @@ def calculate_individual_cost(verification_type):
 
 # --- DATABASE MANAGEMENT ARCHITECTURE ---
 
+DATABASE_URL = os.environ.get('DATABASE_URL')
+
 def get_db_connection():
-    conn = sqlite3.connect(DATABASE)
-    conn.row_factory = sqlite3.Row  
+    """
+    Establishes a connection thread pool link directly to Render Postgres 
+    or falls back to a safe local testing connection profile.
+    """
+    if DATABASE_URL:
+        # Connect directly to your live Render/Supabase Cloud DB
+        conn = psycopg2.connect(DATABASE_URL)
+    else:
+        # Local development fallback parameters if you don't have DATABASE_URL set locally
+        conn = psycopg2.connect(
+            host="localhost",
+            database="verifyme",
+            user="postgres",
+            password="yourpassword", # Put your local pgAdmin password here
+            port="5432"
+        )
     return conn
 
 def init_db():
-    """Initializes the verification data vault structures inside SQLite."""
-    with get_db_connection() as conn:
-        # 1. Main Accounts Ledger
-        conn.execute('''
-            CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                email TEXT UNIQUE NOT NULL,
-                password_hash TEXT NOT NULL,
-                applicant_type TEXT NOT NULL,       -- 'individual', 'company', or 'admin'
-                individual_name TEXT,              
-                individual_id TEXT,                
-                company_name TEXT,                  
-                company_contact TEXT,              
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
-        
-        # 2. Corporate Screenings Pipeline Table
-        conn.execute('''
-            CREATE TABLE IF NOT EXISTS screenings (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,            
-                candidate_name TEXT NOT NULL,
-                candidate_email TEXT NOT NULL,       
-                screening_type TEXT NOT NULL,        
-                status TEXT DEFAULT 'Awaiting Payment', 
-                payment_method TEXT DEFAULT 'manual_eft',                 
-                payment_status TEXT DEFAULT 'Pending',-- 'Pending', 'Completed', 'Failed'
-                payment_ref TEXT,                    
-                pop_file_path TEXT,                  
-                id_file_path TEXT,                   
-                qualification_file_path TEXT,        
-                rejection_reason TEXT,               
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES users (id)
-            )
-        ''')
+    """Initializes the verification schemas using standard PostgreSQL dialects."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # 1. Accounts Ledger (Using SERIAL for autoincrement keys instead of SQLite's AUTOINCREMENT)
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            id SERIAL PRIMARY KEY,
+            email TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            applicant_type TEXT NOT NULL,       
+            individual_name TEXT,              
+            individual_id TEXT,                
+            company_name TEXT,                  
+            company_contact TEXT,              
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    
+    # 2. Corporate Screenings Table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS screenings (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,            
+            candidate_name TEXT NOT NULL,
+            candidate_email TEXT NOT NULL,       
+            screening_type TEXT NOT NULL,        
+            status TEXT DEFAULT 'Awaiting Payment', 
+            payment_method TEXT DEFAULT 'manual_eft',                 
+            payment_status TEXT DEFAULT 'Pending',
+            payment_ref TEXT,                    
+            pop_file_path TEXT,                  
+            id_file_path TEXT,                   
+            qualification_file_path TEXT,        
+            rejection_reason TEXT,               
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
 
-        # 3. Individual Self-Verification Audit Ledger
-        conn.execute('''
-            CREATE TABLE IF NOT EXISTS individual_audits (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,            
-                verification_type TEXT NOT NULL,     
-                status TEXT DEFAULT 'Awaiting Payment', 
-                payment_method TEXT DEFAULT 'manual_eft',
-                payment_status TEXT DEFAULT 'Pending',
-                payment_ref TEXT,                    
-                pop_file_path TEXT,                  
-                id_file_path TEXT,                   
-                qualification_file_path TEXT,        
-                rejection_reason TEXT,               
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES users (id)
-            )
-        ''')
-        conn.commit()
+    # 3. Individual Self-Verification Audit Ledger
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS individual_audits (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,            
+            verification_type TEXT NOT NULL,     
+            status TEXT DEFAULT 'Awaiting Payment', 
+            payment_method TEXT DEFAULT 'manual_eft',
+            payment_status TEXT DEFAULT 'Pending',
+            payment_ref TEXT,                    
+            pop_file_path TEXT,                  
+            id_file_path TEXT,                   
+            qualification_file_path TEXT,        
+            rejection_reason TEXT,               
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    
+    conn.commit()
 
-        # Seed initial system administrator safely if slot is unoccupied
-        try:
-            admin_check = conn.execute("SELECT 1 FROM users WHERE applicant_type = 'admin'").fetchone()
-            if not admin_check:
-                hashed_admin_pass = generate_password_hash("adminsecret", method='pbkdf2:sha256')
-                conn.execute('''
-                    INSERT INTO users (email, password_hash, applicant_type, individual_name)
-                    VALUES (?, ?, ?, ?)
-                ''', ('admin@insphiredops.co.za', hashed_admin_pass, 'admin', 'SecOps Specialist'))
-                conn.commit()
-        except sqlite3.Error:
-            pass
+    # Seed Admin Account Slot Safely
+    try:
+        cursor.execute("SELECT 1 FROM users WHERE applicant_type = 'admin'")
+        if not cursor.fetchone():
+            hashed_admin_pass = generate_password_hash("adminsecret", method='pbkdf2:sha256')
+            cursor.execute('''
+                INSERT INTO users (email, password_hash, applicant_type, individual_name)
+                VALUES (%s, %s, %s, %s)
+            ''', ('admin@insphiredops.co.za', hashed_admin_pass, 'admin', 'SecOps Specialist'))
+            conn.commit()
+    except Exception as e:
+        print(f"Admin seeding diagnostic notice: {e}")
+    finally:
+        cursor.close()
+        cursor.close()
 
+# Initialize tables immediately on server thread start
 init_db()
 
 
@@ -224,13 +247,15 @@ def register():
 
         # 5. Database Pipeline Core Entry Execution
         with get_db_connection() as conn:
+            cursor = conn.cursor()
             try:
-                conn.execute('''
+                cursor.execute('''
                     INSERT INTO users (
                         email, password_hash, applicant_type, individual_name, individual_id, company_name, company_contact
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s)
                 ''', (email, password_hash, applicant_type, individual_name, individual_id, company_name, company_contact))
                 conn.commit()
+                cursor.close()
                 
                 flash('Workspace profile structured successfully! Please sign in.', 'success')
                 return redirect(url_for('login'))
@@ -259,7 +284,11 @@ def login():
 
         try:
             with get_db_connection() as conn:
-                user = conn.execute('SELECT * FROM users WHERE email = ?', (email,)).fetchone()
+                cursor = conn.cursor(cursor_factory=RealDictCursor)
+                # 🛠️ FIXED: Separate the execution from the fetching step
+                cursor.execute('SELECT * FROM users WHERE email = %s', (email,))
+                user = cursor.fetchone()
+                cursor.close()
         except Exception as e:
             print(f"Login Database Connectivity Error: {e}")
             flash('A core infrastructure network data error occurred. Please try again.', 'error')
@@ -275,10 +304,14 @@ def login():
                 try:
                     corrected_hash = generate_password_hash("adminsecret", method='pbkdf2:sha256')
                     with get_db_connection() as repair_conn:
-                        repair_conn.execute("UPDATE users SET password_hash = ? WHERE email = ?", (corrected_hash, email))
+                        # 🛠️ FIXED: Explicitly initialize the repair_cursor object
+                        repair_cursor = repair_conn.cursor()
+                        repair_cursor.execute("UPDATE users SET password_hash = %s WHERE email = %s", (corrected_hash, email))
                         repair_conn.commit()
+                        repair_cursor.close()
                     print("🔧 Security Ledger Auto-Healed: Fixed plain-text admin password hash in database.")
-                except Exception:
+                except Exception as repair_err:
+                    print(f"🔧 Security Ledger Auto-Heal Failed: {repair_err}")
                     pass
 
             # 3. Clean Session Security State Configuration Binding
@@ -308,7 +341,6 @@ def login():
         return render_template('auth/login.html')
 
     return render_template('auth/login.html')
-
 # ─── THE ADMINISTRATIVE MASTER WORKSPACE VAULT ───────────
 
 @app.route('/admin/workspace')
@@ -316,9 +348,9 @@ def login():
 def admin_dashboard():
     conn = get_db_connection()
     
-    total_users = conn.execute("SELECT COUNT(*) FROM users WHERE applicant_type != 'admin'").fetchone()[0]
-    total_corp = conn.execute("SELECT COUNT(*) FROM screenings").fetchone()[0]
-    total_indiv = conn.execute("SELECT COUNT(*) FROM individual_audits").fetchone()[0]
+    total_users = cursor.execute("SELECT COUNT(*) FROM users WHERE applicant_type != 'admin'").fetchone()[0]
+    total_corp = cursor.execute("SELECT COUNT(*) FROM screenings").fetchone()[0]
+    total_indiv = cursor.execute("SELECT COUNT(*) FROM individual_audits").fetchone()[0]
     
     metrics = {
         "total_users": total_users,
@@ -327,31 +359,31 @@ def admin_dashboard():
         "gross_revenue": "Cross-Channel Verification Active"
     }
 
-    pending_eft_count = conn.execute("SELECT COUNT(DISTINCT payment_ref) FROM screenings WHERE payment_method = 'manual_eft' AND payment_status = 'Pending'").fetchone()[0]
-    pending_eft_count += conn.execute("SELECT COUNT(*) FROM individual_audits WHERE payment_method = 'manual_eft' AND payment_status = 'Pending'").fetchone()[0]
+    pending_eft_count = cursor.execute("SELECT COUNT(DISTINCT payment_ref) FROM screenings WHERE payment_method = 'manual_eft' AND payment_status = 'Pending'").fetchone()[0]
+    pending_eft_count += cursor.execute("SELECT COUNT(*) FROM individual_audits WHERE payment_method = 'manual_eft' AND payment_status = 'Pending'").fetchone()[0]
     
-    ready_review_count = conn.execute("SELECT COUNT(*) FROM screenings WHERE status = 'Ready for Review'").fetchone()[0]
-    ready_review_count += conn.execute("SELECT COUNT(*) FROM individual_audits WHERE status = 'Ready for Review'").fetchone()[0]
+    ready_review_count = cursor.execute("SELECT COUNT(*) FROM screenings WHERE status = 'Ready for Review'").fetchone()[0]
+    ready_review_count += cursor.execute("SELECT COUNT(*) FROM individual_audits WHERE status = 'Ready for Review'").fetchone()[0]
     
     quick_alerts = {
         "pending_efts": pending_eft_count,
         "ready_reviews": ready_review_count
     }
 
-    companies = conn.execute("SELECT DISTINCT company_name FROM users WHERE company_name IS NOT NULL AND company_name != ''").fetchall()
+    companies = cursor.execute("SELECT DISTINCT company_name FROM users WHERE company_name IS NOT NULL AND company_name != ''").fetchall()
     selected_company = request.args.get('company_filter', '')
     
     query_corp = "SELECT s.*, u.company_name FROM screenings s JOIN users u ON s.user_id = u.id"
     if selected_company:
-        corporate_candidates = conn.execute(query_corp + " WHERE u.company_name = ? ORDER BY s.created_at DESC", (selected_company,)).fetchall()
+        corporate_candidates = cursor.execute(query_corp + " WHERE u.company_name = %s ORDER BY s.created_at DESC", (selected_company,)).fetchall()
     else:
-        corporate_candidates = conn.execute(query_corp + " ORDER BY s.created_at DESC").fetchall()
+        corporate_candidates = cursor.execute(query_corp + " ORDER BY s.created_at DESC").fetchall()
 
-    individual_requests = conn.execute("""
+    individual_requests = cursor.execute("""
         SELECT a.*, u.email FROM individual_audits a JOIN users u ON a.user_id = u.id ORDER BY a.created_at DESC
     """).fetchall()
 
-    payments_queue = conn.execute('''
+    payments_queue = cursor.execute('''
         SELECT payment_ref, u.company_name AS party_name, screening_type AS service, payment_method, payment_status, pop_file_path,
                COUNT(s.id) AS units, 'company' AS type
         FROM screenings s JOIN users u ON s.user_id = u.id
@@ -366,8 +398,8 @@ def admin_dashboard():
         ORDER BY payment_status DESC
     ''').fetchall()
 
-    users_ledger = conn.execute("SELECT id, email, company_name, individual_name, applicant_type FROM users WHERE applicant_type != 'admin'").fetchall()
-    conn.close()
+    users_ledger = cursor.execute("SELECT id, email, company_name, individual_name, applicant_type FROM users WHERE applicant_type != 'admin'").fetchall()
+    cursor.close()
     
     return render_template(
         'admin_dashboard.html',
@@ -391,9 +423,9 @@ def update_candidate_status():
     
     with get_db_connection() as conn:
         if track == 'corporate':
-            conn.execute("UPDATE screenings SET status = ? WHERE id = ?", (new_status, candidate_id))
+            cursor.execute("UPDATE screenings SET status = %s WHERE id = %s", (new_status, candidate_id))
         else:
-            conn.execute("UPDATE individual_audits SET status = ? WHERE id = ?", (new_status, candidate_id))
+            cursor.execute("UPDATE individual_audits SET status = %s WHERE id = %s", (new_status, candidate_id))
         conn.commit()
     
     flash(f"Candidate status updated to [{new_status}] successfully.", "success")
@@ -410,9 +442,9 @@ def flag_document():
     status_label = "Flagged — Image Unclear"
     with get_db_connection() as conn:
         if track == 'corporate':
-            conn.execute("UPDATE screenings SET status = ?, rejection_reason = ? WHERE id = ?", (status_label, reason, record_id))
+            cursor.execute("UPDATE screenings SET status = %s, rejection_reason = %s WHERE id = %s", (status_label, reason, record_id))
         else:
-            conn.execute("UPDATE individual_audits SET status = ?, rejection_reason = ? WHERE id = ?", (status_label, reason, record_id))
+            cursor.execute("UPDATE individual_audits SET status = %s, rejection_reason = %s WHERE id = %s", (status_label, reason, record_id))
         conn.commit()
     
     flash("Document flagged. Re-upload instruction triggered back to applicant panel.", "warning")
@@ -429,8 +461,8 @@ def resolve_payment():
     new_candidate_status = 'Awaiting Document Upload' if action == 'Confirm' else 'Awaiting Payment'
     
     with get_db_connection() as conn:
-        conn.execute("UPDATE screenings SET payment_status = ?, status = ? WHERE payment_ref = ?", (new_pay_status, new_candidate_status, pay_ref))
-        conn.execute("UPDATE individual_audits SET payment_status = ?, status = ? WHERE payment_ref = ?", (new_pay_status, 'Ready for Review' if action == 'Confirm' else 'Awaiting Payment', pay_ref))
+        cursor.execute("UPDATE screenings SET payment_status = %s, status = %s WHERE payment_ref = %s", (new_pay_status, new_candidate_status, pay_ref))
+        cursor.execute("UPDATE individual_audits SET payment_status = %s, status = %s WHERE payment_ref = %s", (new_pay_status, 'Ready for Review' if action == 'Confirm' else 'Awaiting Payment', pay_ref))
         conn.commit()
     
     flash(f"Financial Ledger Clearance executed: Reference {pay_ref} is now [{new_pay_status}].", "success")
@@ -441,9 +473,9 @@ def resolve_payment():
 @role_required(['admin'])
 def purge_user(user_id):
     with get_db_connection() as conn:
-        conn.execute("DELETE FROM screenings WHERE user_id = ?", (user_id,))
-        conn.execute("DELETE FROM individual_audits WHERE user_id = ?", (user_id,))
-        conn.execute("DELETE FROM users WHERE id = ?", (user_id,))
+        cursor.execute("DELETE FROM screenings WHERE user_id = %s", (user_id,))
+        cursor.execute("DELETE FROM individual_audits WHERE user_id = %s", (user_id,))
+        cursor.execute("DELETE FROM users WHERE id = %s", (user_id,))
         conn.commit()
     
     flash("Master profile purged successfully.", "success")
@@ -459,9 +491,9 @@ def dashboard_corporate():
         return redirect(url_for('login'))
 
     with get_db_connection() as conn:
-        candidates = conn.execute('''
+        candidates = cursor.execute('''
             SELECT id, candidate_name AS name, candidate_email AS email, screening_type AS type, status, payment_status, DATE(created_at) AS date 
-            FROM screenings WHERE user_id = ? ORDER BY created_at DESC
+            FROM screenings WHERE user_id = %s ORDER BY created_at DESC
         ''', (session['user_id'],)).fetchall()
 
     return render_template('dashboard_corporate.html', candidates=candidates, hide_navbar=True, hide_footer=True)
@@ -555,9 +587,9 @@ def initiate_screening():
         with get_db_connection() as conn:
             for c_name, c_email in staged_rows:
                 # FIX FOR ISSUE 2: IDENTIFY AND SKIP REPEAT ENTRIES
-                existing = conn.execute('''
+                existing = cursor.execute('''
                     SELECT 1 FROM screenings 
-                    WHERE user_id = ? AND candidate_email = ? AND screening_type = ?
+                    WHERE user_id = %s AND candidate_email = %s AND screening_type = %s
                     LIMIT 1
                 ''', (session['user_id'], c_email, screening_type)).fetchone()
                 
@@ -565,10 +597,10 @@ def initiate_screening():
                     duplicates_skipped += 1
                     continue
 
-                conn.execute('''
+                cursor.execute('''
                     INSERT INTO screenings (
                         user_id, candidate_name, candidate_email, screening_type, status, payment_method, payment_status, payment_ref, pop_file_path
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                 ''', (session['user_id'], c_name, c_email, screening_type, 'Awaiting Review', 'manual_eft', 'Pending Review', payment_ref, pop_saved_path))
             conn.commit()
 
@@ -587,9 +619,9 @@ def initiate_screening():
         with get_db_connection() as conn:
             for c_name, c_email in staged_rows:
                 # FIX FOR ISSUE 2: IDENTIFY AND SKIP REPEAT ENTRIES
-                existing = conn.execute('''
+                existing = cursor.execute('''
                     SELECT 1 FROM screenings 
-                    WHERE user_id = ? AND candidate_email = ? AND screening_type = ?
+                    WHERE user_id = %s AND candidate_email = %s AND screening_type = %s
                     LIMIT 1
                 ''', (session['user_id'], c_email, screening_type)).fetchone()
                 
@@ -597,10 +629,10 @@ def initiate_screening():
                     duplicates_skipped += 1
                     continue
 
-                conn.execute('''
+                cursor.execute('''
                     INSERT INTO screenings (
                         user_id, candidate_name, candidate_email, screening_type, status, payment_method, payment_status, payment_ref
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 ''', (session['user_id'], c_name, c_email, screening_type, 'Awaiting Payment', payment_method, 'Pending Checkout', payment_ref))
             conn.commit()
 
@@ -632,16 +664,16 @@ def candidate_upload_portal(candidate_id):
             qual_file.save(qual_path)
             
         with get_db_connection() as conn:
-            conn.execute('''
-                UPDATE screenings SET id_file_path = ?, qualification_file_path = ?, status = 'Ready for Review', rejection_reason = NULL 
-                WHERE id = ?
+            cursor.execute('''
+                UPDATE screenings SET id_file_path = %s, qualification_file_path = %s, status = 'Ready for Review', rejection_reason = NULL 
+                WHERE id = %s
             ''', (id_path, qual_path, candidate_id))
             conn.commit()
             
         return "<h3>Upload Complete. Your files have been securely transmitted to our administrative operators for compliance auditing.</h3>"
         
     with get_db_connection() as conn:
-        candidate = conn.execute("SELECT * FROM screenings WHERE id = ?", (candidate_id,)).fetchone()
+        candidate = cursor.execute("SELECT * FROM screenings WHERE id = %s", (candidate_id,)).fetchone()
     if not candidate: 
         abort(404)
         
@@ -671,12 +703,28 @@ def dashboard_individual():
         return redirect(url_for('login'))
 
     with get_db_connection() as conn:
-        db_rows = conn.execute('''
+    # 1. Open the cursor with RealDictCursor so your dashboard templates don't break
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+    
+    # Query 1: Fetch the audit list rows
+        cursor.execute('''
             SELECT id, verification_type AS type, status, payment_status, rejection_reason, DATE(created_at) AS date 
-            FROM individual_audits WHERE user_id = ? ORDER BY created_at DESC
-        ''', (session['user_id'],)).fetchall()
+            FROM individual_audits 
+            WHERE user_id = %s 
+            ORDER BY created_at DESC
+        ''', (session['user_id'],))
+        db_rows = cursor.fetchall()  # 🌟 Separate line for fetching all rows
         
-        user_profile = conn.execute('SELECT email, individual_name, individual_id, created_at FROM users WHERE id = ?', (session['user_id'],)).fetchone()
+    # Query 2: Fetch the user profile details
+        cursor.execute('''
+            SELECT email, individual_name, individual_id, created_at 
+            FROM users 
+            WHERE id = %s
+        ''', (session['user_id'],))
+        user_profile = cursor.fetchone()  # 🌟 Separate line for fetching the single row
+        
+        # 2. Clean up the cursor channel
+        cursor.close()
 
     return render_template(
         'dashboard_individual.html', 
@@ -744,7 +792,7 @@ def initiate_individual_payment():
             INSERT INTO individual_audits (
                 user_id, verification_type, payment_method, payment_status, 
                 payment_ref, pop_file_path, id_file_path, qualification_file_path, status
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
         ''', (
             session['user_id'], verification_type, payment_method, initial_payment_status,
             payment_ref, pop_saved_path, id_path, qual_path, initial_pipeline_status
@@ -821,25 +869,29 @@ def payfast_checkout():
 def payment_success():
     custom_ref = request.args.get('ref', '')
     
-    # Fallback status update rule: If the user lands here, force update the status instantly
     if custom_ref:
         try:
             with get_db_connection() as conn:
-                # Update corporate screenings matching this reference
-                conn.execute(
-                    "UPDATE screenings SET payment_status = 'Completed', status = 'Awaiting Document Upload' WHERE payment_ref = ?", 
+                # 1. Update corporate screenings matching this reference
+                cursor.execute(
+                    "UPDATE screenings SET payment_status = 'Completed', status = 'Awaiting Document Upload' WHERE payment_ref = %s", 
                     (custom_ref,)
                 )
-                # Update individual audits matching this reference
-                conn.execute(
-                    "UPDATE individual_audits SET payment_status = 'Completed', status = 'Ready for Review' WHERE id = (SELECT id FROM individual_audits WHERE payment_ref = ? OR id = ? LIMIT 1)", 
-                    (custom_ref, custom_ref)
+                
+                # 2. FIXED: Update ALL individual audits belonging to this payment reference token all at once
+                cursor.execute(
+                    """
+                    UPDATE individual_audits 
+                    SET payment_status = 'Completed', status = 'Ready for Review' 
+                    WHERE payment_ref = %s
+                    """, 
+                    (custom_ref,)
                 )
                 conn.commit()
+                print(f"✅ SecOps: Successfully verified and updated all records under reference: {custom_ref}")
         except Exception as e:
             print(f"Fallback update error: {e}")
 
-    # Seamlessly route them to their correct dashboard style based on account type
     if session.get('applicant_type') == 'company':
         return redirect(url_for('dashboard_corporate'))
     return redirect(url_for('dashboard_individual'))
@@ -851,49 +903,42 @@ def payment_cancelled():
     record_id = request.args.get('record_id', '')
 
     with get_db_connection() as conn:
-        # 1. TARGETED ID CLEANUP (Explicit Single Record Row Deletions)
-        if record_id and record_id != 'BATCH':
-            try:
-                # Force cast string parameters to integers to prevent SQLite typing drops
-                target_id = int(record_id)
-                conn.execute("""
-                    DELETE FROM individual_audits 
-                    WHERE id = ? 
-                      AND (payment_status = 'Pending' OR status = 'Awaiting Payment')
-                      AND payment_status != 'Pending Review'
-                """, (target_id,))
-                conn.commit()
-                print(f"SecOps Node: Cleaned up canceled individual audit ID {target_id}")
-            except ValueError:
-                print(f"SecOps Warning: Could not cast record_id '{record_id}' to integer.")
-            except Exception as e:
-                print(f"SecOps Node Error: Failed to purge canceled individual audit ID {record_id}: {e}")
-
-        # 2. FALLBACK REFERENCE CLEANUP (Runs if record_id is missing or set to 'BATCH')
+        # 1. Clear based on specific unique reference token if it exists (Clears ALL duplicates associated with this attempt)
         if custom_ref:
             try:
-                # Clear from screenings (Corporate pipeline context)
-                conn.execute("""
+                # Clear from corporate pipeline context
+                cursor.execute("""
                     DELETE FROM screenings 
-                    WHERE payment_ref = ? 
+                    WHERE payment_ref = %s 
                       AND (payment_status = 'Pending Checkout' OR status = 'Awaiting Payment')
-                      AND payment_status != 'Pending Review'
                 """, (custom_ref,))
                 
-                # ALSO clear from individual_audits if the reference belongs to an individual check
-                conn.execute("""
+                # Clear from individual citizen records context
+                cursor.execute("""
                     DELETE FROM individual_audits 
-                    WHERE payment_ref = ? 
+                    WHERE payment_ref = %s 
                       AND (payment_status = 'Pending' OR status = 'Awaiting Payment')
-                      AND payment_status != 'Pending Review'
                 """, (custom_ref,))
                 
                 conn.commit()
-                print(f"SecOps Node: Executed fallback reference clearance for tracking token {custom_ref}")
+                print(f"🛑 SecOps: Cleaned up all canceled ghost duplicates for tracking token {custom_ref}")
             except Exception as e:
                 print(f"SecOps Node Error: Fallback tracking token clearance exception: {e}")
 
-    flash("Transaction canceled by applicant. Gateway connection dropped and unverified entries cleared.", "error")
+        # 2. Secondary cleanup validation checkpoint via record_id 
+        elif record_id and record_id != 'BATCH':
+            try:
+                target_id = int(record_id)
+                cursor.execute("""
+                    DELETE FROM individual_audits 
+                    WHERE id = %s 
+                      AND (payment_status = 'Pending' OR status = 'Awaiting Payment')
+                """, (target_id,))
+                conn.commit()
+            except ValueError:
+                pass
+
+    flash("Transaction canceled by applicant. Gateway connection dropped and unverified duplicate entries cleared.", "error")
     
     if session.get('applicant_type') == 'company':
         return redirect(url_for('dashboard_corporate'))
@@ -910,9 +955,9 @@ def payfast_webhook():
             record_id, payment_ref = m_payment_id.split('-', 1)
             with get_db_connection() as conn:
                 if record_id == 'BATCH':
-                    conn.execute("UPDATE screenings SET payment_status = 'Completed', status = 'Awaiting Document Upload' WHERE payment_ref = ?", (payment_ref,))
+                    cursor.execute("UPDATE screenings SET payment_status = 'Completed', status = 'Awaiting Document Upload' WHERE payment_ref = %s", (payment_ref,))
                 else:
-                    conn.execute("UPDATE individual_audits SET payment_status = 'Completed', status = 'Ready for Review' WHERE id = ?", (record_id,))
+                    cursor.execute("UPDATE individual_audits SET payment_status = 'Completed', status = 'Ready for Review' WHERE id = %s", (record_id,))
                 conn.commit()
         except Exception:
             pass
@@ -946,13 +991,13 @@ def export_corporate_csv():
     query = "SELECT s.*, u.company_name FROM screenings s JOIN users u ON s.user_id = u.id"
     params = ()
     if company_filter:
-        query += " WHERE u.company_name = ?"
+        query += " WHERE u.company_name = %s"
         params = (company_filter,)
     
     query += " ORDER BY s.created_at DESC"
     
     with get_db_connection() as conn:
-        records = conn.execute(query, params).fetchall()
+        records = cursor.execute(query, params).fetchall()
         
     for row in records:
         writer.writerow([
@@ -990,7 +1035,7 @@ def export_individual_csv():
     ])
     
     with get_db_connection() as conn:
-        records = conn.execute("""
+        records = cursor.execute("""
             SELECT a.*, u.email, u.individual_name, u.individual_id 
             FROM individual_audits a 
             JOIN users u ON a.user_id = u.id 
@@ -1027,14 +1072,14 @@ def export_profile_pdf(user_id):
     Adheres strictly to CSS design compliance rules with zero empty rulesets.
     """
     with get_db_connection() as conn:
-        user_profile = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+        user_profile = cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,)).fetchone()
         if not user_profile:
             abort(404)
             
         if user_profile['applicant_type'] == 'company':
-            history = conn.execute("SELECT id, candidate_name AS name, screening_type AS item, status, created_at FROM screenings WHERE user_id = ?", (user_id,)).fetchall()
+            history = cursor.execute("SELECT id, candidate_name AS name, screening_type AS item, status, created_at FROM screenings WHERE user_id = %s", (user_id,)).fetchall()
         else:
-            history = conn.execute("SELECT id, '-' AS name, verification_type AS item, status, created_at FROM individual_audits WHERE user_id = ?", (user_id,)).fetchall()
+            history = cursor.execute("SELECT id, '-' AS name, verification_type AS item, status, created_at FROM individual_audits WHERE user_id = %s", (user_id,)).fetchall()
 
     html_print_layout = f"""
     <!DOCTYPE html>
@@ -1123,5 +1168,102 @@ def export_profile_pdf(user_id):
     </html>
     """
     return html_print_layout
+# ─── SECURED ACCOUNT PROFILE & SECURITY AGENT MANAGEMENT CHANNELS ───
+
+@app.route('/update-profile', methods=['POST'])
+def update_profile():
+    # 1. Primary Authorization Intercept Guard Check
+    if 'user_id' not in session:
+        flash("Session expired. Please re-authenticate.", "error")
+        return redirect(url_for('login'))
+            
+    # 2. FIXED INDENTATION: Moved out of the conditional block to run cleanly when logged in
+    name = request.form.get('individual_name', '').strip()
+    email = request.form.get('email', '').strip()
+    individual_id = request.form.get('individual_id', '').strip()
+    
+    # 3. Active SQLite Persistence Workspace Updates
+    try:
+        with get_db_connection() as conn:
+            cursor.execute(
+                """
+                UPDATE users 
+                SET individual_name = %s, email = %s, individual_id = %s 
+                WHERE id = %s
+                """, 
+                (name, email, individual_id, session['user_id'])
+            )
+            conn.commit()
+            
+        # Dynamically refresh local session display state variables
+        session['user_email'] = email
+        session['display_name'] = name
+        
+        flash("Profile parameter configurations updated successfully.", "success")
+    except sqlite3.IntegrityError:
+        flash("Operational conflict: This email account workspace mapping is already taken.", "error")
+    except Exception as e:
+        print(f"SecOps Core Database Write Error: {e}")
+        flash("Internal system structural fault writing properties to data core.", "error")
+        
+    return redirect(url_for('dashboard_individual'))
+
+
+@app.route('/update-security-hash', methods=['POST'])
+def update_security_hash():
+    if 'user_id' not in session:
+        flash("Session expired. Please re-authenticate.", "error")
+        return redirect(url_for('login'))
+
+    current_password = request.form.get('current_password')
+    new_password = request.form.get('new_password')
+    
+    try:
+        with get_db_connection() as conn:
+            # 1. Fetch live user hash layout strings from SQLite context
+            user = cursor.execute("SELECT password_hash FROM users WHERE id = %s", (session['user_id'],)).fetchone()
+            
+            # 2. Assert and cryptographically evaluate verification validity rules
+            if not user or not check_password_hash(user['password_hash'], current_password):
+                flash("Authentication failed: Current cryptographic signature invalid.", "error")
+                return redirect(url_for('dashboard_individual'))
+            
+            # 3. Generate updated secure password signature array maps
+            secure_hash = generate_password_hash(new_password, method='pbkdf2:sha256')
+            cursor.execute("UPDATE users SET password_hash = %s WHERE id = %s", (secure_hash, session['user_id']))
+            conn.commit()
+            
+        flash("Security hash matrices rewritten successfully.", "success")
+    except Exception as e:
+        print(f"SecOps Security Hash Rewrite Error: {e}")
+        flash("System fault processing security token initialization vectors.", "error")
+        
+    return redirect(url_for('dashboard_individual'))
+
+
+@app.route('/account/terminate/<account_type>', methods=['GET'])
+def terminate_account(account_type):
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+        
+    try:
+        with get_db_connection() as conn:
+            # 1. Clear active multi-channel run tracks belonging to the target node
+            cursor.execute("DELETE FROM screenings WHERE user_id = %s", (session['user_id'],))
+            cursor.execute("DELETE FROM individual_audits WHERE user_id = %s", (session['user_id'],))
+            
+            # 2. Purge structural entry registry node tracking definitions entirely
+            cursor.execute("DELETE FROM users WHERE id = %s", (session['user_id'],))
+            conn.commit()
+            
+        # 3. Destructure layout token values, clear cookies, and close sessions
+        session.clear()
+        flash("Account node eliminated. System mappings successfully cleared.", "warning")
+        return redirect(url_for('login'))
+        
+    except Exception as e:
+        print(f"Critical Node Deletion Failure Context: {e}")
+        flash("SecOps Block: Prevented account deletion due to processing error.", "error")
+        return redirect(url_for('dashboard_individual'))
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
