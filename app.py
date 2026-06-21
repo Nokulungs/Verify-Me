@@ -893,12 +893,12 @@ def payment_cancelled():
             except Exception as e:
                 print(f"SecOps Node Error: Fallback tracking token clearance exception: {e}")
 
-    flash("Transaction canceled by applicant. Gateway connection dropped and unverified entries cleared.", "warning")
+    flash("Transaction canceled by applicant. Gateway connection dropped and unverified entries cleared.", "error")
     
     if session.get('applicant_type') == 'company':
         return redirect(url_for('dashboard_corporate'))
     return redirect(url_for('dashboard_individual'))
-     
+
 @app.route('/payfast-webhook', methods=['POST'])
 def payfast_webhook():
     # Asynchronous background instant payment notification loop tracking

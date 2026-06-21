@@ -892,6 +892,59 @@
             transform: translateY(0);
         }
     }
+    /* Container positioning wrapper */
+.alert-wrapper {
+    width: 100%;
+    margin-bottom: 2rem;
+    animation: slideInDown 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Base Glassmorphic Layout */
+.glass-alert {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    border-radius: 12px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    line-height: 1.5;
+    letter-spacing: 0.2px;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+/* Explicit 'Warning' Crimson Override */
+.glass-alert.alert-warning {
+    background: rgba(139, 0, 0, 0.15); /* Translucent Deep Crimson */
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(220, 20, 60, 0.4); /* Vivid Crimson Border Edge */
+    color: #ff9494; /* Soft readable pastel red text */
+}
+
+/* Icon Staging Accent */
+.glass-alert.alert-warning .alert-icon {
+    color: #ff4d4d; /* Bright neon accent red for the SVG */
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.alert-message {
+    flex-grow: 1;
+}
+
+/* Clean entrance animation entry */
+@keyframes slideInDown {
+    from {
+        transform: translateY(-15px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
 </style>
 
 <div class="dashboard-layout">
@@ -947,19 +1000,35 @@
             </div>
         </div>
 
-        {% with messages = get_flashed_messages(with_categories=true) %}
+<div class="dashboard-content">
+    {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
-        <div class="flash-container">
-            {% for category, message in messages %}
-            <div class="flash-banner flash-{{ category }}">
-                <i
-                    class="fa-solid {% if category == 'success' %}fa-circle-check{% else %}fa-circle-exclamation{% endif %}"></i>
-                <span>{{ message }}</span>
-            </div>
+            {% for category, msg in messages %}
+                
+                {% if 'canceled' in msg or 'cancelled' in msg or 'dropped' in msg %}
+                    <div class="crimson-glass-banner" style="width: 100% !important; box-sizing: border-box !important; background: rgba(220, 20, 60, 0.16) !important; backdrop-filter: blur(12px) !important; -webkit-backdrop-filter: blur(12px) !important; border: 1px solid rgba(220, 20, 60, 0.55) !important; border-radius: 12px !important; color: #ff9494 !important; padding: 15px 20px !important; font-family: system-ui, -apple-system, sans-serif !important; font-size: 0.95rem !important; font-weight: 600 !important; margin: 0px 0px 25px 0px !important; display: flex !important; align-items: center !important; gap: 12px !important; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4) !important;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ff4d4d" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0 !important;">
+                            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path>
+                            <line x1="12" y1="9" x2="12" y2="13"></line>
+                            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                        </svg>
+                        <div style="flex-grow: 1 !important; text-align: left !important;">
+                            <strong>Notice:</strong> {{ msg }}
+                        </div>
+                    </div>
+
+                {% else %}
+                    <div style="width: 100% !important; box-sizing: border-box !important; background: rgba(78, 182, 55, 0.1) !important; backdrop-filter: blur(12px) !important; -webkit-backdrop-filter: blur(12px) !important; border: 1px solid rgba(78, 182, 55, 0.25) !important; border-radius: 12px !important; color: #9ee690 !important; padding: 14px 20px !important; font-family: system-ui, -apple-system, sans-serif !important; font-size: 0.95rem !important; font-weight: 500 !important; margin: 0px 0px 25px 0px !important; display: flex !important; align-items: center !important; gap: 12px !important;">
+                        <i class="fa-solid fa-circle-check" style="color: #4eb637; font-size: 1.1rem; flex-shrink: 0;"></i>
+                        <div style="flex-grow: 1 !important; text-align: left !important;">
+                            {{ msg }}
+                        </div>
+                    </div>
+                {% endif %}
+
             {% endfor %}
-        </div>
         {% endif %}
-        {% endwith %}
+    {% endwith %}
 
         <div id="tab-overview" class="tab-panel active">
             <div class="action-row">
