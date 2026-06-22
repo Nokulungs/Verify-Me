@@ -1252,5 +1252,81 @@ def terminate_account(account_type):
         flash("SecOps Block: Prevented account deletion due to processing error.", "error")
         return redirect(url_for('dashboard_individual'))
 
+@app.route('/update-corporate-profile', methods=['POST'])
+def update_corporate_profile():
+    if 'user_id' not in session or session.get('applicant_type') != 'company':
+        return jsonify({'success': False, 'message': 'Unauthorized context access.'}), 403
+
+    contact_name = request.form.get('contact_name', '').strip()
+    phone = request.form.get('phone', '').strip()  # If you want to store this in company_contact
+
+    if not contact_name or not phone:
+        return jsonify({'success': False, 'message': 'All contact profile fields are required.'}), 400
+
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cursor:
+                # Using the exact columns defined in your table schema
+                cursor.execute("""
+                    UPDATE users 
+                    SET company_name = %s, company_contact = %s 
+                    WHERE id = %s
+                """, (contact_name, phone, session['user_id']))
+                conn.commit()
+
+        # Update the active session variables so the UI changes immediately
+        session['display_name'] = contact_name
+        return jsonify({'success': True, 'message': 'Corporate profile updated successfully.'})
+        
+    except Exception as e:
+        print(f"💥 Profile Save Core Error: {str(e)}")
+        return jsonify({'success': False, 'message': f'Server database update failure: {str(e)}'}), 500
+@app.route('/update-corporate-password', methods=['POST'])
+def update_corporate_password():
+    if 'user_id' not in session or session.get('applicant_type') != 'company':
+        return jsonify({'success': False, 'message': 'Unauthorized access.'}), 403
+
+    current_password = request.form.get('current_password')
+    new_password = request.form.get('new_password')
+    confirm_password = request.form.get('confirm_password')
+
+    if new_password != confirm_password:
+        return jsonify({'success': False, 'message': 'New password confirmation sets do not match.'}), 400
+
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute("SELECT password_hash FROM users WHERE id = %s", (session['user_id'],))
+                user_record = cursor.fetchone()
+
+                if not user_record or not check_password_hash(user_record['password_hash'], current_password):
+                    return jsonify({'success': False, 'message': 'Current security password hash verification failed.'}), 422
+
+                new_hash = generate_password_hash(new_password)
+                cursor.execute("UPDATE users SET password_hash = %s WHERE id = %s", (new_hash, session['user_id']))
+                conn.commit()
+        return jsonify({'success': True, 'message': 'Workspace security hashes updated.'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Password rotation failure: {str(e)}'}), 500
+
+
+@app.route('/delete-corporate-account', methods=['POST'])
+def delete_corporate_account():
+    if 'user_id' not in session or session.get('applicant_type') != 'company':
+        return jsonify({'success': False, 'message': 'Unauthorized context.'}), 403
+
+    user_id = session['user_id']
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cursor:
+                # Clean out all dependent data traces linked to this profile container
+                cursor.execute("DELETE FROM screenings WHERE user_id = %s", (user_id,))
+                cursor.execute("DELETE FROM users WHERE id = %s", (user_id,))
+                conn.commit()
+        session.clear()
+        return jsonify({'success': True, 'redirect': url_for('login')})
+    except Exception as e:
+        return jsonify({'success': False, 'message': 'Irreversible destruction pipeline execution failure.'}), 500
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
