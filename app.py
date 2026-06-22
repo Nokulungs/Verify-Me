@@ -1,4 +1,6 @@
 import os
+import secrets
+from datetime import datetime, timedelta
 import sqlite3
 import csv
 import io
@@ -7,12 +9,12 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 import hashlib
 import uuid
-from datetime import datetime
 from functools import wraps
 from flask import Flask, render_template, request, redirect, url_for, flash, session, abort, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
+from flask_mail import Mail, Message  # Single, clean import
 
 # Initialize Environmental Context
 load_dotenv()
@@ -28,8 +30,23 @@ class Config:
     PAYFAST_PASSPHRASE = os.environ.get('PAYFAST_PASSPHRASE')
     PAYFAST_POST_URL = os.environ.get('PAYFAST_POST_URL', 'https://sandbox.payfast.co.za/eng/process')
 
+    # ✉️ All your Mail Configurations belong right here inside the class!
+    MAIL_SERVER = 'smtp.gmail.com'
+    MAIL_PORT = 587
+    MAIL_USE_TLS = True
+    MAIL_USERNAME = 'nokulungabembe@gmail.com'
+    MAIL_PASSWORD = 'mxio exxl lngw bbfi' 
+    MAIL_DEFAULT_SENDER = ('VerifyMe Security', 'nokulungabembe@gmail.com')
+
+# Define the Flask application exactly ONCE
 app = Flask(__name__)
+
+# 1. Load the unified configurations into the app environment first
 app.config.from_object(Config)
+
+# 2. Finally, initialize Mail now that the settings are fully baked into the app
+mail = Mail(app)
+
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
@@ -463,6 +480,14 @@ def dashboard_corporate():
     with get_db_connection() as conn:
         cursor = conn.cursor(cursor_factory=RealDictCursor)
         
+        # 📞 NEW: Fetch user/corporate metadata details for the profile view component
+        cursor.execute('''
+            SELECT id, email, phone, company_name, company_contact
+            FROM users 
+            WHERE id = %s
+        ''', (user_id,))
+        user_data = cursor.fetchone()
+        
         # Fetch candidate screening records
         cursor.execute('''
             SELECT id, candidate_name AS name, candidate_email AS email, 
@@ -492,6 +517,7 @@ def dashboard_corporate():
 
     return render_template(
         'dashboard_corporate.html', 
+        user_data=user_data,  # 💥 NOW INJECTED INTO THE CONTEXT MATRICES 💥
         candidates=candidates, 
         attention_required_count=attention_required_count,
         unpaid_count=unpaid_count,
@@ -569,6 +595,7 @@ def initiate_screening():
         flash(f'Bulk metrics processing exception generated: {str(e)}', 'error')
         return redirect(url_for('dashboard_corporate'))
 
+    # ==================== CASE 1: MANUAL EFT FLOW ====================
     if payment_method == 'manual_eft':
         if 'pop_receipt' not in request.files:
             flash('Proof of payment document required for manual ledger checkout tracking.', 'error')
@@ -595,11 +622,41 @@ def initiate_screening():
                     duplicates_skipped += 1
                     continue
 
+                # Generate secure portal token
+                upload_token = secrets.token_urlsafe(32)
+
                 cursor.execute('''
                     INSERT INTO screenings (
-                        user_id, candidate_name, candidate_email, screening_type, status, payment_method, payment_status, payment_ref, pop_file_path
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                ''', (session['user_id'], c_name, c_email, screening_type, 'Awaiting Review', 'manual_eft', 'Pending Review', payment_ref, pop_saved_path))
+                        user_id, candidate_name, candidate_email, screening_type, status, 
+                        payment_method, payment_status, payment_ref, pop_file_path, upload_token
+                    ) VALUES (%s, %s, %s, %s, 'Pending Input', %s, 'Pending Review', %s, %s, %s)
+                ''', (session['user_id'], c_name, c_email, screening_type, 'manual_eft', payment_ref, pop_saved_path, upload_token))
+                
+                # Build link & Send Email
+                invite_link = f"{Config.BASE_URL}/upload-documents/{upload_token}"
+                msg = Message(
+                    subject=f"Action Required: VerifyMe Screening Link for {c_name}",
+                    recipients=[c_email]
+                )
+                msg.html = f"""
+                <!DOCTYPE html>
+                <html>
+                <body style="font-family: 'Segoe UI', Arial, sans-serif; background-color: #121413; color: #f5f5f5; padding: 20px;">
+                    <div style="background-color: #1a1d1b; max-width: 550px; margin: 0 auto; padding: 30px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05);">
+                        <div style="font-size: 1.5rem; font-weight: bold; color: #4eb637; margin-bottom: 20px; font-family: monospace;">// VERIFYME CONTAINER</div>
+                        <h2 style="color: #ffffff;">Hello {c_name},</h2>
+                        <p style="color: #a3a3a3;">An automated enterprise background screening request (<strong>{screening_type}</strong>) has been deployed for you by {session.get('display_name', 'an Enterprise Client')}.</p>
+                        <p style="color: #a3a3a3;">To advance this identity verification process, please click the secure button below to access your documentation upload workspace:</p>
+                        <div style="text-align: center; margin: 30px 0;">
+                            <a href="{invite_link}" style="background-color: #4eb637; color: #000000; text-decoration: none; padding: 12px 24px; font-weight: 600; border-radius: 6px; display: inline-block;">Open Verification Portal</a>
+                        </div>
+                        <p style="color: #a3a3a3;">Once uploaded, your tracking state will automatically shift to <strong>Ready for Review</strong>.</p>
+                    </div>
+                </body>
+                </html>
+                """
+                mail.send(msg)
+                
             conn.commit()
             cursor.close()
 
@@ -612,6 +669,7 @@ def initiate_screening():
             
         return redirect(url_for('dashboard_corporate'))
 
+    # ==================== CASE 2: PAYFAST FLOW ====================
     else:
         duplicates_skipped = 0
         with get_db_connection() as conn:
@@ -626,11 +684,41 @@ def initiate_screening():
                     duplicates_skipped += 1
                     continue
 
+                # Generate secure portal token
+                upload_token = secrets.token_urlsafe(32)
+
                 cursor.execute('''
                     INSERT INTO screenings (
-                        user_id, candidate_name, candidate_email, screening_type, status, payment_method, payment_status, payment_ref
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                ''', (session['user_id'], c_name, c_email, screening_type, 'Awaiting Payment', payment_method, 'Pending Checkout', payment_ref))
+                        user_id, candidate_name, candidate_email, screening_type, status, 
+                        payment_method, payment_status, payment_ref, upload_token
+                    ) VALUES (%s, %s, %s, %s, 'Pending Input', %s, 'Pending Review', %s, %s)
+                ''', (session['user_id'], c_name, c_email, screening_type, 'payfast', payment_ref, upload_token))
+                
+                # Build link & Send Email
+                invite_link = f"{Config.BASE_URL}/upload-documents/{upload_token}"
+                msg = Message(
+                    subject=f"Action Required: VerifyMe Screening Link for {c_name}",
+                    recipients=[c_email]
+                )
+                msg.html = f"""
+                <!DOCTYPE html>
+                <html>
+                <body style="font-family: 'Segoe UI', Arial, sans-serif; background-color: #121413; color: #f5f5f5; padding: 20px;">
+                    <div style="background-color: #1a1d1b; max-width: 550px; margin: 0 auto; padding: 30px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05);">
+                        <div style="font-size: 1.5rem; font-weight: bold; color: #4eb637; margin-bottom: 20px; font-family: monospace;">// VERIFYME CONTAINER</div>
+                        <h2 style="color: #ffffff;">Hello {c_name},</h2>
+                        <p style="color: #a3a3a3;">An automated enterprise background screening request (<strong>{screening_type}</strong>) has been deployed for you by {session.get('display_name', 'an Enterprise Client')}.</p>
+                        <p style="color: #a3a3a3;">To advance this identity verification process, please click the secure button below to access your documentation upload workspace:</p>
+                        <div style="text-align: center; margin: 30px 0;">
+                            <a href="{invite_link}" style="background-color: #4eb637; color: #000000; text-decoration: none; padding: 12px 24px; font-weight: 600; border-radius: 6px; display: inline-block;">Open Verification Portal</a>
+                        </div>
+                        <p style="color: #a3a3a3;">Once uploaded, your tracking state will automatically shift to <strong>Ready for Review</strong>.</p>
+                    </div>
+                </body>
+                </html>
+                """
+                mail.send(msg)
+                
             conn.commit()
             cursor.close()
 
@@ -642,7 +730,6 @@ def initiate_screening():
         updated_bill_amount = cost_per_candidate * active_count
 
         return redirect(url_for('payfast_checkout', record_id="BATCH", custom_ref=payment_ref, custom_amt=updated_bill_amount))
-
 @app.route('/collect/upload-credentials/<int:candidate_id>', methods=['GET', 'POST'])
 def candidate_upload_portal(candidate_id):
     if request.method == 'POST':
@@ -1257,30 +1344,29 @@ def update_corporate_profile():
     if 'user_id' not in session or session.get('applicant_type') != 'company':
         return jsonify({'success': False, 'message': 'Unauthorized context access.'}), 403
 
-    contact_name = request.form.get('contact_name', '').strip()
-    phone = request.form.get('phone', '').strip()  # If you want to store this in company_contact
+    # 📞 Only capture what's on the form now: the phone string node
+    phone = request.form.get('phone', '').strip()
 
-    if not contact_name or not phone:
-        return jsonify({'success': False, 'message': 'All contact profile fields are required.'}), 400
+    if not phone:
+        return jsonify({'success': False, 'message': 'Phone number field is required.'}), 400
 
     try:
         with get_db_connection() as conn:
             with conn.cursor() as cursor:
-                # Using the exact columns defined in your table schema
+                # 🔒 Target ONLY your explicit phone column row node
                 cursor.execute("""
                     UPDATE users 
-                    SET company_name = %s, company_contact = %s 
+                    SET phone = %s 
                     WHERE id = %s
-                """, (contact_name, phone, session['user_id']))
+                """, (phone, session['user_id']))
                 conn.commit()
 
-        # Update the active session variables so the UI changes immediately
-        session['display_name'] = contact_name
         return jsonify({'success': True, 'message': 'Corporate profile updated successfully.'})
         
     except Exception as e:
         print(f"💥 Profile Save Core Error: {str(e)}")
         return jsonify({'success': False, 'message': f'Server database update failure: {str(e)}'}), 500
+
 @app.route('/update-corporate-password', methods=['POST'])
 def update_corporate_password():
     if 'user_id' not in session or session.get('applicant_type') != 'company':
@@ -1327,6 +1413,256 @@ def delete_corporate_account():
         return jsonify({'success': True, 'redirect': url_for('login')})
     except Exception as e:
         return jsonify({'success': False, 'message': 'Irreversible destruction pipeline execution failure.'}), 500
+
+@app.route('/forgot-password', methods=['GET', 'POST'])
+def forgot_password():
+    if request.method == 'POST':
+        email = request.form.get('email', '').strip()
+        
+        # Check if user exists in database
+        db = get_db_connection()
+        cursor = db.cursor()
+        cursor.execute("SELECT id FROM users WHERE email = %s;", (email,))
+        user = cursor.fetchone()
+        
+        if user:
+                user_id = user[0]
+                token = secrets.token_urlsafe(32)
+                expires_at = datetime.now() + timedelta(hours=1)
+                
+                cursor.execute("""
+                    INSERT INTO password_resets (user_id, token, expires_at)
+                    VALUES (%s, %s, %s);
+                """, (user_id, token, expires_at))
+                db.commit()
+                
+                # 1. Generate the secure recovery absolute URL
+                reset_link = url_for('reset_password', token=token, _external=True)
+                
+                # 2. 🚀 NEW: Compile and dispatch the actual email payload
+                msg = Message("VerifyMe Access Recovery Sequence", recipients=[email])
+                msg.body = f"""Greetings Explorer,
+
+    An access recovery sequence has been initiated for your VerifyMe node. 
+    Click the secure vector link below to establish new credentials:
+
+    {reset_link}
+
+    This operational window will automatically expire in 1 hour. If you did not trigger this run, disregard this communication.
+    """
+                # Send it into the digital void to the user's inbox
+                mail.send(msg)
+                
+                # 3. Clean production notification (No link exposed to the interface!)
+                flash("If that account exists in our matrix, a secure recovery vector link has been dispatched to your inbox.", "success")
+
+        cursor.close()
+        db.close()
+        return redirect(url_for('login'))
+        
+    return render_template('forgot_password.html')
+
+
+# --- 2. EXECUTE PASSWORD RESET SUBMISSION ROUTE ---
+@app.route('/reset-password/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+    db = get_db_connection()
+    cursor = db.cursor()
+    
+    # Check if token exists, hasn't been used, and hasn't expired yet
+    cursor.execute("""
+        SELECT id, user_id, expires_at, used 
+        FROM password_resets 
+        WHERE token = %s AND used = FALSE;
+    """, (token,))
+    reset_record = cursor.fetchone()
+    
+    if not reset_record:
+        flash("Invalid, spent, or corrupted security token parameter.", "error")
+        cursor.close()
+        db.close()
+        return redirect(url_for('forgot_password'))
+        
+    reset_id, user_id, expires_at, used = reset_record
+    
+    # Check if the token lifespan window has run out
+    if datetime.now() > expires_at:
+        flash("This recovery vector session has expired. Please initiate a fresh run.", "error")
+        cursor.close()
+        db.close()
+        return redirect(url_for('forgot_password'))
+        
+    if request.method == 'POST':
+        new_password = request.form.get('password')
+        confirm_password = request.form.get('confirm_password')
+        
+        if new_password != confirm_password:
+            flash("Credentials match discrepancy detected. Try again.", "error")
+            cursor.close()
+            db.close()
+            return render_template('reset_password.html', token=token)
+            
+        # Hash new password string securely
+        hashed_password = generate_password_hash(new_password)
+        
+        # 1. Update the user's password column entry
+        cursor.execute("UPDATE users SET password_hash = %s WHERE id = %s;", (hashed_password, user_id))
+        # 2. Mark this token as spent so it cannot be maliciously reused
+        cursor.execute("UPDATE password_resets SET used = TRUE WHERE id = %s;", (reset_id,))
+        
+        db.commit()
+        cursor.close()
+        db.close()
+        
+        flash("Security credentials updated successfully. Please authenticate via standard sign-in.", "success")
+        return redirect(url_for('login'))
+        
+    cursor.close()
+    db.close()
+    return render_template('reset_password.html', token=token)
+
+@app.route('/send-screening-invite/<int:screening_id>', methods=['POST'])
+def send_screening_invite(screening_id):
+    if 'user_id' not in session or session.get('applicant_type') != 'company':
+        return jsonify({'success': False, 'message': 'Unauthorized context.'}), 403
+
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                # 1. Fetch the screening data row to ensure it belongs to this company container
+                cursor.execute("""
+                    SELECT id, candidate_name, candidate_email, screening_type 
+                    FROM screenings 
+                    WHERE id = %s AND user_id = %s
+                """, (screening_id, session['user_id']))
+                screening = cursor.fetchone()
+
+                if not screening:
+                    return jsonify({'success': False, 'message': 'Screening record node not found.'}), 404
+
+                # 2. Generate a secure unique token string asset
+                upload_token = secrets.token_urlsafe(32)
+
+                # 3. Save the token and flip state to 'Awaiting Document Upload'
+                cursor.execute("""
+                    UPDATE screenings 
+                    SET status = 'Pending Input',
+                        upload_token = %s
+                    WHERE id = %s
+                """, (upload_token, screening_id))
+                conn.commit()
+
+        # 4. Compile the secure dynamic link payload target
+        # e.g., http://localhost:5000/upload-documents/Ab12Cd34Eff...
+        invite_link = f"{Config.BASE_URL}/upload-documents/{upload_token}"
+
+        # 5. Engine Dispatch Email Construction
+        # 5. Engine Dispatch Email Construction
+        msg = Message(
+            subject=f"Action Required: VerifyMe Screening Link for {screening['candidate_name']}",
+            recipients=[screening['candidate_email']]
+        )
+        
+        # Premium HTML template block matching your VerifyMe design styles
+        msg.html = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <style>
+                body {{ font-family: 'Segoe UI', Arial, sans-serif; background-color: #121413; color: #f5f5f5; margin: 0; padding: 20px; }}
+                .email-card {{ background-color: #1a1d1b; max-width: 550px; margin: 0 auto; padding: 30px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); }}
+                .brand-header {{ font-size: 1.5rem; font-weight: bold; color: #4eb637; margin-bottom: 20px; font-family: monospace; }}
+                h2 {{ color: #ffffff; font-size: 1.3rem; margin-top: 0; }}
+                p {{ color: #a3a3a3; line-height: 1.6; font-size: 0.95rem; }}
+                .btn-container {{ text-align: center; margin: 30px 0; }}
+                .btn-action {{ background-color: #4eb637; color: #000000 !important; text-decoration: none; padding: 12px 24px; font-weight: 600; border-radius: 6px; display: inline-block; transition: background 0.2s; }}
+                .footer-text {{ font-size: 0.8rem; color: #666666; margin-top: 30px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px; }}
+            </style>
+        </head>
+        <body>
+            <div class="email-card">
+                <div class="brand-header">// VERIFYME CONTAINER</div>
+                <h2>Hello {screening['candidate_name']},</h2>
+                <p>An automated enterprise background screening request (<strong>{screening['screening_type']}</strong>) has been deployed for you by <strong>{session.get('display_name')}</strong>.</p>
+                <p>To advance this identity verification process, please open your secure verification workspace via the portal link below to upload your required documentation:</p>
+                
+                <div class="btn-container">
+                    <a href="{invite_link}" class="btn-action">Open Verification Portal</a>
+                </div>
+                
+                <p>Once submitted, the status will automatically update to <strong>Ready for Review</strong> on the workspace matrix.</p>
+                
+                <div class="footer-text">
+                    This is an automated transmission from the VerifyMe Security Automated Router. Please do not reply directly to this email.
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+        
+        # Execute the dispatch thread safely
+        mail.send(msg)
+
+        return jsonify({'success': True, 'message': 'Secure invitation workspace link successfully dispatched.'})
+
+    except Exception as e:
+        print(f"💥 Screening invite pipeline failure: {str(e)}")
+        return jsonify({'success': False, 'message': f'Internal server routing fault: {str(e)}'}), 500
+
+@app.route('/upload-documents/<token>', methods=['GET', 'POST'])
+def upload_documents(token):
+    # 1. Verify token validity against the core database context
+    db = get_db_connection()
+    cursor = db.cursor(cursor_factory=RealDictCursor)
+    
+    cursor.execute("""
+        SELECT s.id, s.candidate_name, s.screening_type, u.company_name 
+        FROM screenings s
+        JOIN users u ON s.user_id = u.id
+        WHERE s.upload_token = %s
+    """, (token,))
+    screening = cursor.fetchone()
+    
+    if not screening:
+        cursor.close()
+        db.close()
+        abort(404) # Token doesn't exist or is invalid
+
+    if request.method == 'POST':
+        # Ensure a file node exists in the multipart form payload
+        if 'document' not in request.files:
+            flash('No file packet detected.', 'error')
+            return redirect(request.url)
+            
+        file = request.files['document']
+        if file.filename == '':
+            flash('No file selected for dispatch.', 'error')
+            return redirect(request.url)
+
+        if file:
+            filename = secure_filename(file.filename)
+            unique_filename = f"{uuid.uuid4().hex}_{filename}"
+            
+            upload_folder = os.path.join(app.root_path, 'uploads')
+            os.makedirs(upload_folder, exist_ok=True)
+            file.save(os.path.join(upload_folder, unique_filename))
+            
+            # 🔄 Update to your exact status strings here:
+            cursor.execute("""
+                UPDATE screenings 
+                SET status = 'Ready for Review'
+                WHERE upload_token = %s
+            """, (token,))
+            db.commit()
+            
+            cursor.close()
+            db.close()
+            
+            return render_template('upload_success.html', screening=screening)
+
+    cursor.close()
+    db.close()
+    return render_template('upload_portal.html', screening=screening, token=token)
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
