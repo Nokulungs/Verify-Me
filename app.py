@@ -632,7 +632,7 @@ def initiate_screening():
                     ) VALUES (%s, %s, %s, %s, 'Pending Input', %s, 'Pending Review', %s, %s, %s)
                 ''', (session['user_id'], c_name, c_email, screening_type, 'manual_eft', payment_ref, pop_saved_path, upload_token))
                 
-                # Build link & Send Email
+                # Build link & Send Email securely within the App Context
                 invite_link = f"{Config.BASE_URL}/upload-documents/{upload_token}"
                 msg = Message(
                     subject=f"Action Required: VerifyMe Screening Link for {c_name}",
@@ -655,7 +655,8 @@ def initiate_screening():
                 </body>
                 </html>
                 """
-                mail.send(msg)
+                with app.app_context():
+                    mail.send(msg)
                 
             conn.commit()
             cursor.close()
@@ -694,7 +695,7 @@ def initiate_screening():
                     ) VALUES (%s, %s, %s, %s, 'Pending Input', %s, 'Pending Review', %s, %s)
                 ''', (session['user_id'], c_name, c_email, screening_type, 'payfast', payment_ref, upload_token))
                 
-                # Build link & Send Email
+                # Build link & Send Email securely within the App Context
                 invite_link = f"{Config.BASE_URL}/upload-documents/{upload_token}"
                 msg = Message(
                     subject=f"Action Required: VerifyMe Screening Link for {c_name}",
@@ -717,7 +718,8 @@ def initiate_screening():
                 </body>
                 </html>
                 """
-                mail.send(msg)
+                with app.app_context():
+                    mail.send(msg)
                 
             conn.commit()
             cursor.close()
@@ -730,6 +732,7 @@ def initiate_screening():
         updated_bill_amount = cost_per_candidate * active_count
 
         return redirect(url_for('payfast_checkout', record_id="BATCH", custom_ref=payment_ref, custom_amt=updated_bill_amount))
+
 @app.route('/collect/upload-credentials/<int:candidate_id>', methods=['GET', 'POST'])
 def candidate_upload_portal(candidate_id):
     if request.method == 'POST':
@@ -1610,59 +1613,57 @@ def send_screening_invite(screening_id):
         return jsonify({'success': False, 'message': f'Internal server routing fault: {str(e)}'}), 500
 
 @app.route('/upload-documents/<token>', methods=['GET', 'POST'])
-def upload_documents(token):
-    # 1. Verify token validity against the core database context
-    db = get_db_connection()
-    cursor = db.cursor(cursor_factory=RealDictCursor)
-    
-    cursor.execute("""
-        SELECT s.id, s.candidate_name, s.screening_type, u.company_name 
-        FROM screenings s
-        JOIN users u ON s.user_id = u.id
-        WHERE s.upload_token = %s
-    """, (token,))
-    screening = cursor.fetchone()
-    
-    if not screening:
+def token_upload_portal(token):
+    with get_db_connection() as conn:
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        cursor.execute("SELECT * FROM screenings WHERE upload_token = %s", (token,))
+        candidate = cursor.fetchone()
         cursor.close()
-        db.close()
-        abort(404) # Token doesn't exist or is invalid
-
+        
+    if not candidate:
+        abort(404)
+        
     if request.method == 'POST':
-        # Ensure a file node exists in the multipart form payload
-        if 'document' not in request.files:
-            flash('No file packet detected.', 'error')
-            return redirect(request.url)
+        id_file = request.files.get('identity_doc')
+        qual_file = request.files.get('qualification_doc')
+        
+        id_path, qual_path = None, None
+        if id_file and allowed_file(id_file.filename):
+            filename = secure_filename(f"CAND_{candidate['id']}_ID_{id_file.filename}")
+            id_path = os.path.join(app.config['DOCS_FOLDER'], filename)
+            id_file.save(id_path)
             
-        file = request.files['document']
-        if file.filename == '':
-            flash('No file selected for dispatch.', 'error')
-            return redirect(request.url)
-
-        if file:
-            filename = secure_filename(file.filename)
-            unique_filename = f"{uuid.uuid4().hex}_{filename}"
+        if qual_file and allowed_file(qual_file.filename):
+            filename = secure_filename(f"CAND_{candidate['id']}_QUAL_{qual_file.filename}")
+            qual_path = os.path.join(app.config['DOCS_FOLDER'], filename)
+            qual_file.save(qual_path)
             
-            upload_folder = os.path.join(app.root_path, 'uploads')
-            os.makedirs(upload_folder, exist_ok=True)
-            file.save(os.path.join(upload_folder, unique_filename))
-            
-            # 🔄 Update to your exact status strings here:
-            cursor.execute("""
-                UPDATE screenings 
-                SET status = 'Ready for Review'
-                WHERE upload_token = %s
-            """, (token,))
-            db.commit()
-            
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                UPDATE screenings SET id_file_path = %s, qualification_file_path = %s, status = 'Ready for Review', rejection_reason = NULL 
+                WHERE id = %s
+            ''', (id_path, qual_path, candidate['id']))
+            conn.commit()
             cursor.close()
-            db.close()
             
-            return render_template('upload_success.html', screening=screening)
+        return "<h3>Upload Complete. Your files have been securely transmitted to our administrative operators for compliance auditing.</h3>"
 
-    cursor.close()
-    db.close()
-    return render_template('upload_portal.html', screening=screening, token=token)
+    return f"""
+    <html>
+        <body style="background:#111; color:#fff; font-family:sans-serif; padding: 3rem; max-width: 500px; margin: auto;">
+            <h2>VerifyMe Security Portal</h2>
+            <p>Hello <strong>{candidate['candidate_name']}</strong>, please upload clear digital file records for your <strong>{candidate['screening_type']}</strong>.</p>
+            <form method="POST" enctype="multipart/form-data" style="background:#1c1c1c; padding:2rem; border-radius:8px;">
+                <label style="display:block; margin-bottom:0.5rem;">National ID Document:</label>
+                <input type="file" name="identity_doc" required style="margin-bottom:1.5rem;"><br>
+                <label style="display:block; margin-bottom:0.5rem;">Qualification Certificate Matrix (Optional):</label>
+                <input type="file" name="qualification_doc"><br><br>
+                <button type="submit" style="background:#4eb637; color:#000; border:none; padding:0.5rem 1rem; font-weight:bold; border-radius:4px; cursor:pointer;">Submit Compliance Documents</button>
+            </form>
+        </body>
+    </html>
+    """
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
