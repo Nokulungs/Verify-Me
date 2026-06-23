@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Document Gateway | VerifyMe</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-main: #121413;
+            --card-bg: #1a1d1b;
+            --brand-lime: #4eb637;
+            --text-main: #f5f5f5;
+            --border-glow: rgba(78, 182, 55, 0.2);
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 1.5rem;
+        }
+
+        .portal-container {
+            background: var(--card-bg);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 2.5rem;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .header-node h1 {
+            font-size: 1.5rem;
+            margin: 0 0 0.5rem 0;
+            font-weight: 600;
+        }
+
+        .meta-tag {
+            font-family: monospace;
+            background: rgba(78, 182, 55, 0.1);
+            color: var(--brand-lime);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            display: inline-block;
+            margin-bottom: 1.5rem;
+        }
+
+        .drop-zone {
+            border: 2px dashed rgba(255, 255, 255, 0.15);
+            border-radius: 8px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: rgba(255, 255, 255, 0.01);
+        }
+
+        .drop-zone:hover {
+            border-color: var(--brand-lime);
+            box-shadow: 0 0 12px var(--border-glow);
+        }
+
+        .file-input { display: none; }
+
+        .btn-submit {
+            background: var(--brand-lime);
+            color: #000;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+            border-radius: 6px;
+            width: 100%;
+            cursor: pointer;
+            margin-top: 1.5rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            transition: opacity 0.2s;
+        }
+
+        .btn-submit:hover { opacity: 0.9; }
+    </style>
+</head>
+<body>
+
+<div class="portal-container">
+    <div class="header-node">
+        <h1>Secure Document Deposit</h1>
+        <p style="color: #a3a3a3; font-size: 0.9rem; margin-top: 0;">
+            Requested by <strong>{{ screening.company_name }}</strong> for candidate <strong>{{ screening.candidate_name }}</strong>.
+        </p>
+        <div class="meta-tag"><i class="fa-solid fa-shield-halved"></i> Required: {{ screening.screening_type }}</div>
+    </div>
+
+    <form action="{{ url_for('upload_documents', token=token) }}" method="POST" enctype="multipart/form-data">
+        <div class="drop-zone" onclick="document.getElementById('doc-file').click()">
+            <i class="fa-solid fa-cloud-arrow-up" style="font-size: 2.5rem; color: var(--brand-lime); margin-bottom: 1rem;"></i>
+            <p style="margin: 0; font-size: 0.95rem;">Click to select or drag verification file</p>
+            <span id="file-name-display" style="display: block; margin-top: 0.5rem; color: #a3a3a3; font-size: 0.85rem;">PDF, PNG, or JPG (Max 5MB)</span>
+            <input type="file" id="doc-file" name="document" class="file-input" required onchange="displayFilename(this)">
+        </div>
+
+        <button type="submit" class="btn-submit">
+            <i class="fa-solid fa-lock-open"></i> Deploy Secure Document Package
+        </button>
+    </form>
+</div>
+
+<script>
+function displayFilename(input) {
+    const display = document.getElementById('file-name-display');
+    if (input.files.length > 0) {
+        display.innerHTML = `<i class="fa-solid fa-file-circle-check" style="color: var(--brand-lime);"></i> ${input.files[0].name}`;
+    }
+}
+</script>
+</body>
+</html>

@@ -1654,7 +1654,7 @@ def token_upload_portal(token):
         qual_filename_to_save = None
         
         # 1. HARDCODE THE TARGET PATH DIRECTLY TO AVOID CONFIG MISSES
-        target_dir = os.path.join(app.root_path, 'static', 'uploads', 'credentials')
+        target_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), 'static', 'uploads', 'credentials'))
         
         # 2. FORCE SYSTEM TO CREATE THE FOLDER IF IT DOES NOT EXIST YET
         os.makedirs(target_dir, exist_ok=True)

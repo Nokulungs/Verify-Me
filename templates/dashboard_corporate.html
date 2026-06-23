@@ -194,19 +194,20 @@
                             <td class="mono-text">{{ candidate.email }}</td>
                             <td>{{ candidate.type }}</td>
                             <td>{{ candidate.date }}</td>
-                            <td>
-                                {% if candidate.status == 'Cleared' %}
-                                <span class="status-badge badge-cleared"><i class="fa-solid fa-circle-check"></i>
-                                    Cleared</span>
-                                {% elif candidate.status == 'Flagged' %}
-                                <span class="status-badge badge-flagged" style="color:#ff4a4a;"><i
-                                        class="fa-solid fa-triangle-exclamation"></i> Flagged</span>
-                                {% elif candidate.status == 'Processing' %}
-                                <span class="status-badge badge-processing"><i class="fa-solid fa-spinner fa-spin"></i>
-                                    Processing</span>
+                            
+                            <td class="corporate-table-cell">
+                                {% if candidate.status == 'Ready for Review' %}
+                                    <span class="status-badge status-ready" style="background: rgba(78, 182, 55, 0.12); color: #4eb637; border: 1px solid rgba(78, 182, 55, 0.25);">
+                                        <i class="fa-solid fa-circle-check font-icon-spacing"></i> Ready for Review
+                                    </span>
+                                {% elif candidate.status and candidate.status.startswith('Flagged') %}
+                                    <span class="status-badge status-flagged" style="background: rgba(255, 74, 74, 0.08); color: #ff4a4a; border: 1px solid rgba(255, 74, 74, 0.25);">
+                                        <i class="fa-solid fa-triangle-exclamation font-icon-spacing"></i> Action Required
+                                    </span>
                                 {% else %}
-                                <span class="status-badge badge-pending"><i class="fa-solid fa-hourglass-half"></i>
-                                    Pending Input</span>
+                                    <span class="status-badge status-pending">
+                                        <i class="fa-solid fa-clock-rotate-left font-icon-spacing"></i> {{ candidate.status if candidate.status else 'Pending Input' }}
+                                    </span>
                                 {% endif %}
                             </td>
                         </tr>
@@ -341,125 +342,98 @@
         </div>
 
         <div id="tab-profile" class="tab-content">
-            <header class="workspace-header" style="margin-bottom: 2rem;">
-                <div>
-                    <h1 style="margin: 0; font-size: 1.75rem; font-family: inherit;">Company Profile</h1>
-                    <p class="subtitle" style="margin: 0.25rem 0 0 0; color: #a3a3a3; font-size: 0.9rem;">Enterprise
-                        details and corporate metadata contacts.</p>
+    <header class="workspace-header" style="margin-bottom: 2rem;">
+        <div>
+            <h1 style="margin: 0; font-size: 1.75rem; font-family: inherit;">Company Profile</h1>
+            <p class="subtitle" style="margin: 0.25rem 0 0 0; color: #a3a3a3; font-size: 0.9rem;">
+                Enterprise details and corporate metadata contacts.
+            </p>
+        </div>
+    </header>
+
+    <div class="settings-grid" style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 1.5rem; align-items: start; max-width: 1100px;">
+        
+        <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+            <div class="analytics-card" style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem;">
+                <div class="card-label" style="border-bottom: 1px solid var(--border, rgba(255,255,255,0.1)); padding-bottom: 0.5rem; font-family: var(--font-mono, monospace); font-size: 0.75rem; text-transform: uppercase; color: var(--brand-lime, #4eb637); letter-spacing: 0.5px;">
+                    Company Information
                 </div>
-            </header>
 
-            <div class="settings-grid"
-                style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 1.5rem; align-items: start; max-width: 1100px;">
-
-                <div style="display: flex; flex-direction: column; gap: 1.5rem;">
-
-                    <div class="analytics-card"
-                        style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem;">
-                        <div class="card-label"
-                            style="border-bottom: 1px solid var(--border, rgba(255,255,255,0.1)); padding-bottom: 0.5rem; font-family: var(--font-mono, monospace); font-size: 0.75rem; text-transform: uppercase; color: var(--brand-lime, #4eb637); letter-spacing: 0.5px;">
-                            Company Information</div>
-
-                        <form id="corp-info-form"
-                            style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.25rem; width: 100%;">
-                            <div class="form-group" style="grid-column: span 2;">
-                                <label>Company Name</label>
-                                <input type="text" class="form-control" value="{{ session['display_name'] }}" readonly
-                                    style="opacity: 0.6; cursor: not-allowed;">
-                            </div>
-
-                            <div class="form-group">
-                                <label>CIPC Registration Number</label>
-                                <input type="text" class="form-control" value="2024/123456/07" readonly
-                                    style="opacity: 0.6; cursor: not-allowed;">
-                            </div>
-
-                            <div class="form-group">
-                                <label>Corporate Account Key Node</label>
-                                <input type="text" class="form-control" value="VFY-CORP-00{{ session['user_id'] }}"
-                                    readonly style="opacity: 0.6; cursor: not-allowed;">
-                            </div>
-
-                            <div class="form-group">
-                                <label>Contact Person Name</label>
-                                <input type="text" name="contact_name" class="form-control profile-editable"
-                                    value="Contact Person Name" readonly>
-                            </div>
-
-                            <div class="form-group">
-                                <label>Phone Number</label>
-                                <input type="text" name="phone" class="form-control profile-editable"
-                                    value="011 456 7890" readonly>
-                            </div>
-
-                            <div class="form-group" style="grid-column: span 2;">
-                                <label>Company Email Address</label>
-                                <input type="email" class="form-control" value="{{ session['user_email'] }}" readonly
-                                    style="opacity: 0.6; cursor: not-allowed;">
-                            </div>
-
-                            <div style="grid-column: span 2; display: flex; gap: 0.75rem; margin-top: 0.25rem;">
-                                <button type="button" class="btn-table-row" id="edit-corp-btn"
-                                    onclick="enableProfileEditing('corp')"><i class="fa-solid fa-pen-to-square"></i>
-                                    Edit Profile</button>
-                                <button type="submit" class="btn-portal-primary" id="save-corp-btn"
-                                    style="display: none; padding: 0.5rem 1rem;"><i class="fa-solid fa-floppy-disk"></i>
-                                    Save Changes</button>
-                            </div>
-                        </form>
+                <form id="corp-info-form" action="{{ url_for('update_profile') }}" method="POST" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.25rem; width: 100%;">
+    
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label>Company Name</label>
+                        <input type="text" class="form-control" value="{{ user_data.get('company_name') or session.get('display_name') }}" readonly style="opacity: 0.6; cursor: not-allowed;">
                     </div>
 
-                    <div class="analytics-card"
-                        style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; border: 1px solid rgba(255, 74, 74, 0.2); background: rgba(255, 74, 74, 0.01);">
-                        <div class="card-label"
-                            style="border-bottom: 1px solid rgba(255, 74, 74, 0.1); padding-bottom: 0.5rem; font-family: var(--font-mono, monospace); font-size: 0.75rem; text-transform: uppercase; color: #ff4a4a; letter-spacing: 0.5px;">
-                            Danger Zone</div>
-                        <p style="margin: 0; font-size: 0.85rem; color: #a3a3a3; line-height: 1.5;">
-                            Terminating this enterprise identity container irreversibly deletes all candidate lists,
-                            background screenings, financial payment records, and uploaded files.
-                        </p>
-                        <button type="button" class="btn-table-row"
-                            style="color: #ff4a4a; border-color: rgba(255, 74, 74, 0.3); background: rgba(255, 74, 74, 0.05); align-self: flex-start;"
-                            onclick="confirmAccountDeletion('corp')">
-                            <i class="fa-solid fa-trash-can"></i> Delete Profile Account
+                    <div class="form-group">
+                        <label style="display: flex; align-items: center; gap: 6px;">
+                            Phone Number
+                            {% if not user_data.get('phone') %}
+                                <span class="alert-text" style="color: #ff9f43; font-size: 0.75rem; font-weight: 600;">
+                                    ⚠️ Required
+                                </span>
+                            {% endif %}
+                        </label>
+                        <input type="text" name="phone" class="form-control profile-editable" 
+                            value="{{ user_data.get('phone') or '' }}" 
+                            placeholder="e.g., 011 456 7890"
+                            {% if not user_data.get('phone') %} style="border-color: rgba(255, 159, 67, 0.4);" {% endif %} readonly>
+                    </div>
+
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label>Company Email Address</label>
+                        <input type="email" class="form-control" value="{{ session['user_email'] }}" readonly style="opacity: 0.6; cursor: not-allowed;">
+                    </div>
+
+                    <div style="grid-column: span 2; display: flex; gap: 0.75rem; margin-top: 0.25rem;">
+                        <button type="button" class="btn-table-row" id="edit-corp-btn" onclick="enableProfileEditing('corp')">
+                            <i class="fa-solid fa-pen-to-square"></i> Edit Profile
+                        </button>
+                        <button type="submit" class="btn-portal-primary" id="save-corp-btn" style="display: none; padding: 0.5rem 1rem;">
+                            <i class="fa-solid fa-floppy-disk"></i> Save Changes
                         </button>
                     </div>
-                </div>
-
-                <form id="corp-password-form" style="display: flex; flex-direction: column; gap: 1.25rem; width: 100%;">
-                    <div class="form-group">
-                        <label>Current Password</label>
-                        <input type="password" name="current_password" required class="form-control">
-                    </div>
-
-                    <div class="form-group">
-                        <label>New Password</label>
-                        <input type="password" name="new_password" id="corp-new-password" required class="form-control"
-                            oninput="checkPasswordStrength(this.value, 'corp-strength')">
-                        <div id="corp-strength" style="display: flex; gap: 4px; margin-top: 6px; width: 100%;">
-                            <div
-                                style="flex: 1; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; transition: background 0.2s;">
-                            </div>
-                            <div
-                                style="flex: 1; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; transition: background 0.2s;">
-                            </div>
-                            <div
-                                style="flex: 1; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; transition: background 0.2s;">
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Confirm New Password</label>
-                        <input type="password" name="confirm_password" required class="form-control">
-                    </div>
-
-                    <button type="submit" class="btn-table-row"
-                        style="align-self: flex-start; margin-top: 0.25rem;">Update Security Hash</button>
                 </form>
             </div>
 
+            <div class="analytics-card" style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; border: 1px solid rgba(255, 74, 74, 0.2); background: rgba(255, 74, 74, 0.01);">
+                <div class="card-label" style="border-bottom: 1px solid rgba(255, 74, 74, 0.1); padding-bottom: 0.5rem; font-family: var(--font-mono, monospace); font-size: 0.75rem; text-transform: uppercase; color: #ff4a4a; letter-spacing: 0.5px;">
+                    Danger Zone
+                </div>
+                <p style="margin: 0; font-size: 0.85rem; color: #a3a3a3; line-height: 1.5;">
+                    Terminating this enterprise identity container irreversibly deletes all candidate lists, background screenings, financial payment records, and uploaded files.
+                </p>
+                <button type="button" class="btn-table-row" style="color: #ff4a4a; border-color: rgba(255, 74, 74, 0.3); background: rgba(255, 74, 74, 0.05); align-self: flex-start;" onclick="confirmAccountDeletion('corp')">
+                    <i class="fa-solid fa-trash-can"></i> Delete Profile Account
+                </button>
+            </div>
         </div>
+
+        <form id="corp-password-form" style="display: flex; flex-direction: column; gap: 1.25rem; width: 100%;">
+            <div class="form-group">
+                <label>Current Password</label>
+                <input type="password" name="current_password" required class="form-control">
+            </div>
+
+            <div class="form-group">
+                <label>New Password</label>
+                <input type="password" name="new_password" id="corp-new-password" required class="form-control" oninput="checkPasswordStrength(this.value, 'corp-strength')">
+                <div id="corp-strength" style="display: flex; gap: 4px; margin-top: 6px; width: 100%;">
+                    <div style="flex: 1; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; transition: background 0.2s;"></div>
+                    <div style="flex: 1; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; transition: background 0.2s;"></div>
+                    <div style="flex: 1; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; transition: background 0.2s;"></div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Confirm New Password</label>
+                <input type="password" name="confirm_password" required class="form-control">
+            </div>
+
+            <button type="submit" class="btn-table-row" style="align-self: flex-start; margin-top: 0.25rem;">Update Security Hash</button>
+        </form>
+    </div>
 </div>
 
 <div id="tab-services" class="tab-content">
@@ -1102,6 +1076,42 @@ function enableProfileEditing(type) {
         document.getElementById('save-corp-btn').style.display = 'inline-flex';
     }
 }
+document.getElementById('corp-info-form').addEventListener('submit', function(e) {
+    e.preventDefault(); // Stop standard form refresh
+    
+    const phoneInput = this.querySelector('input[name="phone"]');
+    const typedPhoneValue = phoneInput.value;
+    const formData = new FormData(this);
+    
+    fetch('/update-corporate-profile', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // 💥 Lock the freshly updated typed phone value into the DOM layer
+            phoneInput.setAttribute('value', typedPhoneValue);
+            phoneInput.value = typedPhoneValue;
+            
+            // Re-lock fields back to standard viewing states
+            phoneInput.readOnly = true;
+            phoneInput.style.border = '';
+            phoneInput.style.background = '';
+            
+            // Clean up the alert required text styles if the phone now exists
+            const alertSpan = this.querySelector('.alert-text');
+            if (alertSpan) alertSpan.remove();
+
+            // Toggle interface controls back
+            document.getElementById('save-corp-btn').style.display = 'none';
+            document.getElementById('edit-corp-btn').style.display = 'inline-flex';
+        } else {
+            alert(data.message || 'Synchronization failure.');
+        }
+    })
+    .catch(err => console.error('Error updating interface matrix values:', err));
+});
 
 // 2. Real-Time Security Password Strength Diagnostics
 function checkPasswordStrength(password, containerId) {
