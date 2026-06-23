@@ -366,10 +366,14 @@
                                     {% if candidate.id_file_path or candidate.qualification_file_path %}
                                     <div style="display:flex; flex-direction:column; gap:2px; font-size:0.7rem;">
                                         {% if candidate.id_file_path %}
-                                        <a href="/{{ candidate.id_file_path }}" target="_blank" class="pop-file-link"><i class="fa-solid fa-id-card"></i> ID File</a>
+                                        <a href="{{ url_for('admin_view_document', filename=candidate.id_file_path) }}" target="_blank" class="pop-file-link">
+                                            <i class="fa-solid fa-id-card"></i> ID File
+                                        </a>
                                         {% endif %}
                                         {% if candidate.qualification_file_path %}
-                                        <a href="/{{ candidate.qualification_file_path }}" target="_blank" class="pop-file-link"><i class="fa-solid fa-graduation-cap"></i> Qual Matrix</a>
+                                        <a href="{{ url_for('admin_view_document', filename=candidate.qualification_file_path) }}" target="_blank" class="pop-file-link">
+                                            <i class="fa-solid fa-graduation-cap"></i> Qual Matrix
+                                        </a>
                                         {% endif %}
                                     </div>
                                     {% endif %}

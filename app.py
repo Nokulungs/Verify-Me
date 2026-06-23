@@ -468,6 +468,29 @@ def purge_user(user_id):
     flash("Master profile purged successfully.", "success")
     return redirect(url_for('admin_dashboard', tab='users'))
 
+@app.route('/admin/view-document/<path:filename>')  # Changed <filename> to <path:filename> to accept sub-paths securely
+@role_required(['admin'])
+def admin_view_document(filename):
+    """Securely streams compliance documents to administrative operators by stripping path variations."""
+    import os
+    from flask import send_from_directory, abort
+
+    # 1. Extract ONLY the trailing clean file name (e.g., 'CAND_36_ID_SN_Bembe_ID.pdf')
+    clean_filename = os.path.basename(filename)
+
+    # 2. Establish your concrete storage container source folder
+    directory = app.config.get('DOCS_FOLDER', os.path.join(app.root_path, 'static', 'uploads', 'credentials'))
+
+    # 3. Join them to look exactly in the right directory
+    target_file_path = os.path.join(directory, clean_filename)
+
+    # Verification fallback check
+    if not os.path.exists(target_file_path):
+        print(f"DEBUG ERROR: File not physically found at location: {target_file_path}")
+        abort(404)
+
+    return send_from_directory(directory, clean_filename)
+
 # --- SECURED CORPORATE WORKSPACE & DATA PROCESSING ---
 @app.route('/dashboard/corporate')
 def dashboard_corporate():
@@ -1630,29 +1653,33 @@ def token_upload_portal(token):
         id_filename_to_save = None
         qual_filename_to_save = None
         
-        # Ensure the destination credentials folder directory exists on the server
-        upload_dir = app.config['DOCS_FOLDER']
-        os.makedirs(upload_dir, exist_ok=True)
+        # 1. HARDCODE THE TARGET PATH DIRECTLY TO AVOID CONFIG MISSES
+        target_dir = os.path.join(app.root_path, 'static', 'uploads', 'credentials')
+        
+        # 2. FORCE SYSTEM TO CREATE THE FOLDER IF IT DOES NOT EXIST YET
+        os.makedirs(target_dir, exist_ok=True)
         
         if id_file and allowed_file(id_file.filename):
             clean_name = secure_filename(id_file.filename)
             id_filename_to_save = f"CAND_{candidate['id']}_ID_{clean_name}"
             
-            # Save using the full system path pathing
-            full_id_path = os.path.join(upload_dir, id_filename_to_save)
+            # Save the file physically to disk
+            full_id_path = os.path.join(target_dir, id_filename_to_save)
             id_file.save(full_id_path)
+            print(f"SUCCESS: ID File saved physically at: {full_id_path}") # Check your terminal for this!
             
         if qual_file and allowed_file(qual_file.filename):
             clean_name = secure_filename(qual_file.filename)
             qual_filename_to_save = f"CAND_{candidate['id']}_QUAL_{clean_name}"
             
-            # Save using the full system path pathing
-            full_qual_path = os.path.join(upload_dir, qual_filename_to_save)
+            # Save the file physically to disk
+            full_qual_path = os.path.join(target_dir, qual_filename_to_save)
             qual_file.save(full_qual_path)
+            print(f"SUCCESS: Qualification File saved physically at: {full_qual_path}")
             
         with get_db_connection() as conn:
             cursor = conn.cursor()
-            # FIX: We save ONLY the clean filename strings into the DB columns so the admin view can resolve them cleanly.
+            # 3. Save ONLY the clean filename into the database
             cursor.execute('''
                 UPDATE screenings 
                 SET id_file_path = %s, 
