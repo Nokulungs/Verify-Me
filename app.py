@@ -1627,23 +1627,40 @@ def token_upload_portal(token):
         id_file = request.files.get('identity_doc')
         qual_file = request.files.get('qualification_doc')
         
-        id_path, qual_path = None, None
+        id_filename_to_save = None
+        qual_filename_to_save = None
+        
+        # Ensure the destination credentials folder directory exists on the server
+        upload_dir = app.config['DOCS_FOLDER']
+        os.makedirs(upload_dir, exist_ok=True)
+        
         if id_file and allowed_file(id_file.filename):
-            filename = secure_filename(f"CAND_{candidate['id']}_ID_{id_file.filename}")
-            id_path = os.path.join(app.config['DOCS_FOLDER'], filename)
-            id_file.save(id_path)
+            clean_name = secure_filename(id_file.filename)
+            id_filename_to_save = f"CAND_{candidate['id']}_ID_{clean_name}"
+            
+            # Save using the full system path pathing
+            full_id_path = os.path.join(upload_dir, id_filename_to_save)
+            id_file.save(full_id_path)
             
         if qual_file and allowed_file(qual_file.filename):
-            filename = secure_filename(f"CAND_{candidate['id']}_QUAL_{qual_file.filename}")
-            qual_path = os.path.join(app.config['DOCS_FOLDER'], filename)
-            qual_file.save(qual_path)
+            clean_name = secure_filename(qual_file.filename)
+            qual_filename_to_save = f"CAND_{candidate['id']}_QUAL_{clean_name}"
+            
+            # Save using the full system path pathing
+            full_qual_path = os.path.join(upload_dir, qual_filename_to_save)
+            qual_file.save(full_qual_path)
             
         with get_db_connection() as conn:
             cursor = conn.cursor()
+            # FIX: We save ONLY the clean filename strings into the DB columns so the admin view can resolve them cleanly.
             cursor.execute('''
-                UPDATE screenings SET id_file_path = %s, qualification_file_path = %s, status = 'Ready for Review', rejection_reason = NULL 
+                UPDATE screenings 
+                SET id_file_path = %s, 
+                    qualification_file_path = %s, 
+                    status = 'Ready for Review', 
+                    rejection_reason = NULL 
                 WHERE id = %s
-            ''', (id_path, qual_path, candidate['id']))
+            ''', (id_filename_to_save, qual_filename_to_save, candidate['id']))
             conn.commit()
             cursor.close()
             
