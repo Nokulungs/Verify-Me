@@ -10,48 +10,58 @@
         </div>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert-box {% if category == 'success' %}alert-success{% else %}alert-error{% endif %}" role="alert">
-                        <div class="alert-icon-container">
-                            {% if category == 'success' %}
-                                <svg class="alert-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                </svg>
-                            {% else %}
-                                <svg class="alert-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
-                                </svg>
-                            {% endif %}
-                        </div>
-                        <div class="alert-message-content">
-                            {{ message }}
-                        </div>
-                    </div>
-                {% endfor %}
-            {% endif %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert-box {% if category == 'success' %}alert-success{% else %}alert-error{% endif %}" role="alert">
+            <div class="alert-icon-container">
+                {% if category == 'success' %}
+                <svg class="alert-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                {% else %}
+                <svg class="alert-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
+                    </path>
+                </svg>
+                {% endif %}
+            </div>
+            <div class="alert-message-content">
+                {{ message }}
+            </div>
+        </div>
+        {% endfor %}
+        {% endif %}
         {% endwith %}
 
         <form action="{{ url_for('login') }}" method="POST" novalidate>
             <div class="form-group">
                 <label for="login_email">Official Email</label>
-                <input type="email" id="login_email" name="email" class="form-control" placeholder="name@company.co.za" autocomplete="username">
+                <input type="email" id="login_email" name="email" class="form-control" placeholder="name@company.co.za"
+                    autocomplete="username">
             </div>
 
             <div class="form-group">
                 <label for="login_password">Password</label>
-                <input type="password" id="login_password" name="password" class="form-control" placeholder="••••••••••••" autocomplete="current-password">
+                <input type="password" id="login_password" name="password" class="form-control"
+                    placeholder="••••••••••••" autocomplete="current-password">
             </div>
 
             <button type="submit" class="btn-portal-primary">Authenticate Session</button>
         </form>
 
-        <div class="auth-footer-note">
-            New platform applicant? <a href="{{ url_for('register') }}">Initialize Account</a>
+        <div class="auth-footer-utility-row">
+            <div class="footer-utility-item">
+                New applicant? <a href="{{ url_for('register') }}" class="utility-link">Initialize Account</a>
+            </div>
+            <div class="utility-divider">│</div>
+            <div class="footer-utility-item">
+                <a href="{{ url_for('forgot_password') }}" class="utility-link secondary-utility">Forgot Password?</a>
+            </div>
         </div>
-        <a href="{{ url_for('forgot_password') }}" style="color: var(--brand-lime); text-decoration: none; font-size: 0.85rem;">
-    Forgot Password?
-</a>
     </div>
 </div>
 
@@ -66,32 +76,102 @@
         line-height: 1.25rem;
         animation: fadeIn 0.25s ease-out-forward;
     }
+
     .alert-error {
         background-color: rgba(220, 38, 38, 0.12);
         border: 1px solid rgba(220, 38, 38, 0.4);
         color: #fca5a5;
     }
+
     .alert-success {
         background-color: rgba(16, 185, 129, 0.12);
         border: 1px solid rgba(16, 185, 129, 0.4);
         color: #a7f3d0;
     }
+
     .alert-icon-container {
         flex-shrink: 0;
         margin-right: 0.75rem;
     }
+
     .alert-icon {
         width: 1.25rem;
         height: 1.25rem;
     }
+
     .alert-message-content {
         flex: 1;
         font-weight: 500;
         text-align: left;
     }
+
     @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(-4px); }
-        to { opacity: 1; transform: translateY(0); }
+        from {
+            opacity: 0;
+            transform: translateY(-4px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    /* Split Footer Utility Balancing Rules */
+    .auth-footer-utility-row {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-top: 2rem;
+        gap: 1rem;
+        font-size: 0.85rem;
+        color: var(--brand-muted);
+        font-family: 'DM Sans', sans-serif;
+    }
+
+    .footer-utility-item {
+        display: inline-flex;
+        align-items: center;
+    }
+
+    .utility-link {
+        color: var(--brand-white);
+        text-decoration: none;
+        font-weight: 600;
+        margin-left: 0.25rem;
+        transition: color 0.2s ease;
+    }
+
+    .utility-link:hover {
+        color: var(--brand-lime);
+        text-decoration: underline;
+    }
+
+    .utility-link.secondary-utility {
+        color: var(--brand-muted);
+        margin-left: 0;
+        font-weight: 500;
+    }
+
+    .utility-link.secondary-utility:hover {
+        color: var(--brand-lime);
+    }
+
+    .utility-divider {
+        color: var(--border);
+        font-weight: 300;
+        user-select: none;
+    }
+
+    /* Responsive adjustment for small phone viewports */
+    @media (max-width: 400px) {
+        .auth-footer-utility-row {
+            flex-direction: column;
+            gap: 0.75rem;
+            text-align: center;
+        }
+        .utility-divider {
+            display: none; /* Hide vertical pipe bar when stacked */
+        }
     }
 </style>
 {% endblock %}

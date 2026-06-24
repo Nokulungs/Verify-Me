@@ -15,6 +15,8 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
 from flask_mail import Mail, Message  # Single, clean import
+from io import StringIO
+from flask import Response
 
 # Initialize Environmental Context
 load_dotenv()
@@ -314,9 +316,20 @@ def login():
 @app.route('/admin/workspace')
 @role_required(['admin'])
 def admin_dashboard():
+    # 1. Define the commercial price rate mapping matrix
+    SCREENING_PRICES = {
+        'Identity Verification & Validation': 450.00,
+        'Criminal Record & Background Check': 550.00,
+        'Credit & Financial Check': 380.00,
+        'Professional License Verification': 320.00,
+        'Global Compliance Screening': 620.00,
+        'Social Media & Digital Footprint': 280.00
+    }
+
     with get_db_connection() as conn:
         cursor = conn.cursor(cursor_factory=RealDictCursor)
         
+        # 2. Base metrics counts
         cursor.execute("SELECT COUNT(*) FROM users WHERE applicant_type != 'admin'")
         total_users = cursor.fetchone()['count']
         
@@ -325,14 +338,33 @@ def admin_dashboard():
         
         cursor.execute("SELECT COUNT(*) FROM individual_audits")
         total_indiv = cursor.fetchone()['count']
+
+        # 3. Dynamic Revenue Stream Extraction
+        total_revenue = 0.0
+
+        # Fetch string pricing tokens for individual audits (uses verification_type)
+        cursor.execute("SELECT verification_type FROM individual_audits WHERE payment_status = 'Completed';")
+        individual_rows = cursor.fetchall()
+        for row in individual_rows:
+            # Since RealDictCursor returns key-value pairs, access by column name string
+            v_type = row['verification_type']
+            total_revenue += SCREENING_PRICES.get(v_type, 0.0)
+
+        # Fetch string pricing tokens for corporate screenings (uses screening_type)
+        cursor.execute("SELECT screening_type FROM screenings WHERE payment_status = 'Pending Review';")
+        corporate_rows = cursor.fetchall()
+        for row in corporate_rows:
+            s_type = row['screening_type']
+            total_revenue += SCREENING_PRICES.get(s_type, 0.0)
         
         metrics = {
             "total_users": total_users,
             "total_corp": total_corp,
             "total_indiv": total_indiv,
-            "gross_revenue": "Cross-Channel Verification Active"
+            "gross_revenue": total_revenue  # Exposing the live computed float variable to the UI
         }
 
+        # 4. Alerts, Filters, Queues, and Data Engine Operations
         cursor.execute("SELECT COUNT(DISTINCT payment_ref) FROM screenings WHERE payment_method = 'manual_eft' AND payment_status = 'Pending'")
         pending_eft_count = cursor.fetchone()['count']
         
@@ -384,8 +416,10 @@ def admin_dashboard():
         users_ledger = cursor.fetchall()
         cursor.close()
     
+    # 5. Single unified return context
     return render_template(
         'admin_dashboard.html',
+        total_revenue=total_revenue,
         metrics=metrics,
         quick_alerts=quick_alerts,
         companies=companies,
@@ -1708,6 +1742,82 @@ def token_upload_portal(token):
         </body>
     </html>
     """
+
+@app.route('/admin/export-monthly-report')
+def export_monthly_report():
+    # Matrix Rate definitions matching corporate calculations
+    SCREENING_PRICES = {
+        'Identity Verification & Validation': 450.00,
+        'Criminal Record & Background Check': 550.00,
+        'Credit & Financial Check': 380.00,
+        'Professional License Verification': 320.00,
+        'Global Compliance Screening': 620.00,
+        'Social Media & Digital Footprint': 280.00
+    }
+
+    # Setup memory stream for file rendering
+    si = StringIO()
+    cw = csv.writer(si)
+    
+    # 1. Write the spreadsheet headers cleanly
+    cw.writerow(['Reference Link Token', 'Channel Variant', 'Party Name / Target', 'Service Core Variant', 'Payment Status State', 'Calculated Revenue (ZAR)', 'Logged Timestamp'])
+    
+    with get_db_connection() as conn:
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        
+        # 2. Extract and parse corporate rows
+        cursor.execute("""
+            SELECT s.id, u.company_name, s.candidate_name, s.screening_type, s.payment_status, s.created_at 
+            FROM screenings s 
+            JOIN users u ON s.user_id = u.id 
+            ORDER BY s.created_at DESC
+        """)
+        corp_data = cursor.fetchall()
+        for row in corp_data:
+            fee = SCREENING_PRICES.get(row['screening_type'], 0.0)
+            cw.writerow([
+                f"CC-{row['id']}",
+                'Corporate',
+                f"{row['company_name']} ({row['candidate_name']})",
+                row['screening_type'],
+                row['payment_status'],
+                f"R{fee:.2f}",
+                row['created_at']
+            ])
+            
+        # 3. Extract and parse individual rows
+        cursor.execute("""
+            SELECT a.id, u.individual_name, u.email, a.verification_type, a.payment_status, a.created_at 
+            FROM individual_audits a 
+            JOIN users u ON a.user_id = u.id 
+            ORDER BY a.created_at DESC
+        """)
+        indiv_data = cursor.fetchall()
+        for row in indiv_data:
+            fee = SCREENING_PRICES.get(row['verification_type'], 0.0)
+            name_label = row['individual_name'] if row['individual_name'] else row['email']
+            cw.writerow([
+                f"IND-{row['id']}",
+                'Individual',
+                name_label,
+                row['verification_type'],
+                row['payment_status'],
+                f"R{fee:.2f}",
+                row['created_at']
+            ])
+            
+        cursor.close()
+
+    # 4. Generate response payload stream with clear down-stream attachments declaration
+    output = si.getvalue()
+    current_month = datetime.now().strftime('%Y-%m')
+    filename = f"VerifyMe_Financial_Report_{current_month}.csv"
+    
+    return Response(
+        output,
+        mimetype="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

@@ -1,6 +1,47 @@
 {% extends 'base.html' %}
 
 {% block content %}
+<style>
+    /* Premium Segmented Role Switch Wrapper */
+    .auth-role-selector {
+        display: flex;
+        background-color: var(--bg-panel-dark); /* #1f2521 */
+        border: 1px solid var(--border);        /* #2e3830 */
+        padding: 4px;
+        border-radius: 8px;
+        margin-bottom: 2rem;
+        gap: 4px;
+    }
+
+    /* Base Tab Button Styling */
+    .auth-role-btn {
+        flex: 1;
+        background: transparent;
+        border: none;
+        outline: none;
+        padding: 0.75rem;
+        font-family: 'DM Sans', sans-serif;
+        font-size: 0.88rem;
+        font-weight: 600;
+        color: var(--brand-muted); /* #8a9e8d */
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s ease-in-out;
+        text-align: center;
+    }
+
+    /* Smooth Interaction on Hover */
+    .auth-role-btn:hover {
+        color: var(--brand-white); /* #eef2ef */
+    }
+
+    /* Active Selection Profile State matching Brand Accent Colors */
+    .auth-role-btn.active {
+        background-color: var(--bg-card-dark); /* #252b27 Raised surface */
+        color: var(--brand-lime);              /* #4eb637 Core Brand Color */
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+</style>
 <div class="auth-wrapper">
     <div class="auth-card">
         <div class="auth-header">

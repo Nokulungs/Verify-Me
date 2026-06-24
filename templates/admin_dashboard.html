@@ -1,38 +1,45 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VerifyMe — Administrative Operational Command Vault</title>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;800&family=DM+Mono:wght@400;700&display=swap">
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;800&family=DM+Mono:wght@400;700&display=swap">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
+
     <style>
-        {{ custom_css | safe if custom_css else "" }}
+        {
+                {
+                custom_css | safe if custom_css else ""
+            }
+        }
+
         /* Embedded design system fallback assurance if not served globally */
         :root {
-            --bg-dark-base:     #181c19;
-            --bg-panel-dark:    #1f2521;
-            --bg-card-dark:     #252b27;
-            --bg-card-raised:   #2c342e;
-            --brand-charcoal:   #2a312c;
-            --brand-olive:      #617c41;
-            --brand-lime:       #4eb637;
-            --brand-lime-dim:   rgba(78, 182, 55, 0.12);
-            --brand-muted:      #8a9e8d;
-            --brand-white:      #eef2ef;
-            --border:           #2e3830;
-            --border-bright:    #3a4a3d;
+            --bg-dark-base: #181c19;
+            --bg-panel-dark: #1f2521;
+            --bg-card-dark: #252b27;
+            --bg-card-raised: #2c342e;
+            --brand-charcoal: #2a312c;
+            --brand-olive: #617c41;
+            --brand-lime: #4eb637;
+            --brand-lime-dim: rgba(78, 182, 55, 0.12);
+            --brand-muted: #8a9e8d;
+            --brand-white: #eef2ef;
+            --border: #2e3830;
+            --border-bright: #3a4a3d;
             --font-head: 'DM Sans', sans-serif;
             --font-body: 'DM Sans', sans-serif;
             --font-mono: 'DM Mono', monospace;
             --radius-sm: 6px;
             --radius-md: 10px;
             --radius-lg: 16px;
-            --shadow-card: 0 4px 24px rgba(0,0,0,0.35);
-            --shadow-elevated: 0 16px 48px rgba(0,0,0,0.5);
-            --brand-burgundy:   #6b1d2f;
-            --brand-alert:      #ff5252;
+            --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.35);
+            --shadow-elevated: 0 16px 48px rgba(0, 0, 0, 0.5);
+            --brand-burgundy: #6b1d2f;
+            --brand-alert: #ff5252;
         }
 
         body {
@@ -46,6 +53,7 @@
         .alert-toast-container {
             padding: 1rem 0;
         }
+
         .flash-msg {
             padding: 1rem;
             border-radius: var(--radius-sm);
@@ -56,22 +64,58 @@
             align-items: center;
             gap: 0.75rem;
         }
-        .flash-success { background: var(--brand-lime-dim); color: var(--brand-lime); border: 1px solid var(--brand-olive); }
-        .flash-warning { background: rgba(255, 193, 7, 0.1); color: #ffc107; border: 1px solid rgba(255, 193, 7, 0.3); }
-        .flash-error { background: rgba(255, 82, 82, 0.1); color: var(--brand-alert); border: 1px solid var(--brand-burgundy); }
+
+        .flash-success {
+            background: var(--brand-lime-dim);
+            color: var(--brand-lime);
+            border: 1px solid var(--brand-olive);
+        }
+
+        .flash-warning {
+            background: rgba(255, 193, 7, 0.1);
+            color: #ffc107;
+            border: 1px solid rgba(255, 193, 7, 0.3);
+        }
+
+        .flash-error {
+            background: rgba(255, 82, 82, 0.1);
+            color: var(--brand-alert);
+            border: 1px solid var(--brand-burgundy);
+        }
 
         /* Additional structural alignments */
-        .flex-between { display: flex; justify-content: space-between; align-items: center; }
+        .flex-between {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
         .filter-ribbon-bar {
-            display: flex; gap: 1rem; align-items: center;
-            background-color: var(--bg-panel-dark); padding: 1rem;
-            border-radius: var(--radius-md); border: 1px solid var(--border); margin-bottom: 1.5rem;
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            background-color: var(--bg-panel-dark);
+            padding: 1rem;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border);
+            margin-bottom: 1.5rem;
         }
+
         .select-input-dark {
-            background-color: var(--bg-card-dark); border: 1px solid var(--border-bright);
-            color: #ffffff; padding: 0.5rem 1rem; border-radius: var(--radius-sm); font-family: var(--font-body);
+            background-color: var(--bg-card-dark);
+            border: 1px solid var(--border-bright);
+            color: #ffffff;
+            padding: 0.5rem 1rem;
+            border-radius: var(--radius-sm);
+            font-family: var(--font-body);
         }
-        .modal-body-form { display: flex; flex-direction: column; gap: 1.25rem; margin-top: 1.5rem; }
+
+        .modal-body-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+            margin-top: 1.5rem;
+        }
 
         /* Overview grid distributions */
         .overview-grid {
@@ -80,12 +124,14 @@
             gap: 1.5rem;
             margin-bottom: 2rem;
         }
+
         .system-log-card {
             background-color: var(--bg-panel-dark);
             border: 1px solid var(--border);
             border-radius: var(--radius-lg);
             padding: 1.5rem;
         }
+
         .log-entry {
             display: flex;
             justify-content: space-between;
@@ -94,616 +140,932 @@
             padding: 0.5rem 0;
             border-bottom: 1px solid rgba(46, 56, 48, 0.5);
         }
-        .log-entry:last-child { border-bottom: none; }
-        
+
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+
         @media (max-width: 1200px) {
-            .overview-grid { grid-template-columns: 1fr; }
+            .overview-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ==========================================================================
+   📱 MOBILE & TABLET RESPONSIVE MEDIA OVERRIDES
+   ========================================================================== */
+
+        @media (max-width: 1024px) {
+
+            /* Change the main two-column layout into a stacked view */
+            body {
+                grid-template-columns: 1fr !important;
+                grid-template-rows: auto 1fr;
+                height: auto;
+                overflow-y: auto;
+            }
+
+            /* Convert sidebar into a top horizontal navigation bar */
+            .admin-sidebar-navigation {
+                width: 100%;
+                height: auto;
+                padding: 1.25rem;
+                border-right: none;
+                border-bottom: 1px solid var(--border);
+            }
+
+            .admin-nav-links-box {
+                display: flex;
+                flex-direction: row;
+                gap: 0.5rem;
+                overflow-x: auto;
+                padding-bottom: 0.5rem;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .admin-nav-link-item {
+                margin-bottom: 0 !important;
+                white-space: nowrap;
+            }
+
+            /* Stack summary metric columns */
+            .admin-metrics-summary-grid {
+                grid-template-columns: repeat(2, 1fr) !important;
+            }
+        }
+
+        .mobile-menu-toggle {
+            display: none !important;
+            /* Forces the button to be hidden on desktop views */
+            background: var(--bg-card-raised);
+            border: 1px solid var(--border-bright);
+            color: var(--brand-white);
+            padding: 0.5rem 0.75rem;
+            border-radius: var(--radius-sm);
+            font-size: 1.1rem;
+            cursor: pointer;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        @media (max-width: 768px) {
+            .admin-metrics-summary-grid {
+                grid-template-columns: 1fr !important;
+                /* Single column on phones */
+            }
+
+            /* Make workspace split areas wrap cleanly */
+            .admin-workspace-layout-split {
+                grid-template-columns: 1fr !important;
+            }
+
+            /* Make data tables horizontally scrollable without breaking the card layout */
+            .admin-table-scroll-shield {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .admin-corporate-data-table {
+                width: 100%;
+                min-width: 600px;
+                /* Ensures text doesn't smash together */
+            }
+
+            .mobile-menu-toggle {
+                display: inline-flex !important;
+                /* Unhides it only on smaller screens */
+            }
+
+            .admin-viewscreen-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+
+            .mobile-menu-toggle {
+                display: none;
+                background: var(--bg-card-raised);
+                border: 1px solid var(--border-bright);
+                color: var(--brand-white);
+                padding: 0.5rem 0.75rem;
+                border-radius: var(--radius-sm);
+                font-size: 1.1rem;
+                cursor: pointer;
+                align-items: center;
+                justify-content: center;
+                transition: all 0.2s ease;
+            }
+
+            .mobile-menu-toggle:hover {
+                background: var(--brand-lime-dim);
+                border-color: var(--brand-lime);
+            }
+
+            @media (max-width: 1024px) {
+
+                /* Show hamburger icon trigger button on mobile/tablets */
+                .mobile-menu-toggle {
+                    display: inline-flex;
+                }
+
+                /* Redefine overall dashboard grid container to a single stacked layout column */
+                .dashboard-container {
+                    display: block !important;
+                    position: relative;
+                }
+
+                /* Transform fixed sidebar into a sliding overlay canvas drawer drawer */
+                .dashboard-sidebar {
+                    position: fixed !important;
+                    top: 0;
+                    left: -300px;
+                    /* Slides completely off-screen left */
+                    width: 280px;
+                    height: 100vh;
+                    z-index: 9999;
+                    background-color: var(--bg-panel-dark);
+                    box-shadow: var(--shadow-elevated);
+                    transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                    border-right: 1px solid var(--border-bright);
+                }
+
+                /* Active utility hook rule when drawer is toggled open via JS class injector */
+                .dashboard-sidebar.mobile-open {
+                    left: 0 !important;
+                }
+
+                /* Smooth padding override adjustment for core body workspace container */
+                .dashboard-main {
+                    padding: 1.25rem !important;
+                    width: 100%;
+                    box-sizing: border-box;
+                }
+
+                /* Make tables responsive so they don't distort card borders */
+                .table-container {
+                    overflow-x: auto;
+                    -webkit-overflow-scrolling: touch;
+                }
+
+                .matrix-table {
+                    min-width: 850px;
+                    /* Forces tables to horizontal-scroll naturally */
+                }
+            }
         }
     </style>
     <link rel="stylesheet" href="/static/css/dashboard.css" onerror="this.style.display='none'">
 </head>
+
 <body>
 
-<div class="dashboard-container">
-    
-    <aside class="dashboard-sidebar">
-        <div class="sidebar-brand">
-            <div class="matrix-tag"><i class="fa-solid fa-shield-halved"></i> VerifyMe Pro</div>
-            <div style="font-size: 0.72rem; color: var(--brand-muted); font-family: var(--font-mono); margin-top: 0.25rem;">ADMIN CONTROL CENTER</div>
-        </div>
-        
-        <nav class="sidebar-menu">
-            <button class="menu-item active" onclick="switchAdminTab(event, 'overview')">
-                <span class="menu-icon"><i class="fa-solid fa-chart-pie"></i></span>Operations Overview
-            </button>
-            <button class="menu-item" onclick="switchAdminTab(event, 'corporate')">
-                <span class="menu-icon"><i class="fa-solid fa-building"></i></span>Corporate Pipeline
-            </button>
-            <button class="menu-item" onclick="switchAdminTab(event, 'individual')">
-                <span class="menu-icon"><i class="fa-solid fa-user-shield"></i></span>Individual Audits
-            </button>
-            <button class="menu-item" onclick="switchAdminTab(event, 'payments')">
-                <span class="menu-icon"><i class="fa-solid fa-receipt"></i></span>
-                Payments Queue 
-                {% if quick_alerts.pending_efts > 0 %}
-                <span style="background: var(--brand-alert); color: #fff; font-size: 0.65rem; padding: 1px 6px; border-radius: 10px; margin-left: auto;">{{ quick_alerts.pending_efts }}</span>
-                {% endif %}
-            </button>
-            <button class="menu-item" onclick="switchAdminTab(event, 'users')">
-                <span class="menu-icon"><i class="fa-solid fa-users-gear"></i></span>Users Ledger
-            </button>
-        </nav>
-        
-        <div class="sidebar-footer" style="margin-top: auto; padding-top: 1.5rem;">
-            <div style="padding: 0.5rem 1rem; font-size: 0.78rem; color: var(--brand-muted);">
-                <i class="fa-solid fa-user-tie"></i> Master Admin Node
-            </div>
-            <a href="{{ url_for('logout') }}" class="logout-btn">
-                <span class="menu-icon"><i class="fa-solid fa-power-off"></i></span>Logout Terminal
-            </a>
-        </div>
-    </aside>
+    <div class="dashboard-container">
 
-    <main class="dashboard-main">
-        
-        <div class="top-utility-ribbon">
-            <div>
-                <span style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--brand-lime); background: var(--brand-lime-dim); padding: 0.35rem 0.75rem; border-radius: var(--radius-sm); border: 1px solid rgba(78, 182, 55, 0.25);">
-                    <i class="fa-solid fa-lock-open"></i> SECURE ADMIN PANEL ARCHITECTURE // VERIFICATION ROOT ACCESS
-                </span>
+        <aside class="dashboard-sidebar">
+            <div class="sidebar-brand">
+                <div class="matrix-tag"><i class="fa-solid fa-shield-halved"></i> VerifyMe Pro</div>
+                <div
+                    style="font-size: 0.72rem; color: var(--brand-muted); font-family: var(--font-mono); margin-top: 0.25rem;">
+                    ADMIN CONTROL CENTER</div>
             </div>
-            
-            <div class="notification-wrapper" onclick="toggleNotificationDropdown(event)">
-                <i class="fa-solid fa-bell utility-bell"></i>
-                {% if quick_alerts.pending_efts > 0 or quick_alerts.ready_reviews > 0 %}
-                <span class="notification-badge-dot"></span>
-                {% endif %}
-                
-                <div class="notification-dropdown-panel" id="adminNotificationPanel">
-                    <div class="dropdown-header">System Action Monitor</div>
+
+            <nav class="sidebar-menu">
+                <button class="menu-item active" onclick="switchAdminTab(event, 'overview')">
+                    <span class="menu-icon"><i class="fa-solid fa-chart-pie"></i></span>Operations Overview
+                </button>
+                <button class="menu-item" onclick="switchAdminTab(event, 'corporate')">
+                    <span class="menu-icon"><i class="fa-solid fa-building"></i></span>Corporate Pipeline
+                </button>
+                <button class="menu-item" onclick="switchAdminTab(event, 'individual')">
+                    <span class="menu-icon"><i class="fa-solid fa-user-shield"></i></span>Individual Audits
+                </button>
+                <button class="menu-item" onclick="switchAdminTab(event, 'payments')">
+                    <span class="menu-icon"><i class="fa-solid fa-receipt"></i></span>
+                    Payments Queue
                     {% if quick_alerts.pending_efts > 0 %}
-                    <div class="dropdown-item">
-                        <i class="fa-solid fa-circle-exclamation burgundy-text micro-dot"></i>
-                        <div>
-                            <p class="notif-text">There are <strong>{{ quick_alerts.pending_efts }} manual EFT actions</strong> pending ledger settlements.</p>
-                            <span class="notif-time">Ledger Verification Required</span>
-                        </div>
-                    </div>
+                    <span
+                        style="background: var(--brand-alert); color: #fff; font-size: 0.65rem; padding: 1px 6px; border-radius: 10px; margin-left: auto;">{{
+                        quick_alerts.pending_efts }}</span>
                     {% endif %}
-                    {% if quick_alerts.ready_reviews > 0 %}
-                    <div class="dropdown-item">
-                        <i class="fa-solid fa-circle-info cyan-text micro-dot"></i>
-                        <div>
-                            <p class="notif-text"><strong>{{ quick_alerts.ready_reviews }} compliance files</strong> are staged in the validation runway.</p>
-                            <span class="notif-time">Review Pending</span>
-                        </div>
-                    </div>
-                    {% endif %}
-                    {% if quick_alerts.pending_efts == 0 and quick_alerts.ready_reviews == 0 %}
-                    <div class="dropdown-item" style="text-align: center; color: var(--brand-muted); padding: 1.5rem;">
-                        <span style="font-size: 0.85rem; width: 100%;">All systemic queues cleared.</span>
-                    </div>
-                    {% endif %}
+                </button>
+                <button class="menu-item" onclick="switchAdminTab(event, 'users')">
+                    <span class="menu-icon"><i class="fa-solid fa-users-gear"></i></span>Users Ledger
+                </button>
+            </nav>
+
+            <div class="sidebar-footer" style="margin-top: auto; padding-top: 1.5rem;">
+                <div style="padding: 0.5rem 1rem; font-size: 0.78rem; color: var(--brand-muted);">
+                    <i class="fa-solid fa-user-tie"></i> Master Admin Node
                 </div>
+                <a href="{{ url_for('logout') }}" class="logout-btn">
+                    <span class="menu-icon"><i class="fa-solid fa-power-off"></i></span>Logout Terminal
+                </a>
             </div>
-        </div>
+        </aside>
 
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                <div class="alert-toast-container">
-                    {% for category, message in messages %}
-                        <div class="flash-msg flash-{{ category }}"><i class="fa-solid fa-terminal"></i> {{ message }}</div>
-                    {% endfor %}
-                </div>
-            {% endif %}
-        {% endwith %}
+        <main class="dashboard-main">
 
-        <div id="tab-overview" class="tab-content active-content">
-            <div class="workspace-header" style="margin-bottom: 1.5rem;">
+            <div class="top-utility-ribbon">
+                <button class="mobile-menu-toggle" onclick="toggleMobileSidebar(event)"
+                    aria-label="Toggle Navigation Menu">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+
                 <div>
-                    <h1 style="display: flex; align-items: center; gap: 0.75rem;">
-                        <span style="font-family: var(--font-mono); color: var(--brand-lime);">MΩ</span> Operations Overview Dashboard
-                    </h1>
-                    <div class="subtitle">SecOps Master Administrator control interface. Live system health metrics index.</div>
+                    <span
+                        style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--brand-lime); background: var(--brand-lime-dim); padding: 0.35rem 0.75rem; border-radius: var(--radius-sm); border: 1px solid rgba(78, 182, 55, 0.25);">
+                        <i class="fa-solid fa-lock-open"></i> SECURE ADMIN PANEL ARCHITECTURE // VERIFICATION ROOT
+                        ACCESS
+                    </span>
                 </div>
-            </div>
-
-            <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 2rem;">
-                <div class="alert-notice-box" style="margin: 0; background: rgba(255,193,7,0.08); border-color: rgba(255,193,7,0.3); display: flex; align-items: center; gap: 0.75rem;">
-                    <i class="fa-solid fa-money-bill-transfer" style="color: #ffc107; font-size: 1.15rem;"></i>
-                    <span><strong>{{ quick_alerts.pending_efts }} Manual Bank EFT Payments</strong> Pending Ledger Settlement Approval and Authorization Checks</span>
-                </div>
-                <div class="alert-notice-box" style="margin: 0; display: flex; align-items: center; gap: 0.75rem;">
-                    <i class="fa-solid fa-eye" style="color: var(--brand-lime); font-size: 1.15rem;"></i>
-                    <span><strong>{{ quick_alerts.ready_reviews }} Candidates Across Channels</strong> Waiting Document Legibility, Validation, and Attestation Review</span>
-                </div>
-            </div>
-
-            <div class="analytics-ribbon">
-                <div class="analytics-card">
-                    <div class="card-label">Registered Profiles</div>
-                    <div class="card-value cyan-text">{{ metrics.total_users }}</div>
-                    <div class="card-subtext">Active environment system records</div>
-                </div>
-                <div class="analytics-card">
-                    <div class="card-label">Corporate Candidates</div>
-                    <div class="card-value">{{ metrics.total_corp }}</div>
-                    <div class="card-subtext">Bulk enterprise verification instances</div>
-                </div>
-                <div class="analytics-card">
-                    <div class="card-label">Individual Audits</div>
-                    <div class="card-value">{{ metrics.total_indiv }}</div>
-                    <div class="card-subtext">Private citizen direct submissions</div>
-                </div>
-                <div class="analytics-card flagged-border">
-                    <div class="card-label">Gross Platform Revenue</div>
-                    <div class="card-value" style="color: #ffffff;">{{ metrics.gross_revenue }}</div>
-                    <div class="card-trend"><i class="fa-solid fa-circle-check"></i> Realized cleared database income</div>
-                </div>
-            </div>
-
-            <div class="overview-grid">
-                <div class="system-log-card">
-                    <div class="flex-between" style="border-bottom: 1px solid var(--border); padding-bottom: 0.75rem; margin-bottom: 1rem;">
-                        <h4 style="margin:0; font-size: 1rem; text-transform: uppercase; font-family: var(--font-mono); color: var(--brand-lime);">
-                            <i class="fa-solid fa-terminal"></i> Microservice Security Log Feed
-                        </h4>
-                        <span class="status-badge badge-cleared" style="font-size: 0.65rem;">ONLINE</span>
-                    </div>
-                    <div class="log-entry">
-                        <span style="color: var(--brand-muted);">[SYSTEM] DB Vault initialized safely via SQLite pipeline.</span>
-                        <span style="color: var(--brand-olive);">SUCCESS</span>
-                    </div>
-                    <div class="log-entry">
-                        <span style="color: var(--brand-muted);">[ROUTING] Admin instance loaded with Secure SecOps profile permissions.</span>
-                        <span style="color: var(--brand-lime);">READY</span>
-                    </div>
-                    <div class="log-entry">
-                        <span style="color: var(--brand-muted);">[GATEWAY] External webhook callback listeners listening on integrated structures.</span>
-                        <span style="color: var(--brand-lime);">ACTIVE</span>
-                    </div>
-                    <div class="log-entry">
-                        <span style="color: var(--brand-muted);">[MONITOR] Loaded {{ metrics.total_corp }} bulk candidates into active RAM array index matrix.</span>
-                        <span style="color: var(--brand-muted);">IDLE</span>
-                    </div>
+                <div>
+                    <span
+                        style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--brand-lime); background: var(--brand-lime-dim); padding: 0.35rem 0.75rem; border-radius: var(--radius-sm); border: 1px solid rgba(78, 182, 55, 0.25);">
+                        <i class="fa-solid fa-lock-open"></i> SECURE ADMIN PANEL ARCHITECTURE // VERIFICATION ROOT
+                        ACCESS
+                    </span>
                 </div>
 
-                <div class="system-log-card" style="background-color: var(--bg-card-dark);">
-                    <h4 style="margin: 0 0 1rem 0; font-size: 0.85rem; text-transform: uppercase; font-family: var(--font-mono); color: var(--brand-muted);">
-                        Pipeline Distribution Load
-                    </h4>
-                    <div style="display: flex; flex-direction: column; gap: 0.85rem;">
-                        <div>
-                            <div class="flex-between" style="font-size: 0.75rem; margin-bottom: 0.25rem;">
-                                <span>Corporate Verifications</span>
-                                <span class="mono-text">78% Load Ratio</span>
-                            </div>
-                            <div style="width:100%; height:4px; background: var(--bg-dark-base); border-radius:2px;">
-                                <div style="width: 78%; height:100%; background: var(--brand-lime); border-radius:2px;"></div>
-                            </div>
-                        </div>
-                        <div>
-                            <div class="flex-between" style="font-size: 0.75rem; margin-bottom: 0.25rem;">
-                                <span>Individual Requests</span>
-                                <span class="mono-text">22% Load Ratio</span>
-                            </div>
-                            <div style="width:100%; height:4px; background: var(--bg-dark-base); border-radius:2px;">
-                                <div style="width: 22%; height:100%; background: var(--brand-olive); border-radius:2px;"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div id="tab-corporate" class="tab-content">
-            <div class="filter-ribbon-bar">
-                <label style="font-size: 0.85rem; font-family: var(--font-mono); color: var(--brand-muted); text-transform: uppercase;">Filter Corporate Accounts:</label>
-                <form method="GET" action="{{ url_for('admin_dashboard') }}" style="display:flex; gap:0.75rem;">
-                    <select name="company_filter" class="select-input-dark">
-                        <option value="">-- Display All Working Entities --</option>
-                        {% for comp in companies %}
-                        <option value="{{ comp.company_name }}" {% if selected_company == comp.company_name %}selected{% endif %}>{{ comp.company_name }}</option>
-                        {% endfor %}
-                    </select>
-                    <button type="submit" class="btn-table-row" style="border-color: var(--brand-olive);"><i class="fa-solid fa-filter"></i> Apply Matrix</button>
-                    {% if selected_company %}
-                    <a href="{{ url_for('admin_dashboard') }}" class="btn-table-row" style="text-decoration:none; display:inline-flex; align-items:center;">Clear</a>
+                <div class="notification-wrapper" onclick="toggleNotificationDropdown(event)">
+                    <i class="fa-solid fa-bell utility-bell"></i>
+                    {% if quick_alerts.pending_efts > 0 or quick_alerts.ready_reviews > 0 %}
+                    <span class="notification-badge-dot"></span>
                     {% endif %}
-                </form>
+
+                    <div class="notification-dropdown-panel" id="adminNotificationPanel">
+                        <div class="dropdown-header">System Action Monitor</div>
+                        {% if quick_alerts.pending_efts > 0 %}
+                        <div class="dropdown-item">
+                            <i class="fa-solid fa-circle-exclamation burgundy-text micro-dot"></i>
+                        </div>
+                        {% endif %}
+                        {% if quick_alerts.ready_reviews > 0 %}
+                        <div class="dropdown-item">
+                            <i class="fa-solid fa-circle-info cyan-text micro-dot"></i>
+                            <div>
+                                <p class="notif-text"><strong>{{ quick_alerts.ready_reviews }} compliance files</strong>
+                                    are staged in the validation runway.</p>
+                                <span class="notif-time">Review Pending</span>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% if quick_alerts.pending_efts == 0 and quick_alerts.ready_reviews == 0 %}
+                        <div class="dropdown-item"
+                            style="text-align: center; color: var(--brand-muted); padding: 1.5rem;">
+                            <span style="font-size: 0.85rem; width: 100%;">All systemic queues cleared.</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
             </div>
 
-            <div class="table-container">
-                <div class="table-header flex-between" style="padding-right: 1.5rem;">
-                    <h3>Enterprise Employee Screening Array</h3>
-                    <a href="{{ url_for('export_corporate_csv', company_filter=selected_company) }}" class="btn-table-row" style="text-decoration: none; color: var(--brand-lime); border-color: var(--brand-lime);">
-                        <i class="fa-solid fa-file-csv"></i> Export Array (.CSV)
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            <div class="alert-toast-container">
+                {% for category, message in messages %}
+                <div class="flash-msg flash-{{ category }}"><i class="fa-solid fa-terminal"></i> {{ message }}</div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% endwith %}
+
+            <div id="tab-overview" class="tab-content active-content">
+
+                <div class="workspace-header"
+                    style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                    <div>
+                        <h1 style="display: flex; align-items: center; gap: 0.75rem; margin: 0;">
+                            <span style="font-family: var(--font-mono); color: var(--brand-lime);">MΩ</span> Operations
+                            Overview Dashboard
+                        </h1>
+                        <div class="subtitle" style="margin-top: 0.25rem;">SecOps Master Administrator control
+                            interface. Live system health metrics index.</div>
+                    </div>
+
+                    <a href="{{ url_for('export_monthly_report') }}" class="btn-table-row"
+                        style="text-decoration: none; color: var(--brand-lime); border-color: var(--brand-lime); background: var(--brand-lime-dim); padding: 0.6rem 1.2rem; border-radius: var(--radius-sm); font-weight: 700; display: inline-flex; align-items: center; gap: 8px; font-size: 0.85rem;">
+                        <i class="fa-solid fa-file-invoice-dollar"></i> Download Monthly Report (.CSV)
                     </a>
                 </div>
-                <table class="matrix-table">
-                    <thead>
-                        <tr>
-                            <th>ID Code</th>
-                            <th>Enterprise</th>
-                            <th>Candidate Target</th>
-                            <th>Audit Vector</th>
-                            <th>Pipeline State</th>
-                            <th>Billing Status</th>
-                            <th>Actions Terminal</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for candidate in corporate_candidates %}
-                        <tr>
-                            <td class="mono-text">#CC-{{ candidate.id }}</td>
-                            <td class="font-bold text-white">{{ candidate.company_name }}</td>
-                            <td>
-                                <div>{{ candidate.candidate_name }}</div>
-                                <div style="font-size:0.75rem; color: var(--brand-muted);">{{ candidate.candidate_email }}</div>
-                            </td>
-                            <td><span class="instruction-badge postnet">{{ candidate.screening_type }}</span></td>
-                            <td>
-                                {% if 'Cleared' in candidate.status %}
-                                <span class="status-badge badge-cleared"><i class="fa-solid fa-circle-check"></i> {{ candidate.status }}</span>
-                                {% elif 'Flagged' in candidate.status %}
-                                <span class="status-badge badge-flagged"><i class="fa-solid fa-circle-exclamation"></i> {{ candidate.status }}</span>
-                                {% elif 'Review' in candidate.status %}
-                                <span class="status-badge badge-processing"><i class="fa-solid fa-spinner fa-spin"></i> {{ candidate.status }}</span>
-                                {% else %}
-                                <span class="status-badge badge-pending"><i class="fa-solid fa-clock"></i> {{ candidate.status }}</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                <span class="mono-text {% if candidate.payment_status == 'Completed' %}cyan-text{% else %}burgundy-text{% endif %}">
-                                    {{ candidate.payment_status }}
-                                </span>
-                            </td>
-                            <td>
-                                <div style="display:flex; gap:0.5rem;">
-                                    <button class="btn-table-row" onclick="openStatusModal('{{ candidate.id }}', '{{ candidate.status }}', 'corporate')"><i class="fa-solid fa-sliders"></i> State</button>
-                                    <button class="btn-table-row" style="color: var(--brand-alert);" onclick="openFlagModal('{{ candidate.id }}', 'corporate')"><i class="fa-solid fa-flag"></i> Flag</button>
-                                    
-                                    {% if candidate.id_file_path or candidate.qualification_file_path %}
-                                    <div style="display:flex; flex-direction:column; gap:2px; font-size:0.7rem;">
-                                        {% if candidate.id_file_path %}
-                                        <a href="{{ url_for('admin_view_document', filename=candidate.id_file_path) }}" target="_blank" class="pop-file-link">
-                                            <i class="fa-solid fa-id-card"></i> ID File
-                                        </a>
-                                        {% endif %}
-                                        {% if candidate.qualification_file_path %}
-                                        <a href="{{ url_for('admin_view_document', filename=candidate.qualification_file_path) }}" target="_blank" class="pop-file-link">
-                                            <i class="fa-solid fa-graduation-cap"></i> Qual Matrix
-                                        </a>
+
+                <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 2rem;">
+                    <div class="alert-notice-box"
+                        style="margin: 0; background: rgba(255,193,7,0.08); border-color: rgba(255,193,7,0.3); display: flex; align-items: center; gap: 0.75rem;">
+                        <i class="fa-solid fa-money-bill-transfer" style="color: #ffc107; font-size: 1.15rem;"></i>
+                        <span><strong>{{ quick_alerts.pending_efts }} Manual Bank EFT Payments</strong> Pending Ledger
+                            Settlement Approval and Authorization Checks</span>
+                    </div>
+                    <div class="alert-notice-box" style="margin: 0; display: flex; align-items: center; gap: 0.75rem;">
+                        <i class="fa-solid fa-eye" style="color: var(--brand-lime); font-size: 1.15rem;"></i>
+                        <span><strong>{{ quick_alerts.ready_reviews }} Candidates Across Channels</strong> Waiting
+                            Document Legibility, Validation, and Attestation Review</span>
+                    </div>
+                </div>
+
+                <div class="analytics-ribbon">
+                    <div class="analytics-card">
+                        <div class="card-label">Registered Profiles</div>
+                        <div class="card-value cyan-text">{{ metrics.total_users }}</div>
+                        <div class="card-subtext">Active environment system records</div>
+                    </div>
+                    <div class="analytics-card">
+                        <div class="card-label">Corporate Candidates</div>
+                        <div class="card-value">{{ metrics.total_corp }}</div>
+                        <div class="card-subtext">Bulk enterprise verification instances</div>
+                    </div>
+                    <div class="analytics-card">
+                        <div class="card-label">Individual Audits</div>
+                        <div class="card-value">{{ metrics.total_indiv }}</div>
+                        <div class="card-subtext">Private citizen direct submissions</div>
+                    </div>
+                    <div class="admin-card-item">
+                        <div class="admin-metric-card-header">
+                            <span class="admin-metric-card-label">Total Revenue</span>
+                            <div class="admin-metric-card-icon-box status-lime">
+                                <i class="fa-solid fa-wallet"></i>
+                            </div>
+                        </div>
+                        <h3 class="admin-metric-card-value">R{{ "{:,.2f}".format(total_revenue) }}</h3>
+                        <span class="admin-metric-card-delta upward">
+                            <i class="fa-solid fa-trend-up"></i> Platform Earnings
+                        </span>
+                    </div>
+                </div>
+
+                <div class="overview-grid">
+                    <div class="system-log-card">
+                        <div class="flex-between"
+                            style="border-bottom: 1px solid var(--border); padding-bottom: 0.75rem; margin-bottom: 1rem;">
+                            <h4
+                                style="margin:0; font-size: 1rem; text-transform: uppercase; font-family: var(--font-mono); color: var(--brand-lime);">
+                                <i class="fa-solid fa-terminal"></i> Microservice Security Log Feed
+                            </h4>
+                            <span class="status-badge badge-cleared" style="font-size: 0.65rem;">ONLINE</span>
+                        </div>
+                        <div class="log-entry">
+                            <span style="color: var(--brand-muted);">[SYSTEM] DB Vault initialized safely via SQLite
+                                pipeline.</span>
+                            <span style="color: var(--brand-olive);">SUCCESS</span>
+                        </div>
+                        <div class="log-entry">
+                            <span style="color: var(--brand-muted);">[ROUTING] Admin instance loaded with Secure SecOps
+                                profile permissions.</span>
+                            <span style="color: var(--brand-lime);">READY</span>
+                        </div>
+                        <div class="log-entry">
+                            <span style="color: var(--brand-muted);">[GATEWAY] External webhook callback listeners
+                                listening on integrated structures.</span>
+                            <span style="color: var(--brand-lime);">ACTIVE</span>
+                        </div>
+                        <div class="log-entry">
+                            <span style="color: var(--brand-muted);">[MONITOR] Loaded {{ metrics.total_corp }} bulk
+                                candidates into active RAM array index matrix.</span>
+                            <span style="color: var(--brand-muted);">IDLE</span>
+                        </div>
+                    </div>
+
+                    <div class="system-log-card" style="background-color: var(--bg-card-dark);">
+                        <h4
+                            style="margin: 0 0 1rem 0; font-size: 0.85rem; text-transform: uppercase; font-family: var(--font-mono); color: var(--brand-muted);">
+                            Pipeline Distribution Load
+                        </h4>
+                        <div style="display: flex; flex-direction: column; gap: 0.85rem;">
+                            <div>
+                                <div class="flex-between" style="font-size: 0.75rem; margin-bottom: 0.25rem;">
+                                    <span>Corporate Verifications</span>
+                                    <span class="mono-text">78% Load Ratio</span>
+                                </div>
+                                <div
+                                    style="width:100%; height:4px; background: var(--bg-dark-base); border-radius:2px;">
+                                    <div
+                                        style="width: 78%; height:100%; background: var(--brand-lime); border-radius:2px;">
+                                    </div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="flex-between" style="font-size: 0.75rem; margin-bottom: 0.25rem;">
+                                    <span>Individual Requests</span>
+                                    <span class="mono-text">22% Load Ratio</span>
+                                </div>
+                                <div
+                                    style="width:100%; height:4px; background: var(--bg-dark-base); border-radius:2px;">
+                                    <div
+                                        style="width: 22%; height:100%; background: var(--brand-olive); border-radius:2px;">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-corporate" class="tab-content">
+                <div class="filter-ribbon-bar">
+                    <label
+                        style="font-size: 0.85rem; font-family: var(--font-mono); color: var(--brand-muted); text-transform: uppercase;">Filter
+                        Corporate Accounts:</label>
+                    <form method="GET" action="{{ url_for('admin_dashboard') }}" style="display:flex; gap:0.75rem;">
+                        <select name="company_filter" class="select-input-dark">
+                            <option value="">-- Display All Working Entities --</option>
+                            {% for comp in companies %}
+                            <option value="{{ comp.company_name }}" {% if selected_company==comp.company_name
+                                %}selected{% endif %}>{{ comp.company_name }}</option>
+                            {% endfor %}
+                        </select>
+                        <button type="submit" class="btn-table-row" style="border-color: var(--brand-olive);"><i
+                                class="fa-solid fa-filter"></i> Apply Matrix</button>
+                        {% if selected_company %}
+                        <a href="{{ url_for('admin_dashboard') }}" class="btn-table-row"
+                            style="text-decoration:none; display:inline-flex; align-items:center;">Clear</a>
+                        {% endif %}
+                    </form>
+                </div>
+
+                <div class="table-container">
+                    <div class="table-header flex-between" style="padding-right: 1.5rem;">
+                        <h3>Enterprise Employee Screening Array</h3>
+                        <a href="{{ url_for('export_corporate_csv', company_filter=selected_company) }}"
+                            class="btn-table-row"
+                            style="text-decoration: none; color: var(--brand-lime); border-color: var(--brand-lime);">
+                            <i class="fa-solid fa-file-csv"></i> Export Array (.CSV)
+                        </a>
+                    </div>
+                    <table class="matrix-table">
+                        <thead>
+                            <tr>
+                                <th>ID Code</th>
+                                <th>Enterprise</th>
+                                <th>Candidate Target</th>
+                                <th>Audit Vector</th>
+                                <th>Pipeline State</th>
+                                <th>Billing Status</th>
+                                <th>Actions Terminal</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for candidate in corporate_candidates %}
+                            <tr>
+                                <td class="mono-text">#CC-{{ candidate.id }}</td>
+                                <td class="font-bold text-white">{{ candidate.company_name }}</td>
+                                <td>
+                                    <div>{{ candidate.candidate_name }}</div>
+                                    <div style="font-size:0.75rem; color: var(--brand-muted);">{{
+                                        candidate.candidate_email }}</div>
+                                </td>
+                                <td><span class="instruction-badge postnet">{{ candidate.screening_type }}</span></td>
+                                <td>
+                                    {% if 'Cleared' in candidate.status %}
+                                    <span class="status-badge badge-cleared"><i class="fa-solid fa-circle-check"></i> {{
+                                        candidate.status }}</span>
+                                    {% elif 'Flagged' in candidate.status %}
+                                    <span class="status-badge badge-flagged"><i
+                                            class="fa-solid fa-circle-exclamation"></i> {{ candidate.status }}</span>
+                                    {% elif 'Review' in candidate.status %}
+                                    <span class="status-badge badge-processing"><i
+                                            class="fa-solid fa-spinner fa-spin"></i> {{ candidate.status }}</span>
+                                    {% else %}
+                                    <span class="status-badge badge-pending"><i class="fa-solid fa-clock"></i> {{
+                                        candidate.status }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span
+                                        class="mono-text {% if candidate.payment_status == 'Completed' %}cyan-text{% else %}burgundy-text{% endif %}">
+                                        {{ candidate.payment_status }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div style="display:flex; gap:0.5rem;">
+                                        <button class="btn-table-row"
+                                            onclick="openStatusModal('{{ candidate.id }}', '{{ candidate.status }}', 'corporate')"><i
+                                                class="fa-solid fa-sliders"></i> State</button>
+                                        <button class="btn-table-row" style="color: var(--brand-alert);"
+                                            onclick="openFlagModal('{{ candidate.id }}', 'corporate')"><i
+                                                class="fa-solid fa-flag"></i> Flag</button>
+
+                                        {% if candidate.id_file_path or candidate.qualification_file_path %}
+                                        <div style="display:flex; flex-direction:column; gap:2px; font-size:0.7rem;">
+                                            {% if candidate.id_file_path %}
+                                            <a href="{{ url_for('admin_view_document', filename=candidate.id_file_path) }}"
+                                                target="_blank" class="pop-file-link">
+                                                <i class="fa-solid fa-id-card"></i> ID File
+                                            </a>
+                                            {% endif %}
+                                            {% if candidate.qualification_file_path %}
+                                            <a href="{{ url_for('admin_view_document', filename=candidate.qualification_file_path) }}"
+                                                target="_blank" class="pop-file-link">
+                                                <i class="fa-solid fa-graduation-cap"></i> Qual Matrix
+                                            </a>
+                                            {% endif %}
+                                        </div>
                                         {% endif %}
                                     </div>
-                                    {% endif %}
-                                </div>
-                            </td>
-                        </tr>
-                        {% else %}
-                        <tr>
-                            <td colspan="7" style="text-align:center; padding: 3rem; color: var(--brand-muted);">No corporate candidates logged inside running cluster array frames.</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <div id="tab-individual" class="tab-content">
-            <div class="table-container">
-                <div class="table-header flex-between" style="padding-right: 1.5rem;">
-                    <h3>Self-Verification Individual Audit Pipelines</h3>
-                    <a href="{{ url_for('export_individual_csv') }}" class="btn-table-row" style="text-decoration: none; color: var(--brand-lime); border-color: var(--brand-lime);">
-                        <i class="fa-solid fa-file-csv"></i> Export Matrix (.CSV)
-                    </a>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="7" style="text-align:center; padding: 3rem; color: var(--brand-muted);">No
+                                    corporate candidates logged inside running cluster array frames.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
-                <table class="matrix-table">
-                    <thead>
-                        <tr>
-                            <th>Audit Run Token</th>
-                            <th>Applicant Registered Account</th>
-                            <th>Audit Target Focus</th>
-                            <th>Pipeline Status State</th>
-                            <th>Billing State</th>
-                            <th>Verification Source Data</th>
-                            <th>Action Controls</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for req in individual_requests %}
-                        <tr>
-                            <td class="mono-text">#IND-{{ req.id }}</td>
-                            <td class="font-bold text-white">{{ req.email }}</td>
-                            <td><span class="instruction-badge postnet">{{ req.verification_type }}</span></td>
-                            <td>
-                                {% if 'Cleared' in req.status %}
-                                <span class="status-badge badge-cleared"><i class="fa-solid fa-circle-check"></i> {{ req.status }}</span>
-                                {% elif 'Flagged' in req.status %}
-                                <span class="status-badge badge-flagged"><i class="fa-solid fa-circle-exclamation"></i> {{ req.status }}</span>
-                                {% elif 'Review' in req.status %}
-                                <span class="status-badge badge-processing"><i class="fa-solid fa-spinner fa-spin"></i> {{ req.status }}</span>
-                                {% else %}
-                                <span class="status-badge badge-pending"><i class="fa-solid fa-clock"></i> {{ req.status }}</span>
-                                {% endif %}
-                            </td>
-                            <td><span class="mono-text {% if req.payment_status == 'Completed' %}cyan-text{% else %}burgundy-text{% endif %}">{{ req.payment_status }}</span></td>
-                            <td>
-                                <div style="display:flex; flex-direction:column; gap:4px;">
-                                    {% if req.id_file_path %}
-                                    <a href="/{{ req.id_file_path }}" target="_blank" class="pop-file-link"><i class="fa-solid fa-file-shield"></i> Structural Asset 1</a>
-                                    {% endif %}
-                                    {% if req.qualification_file_path %}
-                                    <a href="/{{ req.qualification_file_path }}" target="_blank" class="pop-file-link"><i class="fa-solid fa-file-shield"></i> Structural Asset 2</a>
-                                    {% endif %}
-                                    {% if not req.id_file_path and not req.qualification_file_path %}
-                                    <span style="font-size:0.75rem; color:var(--brand-muted);">Unsubmitted Vault</span>
-                                    {% endif %}
-                                </div>
-                            </td>
-                            <td>
-                                <div style="display:flex; gap:0.5rem;">
-                                    <button class="btn-table-row" onclick="openStatusModal('{{ req.id }}', '{{ req.status }}', 'individual')"><i class="fa-solid fa-sliders"></i> Trajectory</button>
-                                    <button class="btn-table-row" style="color: var(--brand-alert);" onclick="openFlagModal('{{ req.id }}', 'individual')"><i class="fa-solid fa-flag"></i> Reject</button>
-                                </div>
-                            </td>
-                        </tr>
-                        {% else %}
-                        <tr>
-                            <td colspan="7" style="text-align:center; padding: 3rem; color: var(--brand-muted);">No private citizen individual audit metrics deployed in pipeline.</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
             </div>
-        </div>
 
-        <div id="tab-payments" class="tab-content">
-            <div class="table-container">
-                <div class="table-header">
-                    <h3>Financial Settlements & Manual Bank Wire Ledger Clearance</h3>
+            <div id="tab-individual" class="tab-content">
+                <div class="table-container">
+                    <div class="table-header flex-between" style="padding-right: 1.5rem;">
+                        <h3>Self-Verification Individual Audit Pipelines</h3>
+                        <a href="{{ url_for('export_individual_csv') }}" class="btn-table-row"
+                            style="text-decoration: none; color: var(--brand-lime); border-color: var(--brand-lime);">
+                            <i class="fa-solid fa-file-csv"></i> Export Matrix (.CSV)
+                        </a>
+                    </div>
+                    <table class="matrix-table">
+                        <thead>
+                            <tr>
+                                <th>Audit Run Token</th>
+                                <th>Applicant Registered Account</th>
+                                <th>Audit Target Focus</th>
+                                <th>Pipeline Status State</th>
+                                <th>Billing State</th>
+                                <th>Verification Source Data</th>
+                                <th>Action Controls</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for req in individual_requests %}
+                            <tr>
+                                <td class="mono-text">#IND-{{ req.id }}</td>
+                                <td class="font-bold text-white">{{ req.email }}</td>
+                                <td><span class="instruction-badge postnet">{{ req.verification_type }}</span></td>
+                                <td>
+                                    {% if 'Cleared' in req.status %}
+                                    <span class="status-badge badge-cleared"><i class="fa-solid fa-circle-check"></i> {{
+                                        req.status }}</span>
+                                    {% elif 'Flagged' in req.status %}
+                                    <span class="status-badge badge-flagged"><i
+                                            class="fa-solid fa-circle-exclamation"></i> {{ req.status }}</span>
+                                    {% elif 'Review' in req.status %}
+                                    <span class="status-badge badge-processing"><i
+                                            class="fa-solid fa-spinner fa-spin"></i> {{ req.status }}</span>
+                                    {% else %}
+                                    <span class="status-badge badge-pending"><i class="fa-solid fa-clock"></i> {{
+                                        req.status }}</span>
+                                    {% endif %}
+                                </td>
+                                <td><span
+                                        class="mono-text {% if req.payment_status == 'Completed' %}cyan-text{% else %}burgundy-text{% endif %}">{{
+                                        req.payment_status }}</span></td>
+                                <td>
+                                    <div style="display:flex; flex-direction:column; gap:4px;">
+                                        {% if req.id_file_path %}
+                                        <a href="/{{ req.id_file_path }}" target="_blank" class="pop-file-link"><i
+                                                class="fa-solid fa-file-shield"></i> Structural Asset 1</a>
+                                        {% endif %}
+                                        {% if req.qualification_file_path %}
+                                        <a href="/{{ req.qualification_file_path }}" target="_blank"
+                                            class="pop-file-link"><i class="fa-solid fa-file-shield"></i> Structural
+                                            Asset 2</a>
+                                        {% endif %}
+                                        {% if not req.id_file_path and not req.qualification_file_path %}
+                                        <span style="font-size:0.75rem; color:var(--brand-muted);">Unsubmitted
+                                            Vault</span>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                <td>
+                                    <div style="display:flex; gap:0.5rem;">
+                                        <button class="btn-table-row"
+                                            onclick="openStatusModal('{{ req.id }}', '{{ req.status }}', 'individual')"><i
+                                                class="fa-solid fa-sliders"></i> Trajectory</button>
+                                        <button class="btn-table-row" style="color: var(--brand-alert);"
+                                            onclick="openFlagModal('{{ req.id }}', 'individual')"><i
+                                                class="fa-solid fa-flag"></i> Reject</button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="7" style="text-align:center; padding: 3rem; color: var(--brand-muted);">No
+                                    private citizen individual audit metrics deployed in pipeline.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
-                <table class="matrix-table">
-                    <thead>
-                        <tr>
-                            <th>Ledger System Reference Token</th>
-                            <th>Depositing Party Profile Name</th>
-                            <th>Selected Service Variant Target</th>
-                            <th>Invoice Units</th>
-                            <th>Interface Channel</th>
-                            <th>Payment State Status</th>
-                            <th>External POP Document</th>
-                            <th>Terminal Execution Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for pay in payments_queue %}
-                        <tr>
-                            <td class="mono-text" style="color:var(--brand-lime); font-weight:700;">{{ pay.payment_ref }}</td>
-                            <td class="font-bold text-white">{{ pay.party_name }}</td>
-                            <td><span style="font-size:0.85rem; color:var(--brand-white);">{{ pay.service }}</span></td>
-                            <td class="mono-text font-bold">{{ pay.units }} x Run Matrix</td>
-                            <td><span class="instruction-badge postnet" style="text-transform: uppercase;">{{ pay.type }}</span></td>
-                            <td>
-                                <span class="status-badge {% if pay.payment_status == 'Completed' %}badge-cleared{% elif pay.payment_status == 'Pending' %}badge-pending{% else %}badge-flagged{% endif %}">
-                                    {{ pay.payment_status }}
-                                </span>
-                            </td>
-                            <td>
-                                {% if pay.pop_file_path %}
-                                <a href="/{{ pay.pop_file_path }}" target="_blank" class="pop-file-link"><i class="fa-solid fa-receipt"></i> Check Bank Receipt</a>
-                                {% else %}
-                                <span style="font-size:0.75rem; color:var(--brand-muted); font-family:var(--font-mono);">Gateway Handshake</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if pay.payment_status == 'Pending' %}
-                                <div style="display:flex; gap:0.5rem;">
-                                    <form method="POST" action="{{ url_for('resolve_payment') }}">
-                                        <input type="hidden" name="payment_ref" value="{{ pay.payment_ref }}">
-                                        <input type="hidden" name="action" value="Confirm">
-                                        <button type="submit" class="btn-table-row" style="border-color:var(--brand-lime); color:var(--brand-lime);"><i class="fa-solid fa-check"></i> Authorize Deposit</button>
-                                    </form>
-                                    <form method="POST" action="{{ url_for('resolve_payment') }}">
-                                        <input type="hidden" name="payment_ref" value="{{ pay.payment_ref }}">
-                                        <input type="hidden" name="action" value="Reject">
-                                        <button type="submit" class="btn-table-row" style="border-color:var(--brand-alert); color:var(--brand-alert);"><i class="fa-solid fa-xmark"></i> Decline</button>
-                                    </form>
-                                </div>
-                                {% else %}
-                                <span style="font-size:0.8rem; color:var(--brand-muted); font-family:var(--font-mono);"><i class="fa-solid fa-lock"></i> Ledger Settled</span>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% else %}
-                        <tr>
-                            <td colspan="8" style="text-align:center; padding: 3rem; color: var(--brand-muted);">No financial references recorded in database vault logs.</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
             </div>
-        </div>
 
-        <div id="tab-users" class="tab-content">
-            <div class="table-container">
-                <div class="table-header">
-                    <h3>Master Identity Accounts Vault</h3>
+            <div id="tab-payments" class="tab-content">
+                <div class="table-container">
+                    <div class="table-header">
+                        <h3>Financial Settlements & Manual Bank Wire Ledger Clearance</h3>
+                    </div>
+                    <table class="matrix-table">
+                        <thead>
+                            <tr>
+                                <th>Ledger System Reference Token</th>
+                                <th>Depositing Party Profile Name</th>
+                                <th>Selected Service Variant Target</th>
+                                <th>Invoice Units</th>
+                                <th>Interface Channel</th>
+                                <th>Payment State Status</th>
+                                <th>External POP Document</th>
+                                <th>Terminal Execution Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for pay in payments_queue %}
+                            <tr>
+                                <td class="mono-text" style="color:var(--brand-lime); font-weight:700;">{{
+                                    pay.payment_ref }}</td>
+                                <td class="font-bold text-white">{{ pay.party_name }}</td>
+                                <td><span style="font-size:0.85rem; color:var(--brand-white);">{{ pay.service }}</span>
+                                </td>
+                                <td class="mono-text font-bold">{{ pay.units }} x Run Matrix</td>
+                                <td><span class="instruction-badge postnet" style="text-transform: uppercase;">{{
+                                        pay.type }}</span></td>
+                                <td>
+                                    <span
+                                        class="status-badge {% if pay.payment_status == 'Completed' %}badge-cleared{% elif pay.payment_status == 'Pending' %}badge-pending{% else %}badge-flagged{% endif %}">
+                                        {{ pay.payment_status }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if pay.pop_file_path %}
+                                    <a href="/{{ pay.pop_file_path }}" target="_blank" class="pop-file-link"><i
+                                            class="fa-solid fa-receipt"></i> Check Bank Receipt</a>
+                                    {% else %}
+                                    <span
+                                        style="font-size:0.75rem; color:var(--brand-muted); font-family:var(--font-mono);">Gateway
+                                        Handshake</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if pay.payment_status == 'Pending' %}
+                                    <div style="display:flex; gap:0.5rem;">
+                                        <form method="POST" action="{{ url_for('resolve_payment') }}">
+                                            <input type="hidden" name="payment_ref" value="{{ pay.payment_ref }}">
+                                            <input type="hidden" name="action" value="Confirm">
+                                            <button type="submit" class="btn-table-row"
+                                                style="border-color:var(--brand-lime); color:var(--brand-lime);"><i
+                                                    class="fa-solid fa-check"></i> Authorize Deposit</button>
+                                        </form>
+                                        <form method="POST" action="{{ url_for('resolve_payment') }}">
+                                            <input type="hidden" name="payment_ref" value="{{ pay.payment_ref }}">
+                                            <input type="hidden" name="action" value="Reject">
+                                            <button type="submit" class="btn-table-row"
+                                                style="border-color:var(--brand-alert); color:var(--brand-alert);"><i
+                                                    class="fa-solid fa-xmark"></i> Decline</button>
+                                        </form>
+                                    </div>
+                                    {% else %}
+                                    <span
+                                        style="font-size:0.8rem; color:var(--brand-muted); font-family:var(--font-mono);"><i
+                                            class="fa-solid fa-lock"></i> Ledger Settled</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="8" style="text-align:center; padding: 3rem; color: var(--brand-muted);">No
+                                    financial references recorded in database vault logs.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
-                <table class="matrix-table">
-                    <thead>
-                        <tr>
-                            <th>User ID System Code</th>
-                            <th>Authenticated Communication Mail</th>
-                            <th>Corporate Entity Legal Name</th>
-                            <th>Individual Full Legal Name</th>
-                            <th>Clearance Access Scope</th>
-                            <th>Actions & Controls</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for user in users_ledger %}
-                        <tr>
-                            <td class="mono-text">#USR-{{ user.id }}</td>
-                            <td class="text-white font-bold">{{ user.email }}</td>
-                            <td>{{ user.company_name if user.company_name else '-' }}</td>
-                            <td>{{ user.individual_name if user.individual_name else '-' }}</td>
-                            <td><span class="instruction-badge postnet" style="text-transform:uppercase;">{{ user.applicant_type }}</span></td>
-                            <td>
-                                <div style="display: flex; gap: 0.5rem; align-items: center;">
-                                    <a href="{{ url_for('export_profile_pdf', user_id=user.id) }}" target="_blank" class="btn-table-row" style="text-decoration: none; color: var(--brand-white); border-color: var(--border-bright); margin: 0;">
-                                        <i class="fa-solid fa-file-pdf"></i> Profile Report
-                                    </a>
-                                    <form method="POST" action="{{ url_for('purge_user', user_id=user.id) }}" onsubmit="return confirm('CRITICAL ARTIFACT REMOVAL: System verification to cascade delete entire workspace entities. Proceed?');" style="margin: 0;">
-                                        <button type="submit" class="btn-table-row" style="color:var(--brand-alert); border-color:rgba(255, 82, 82, 0.2);"><i class="fa-solid fa-trash-can"></i> Purge Matrix</button>
-                                    </form>
-                                </div>
-                            </td>
-                        </tr>
-                        {% else %}
-                        <tr>
-                            <td colspan="6" style="text-align:center; padding: 3rem; color: var(--brand-muted);">No user registries loaded in this cluster array node.</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
             </div>
-        </div>
 
-    </main>
-</div>
-<div class="modal-overlay" id="statusModalOverlay">
-    <div class="modal-card" style="max-width: 450px;">
-        <div class="flex-between">
-            <div class="modal-header">
-                <h3>Configure Pipeline Status Trajectory</h3>
+            <div id="tab-users" class="tab-content">
+                <div class="table-container">
+                    <div class="table-header">
+                        <h3>Master Identity Accounts Vault</h3>
+                    </div>
+                    <table class="matrix-table">
+                        <thead>
+                            <tr>
+                                <th>User ID System Code</th>
+                                <th>Authenticated Communication Mail</th>
+                                <th>Corporate Entity Legal Name</th>
+                                <th>Individual Full Legal Name</th>
+                                <th>Clearance Access Scope</th>
+                                <th>Actions & Controls</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in users_ledger %}
+                            <tr>
+                                <td class="mono-text">#USR-{{ user.id }}</td>
+                                <td class="text-white font-bold">{{ user.email }}</td>
+                                <td>{{ user.company_name if user.company_name else '-' }}</td>
+                                <td>{{ user.individual_name if user.individual_name else '-' }}</td>
+                                <td><span class="instruction-badge postnet" style="text-transform:uppercase;">{{
+                                        user.applicant_type }}</span></td>
+                                <td>
+                                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                        <a href="{{ url_for('export_profile_pdf', user_id=user.id) }}" target="_blank"
+                                            class="btn-table-row"
+                                            style="text-decoration: none; color: var(--brand-white); border-color: var(--border-bright); margin: 0;">
+                                            <i class="fa-solid fa-file-pdf"></i> Profile Report
+                                        </a>
+                                        <form method="POST" action="{{ url_for('purge_user', user_id=user.id) }}"
+                                            onsubmit="return confirm('CRITICAL ARTIFACT REMOVAL: System verification to cascade delete entire workspace entities. Proceed?');"
+                                            style="margin: 0;">
+                                            <button type="submit" class="btn-table-row"
+                                                style="color:var(--brand-alert); border-color:rgba(255, 82, 82, 0.2);"><i
+                                                    class="fa-solid fa-trash-can"></i> Purge Matrix</button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="6" style="text-align:center; padding: 3rem; color: var(--brand-muted);">No
+                                    user registries loaded in this cluster array node.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
-            <button class="close-modal-btn" onclick="closeStatusModal()">&times;</button>
-        </div>
-        
-        <form method="POST" action="{{ url_for('update_candidate_status') }}" class="modal-body-form">
-            <input type="hidden" name="id" id="statusRecordId">
-            <input type="hidden" name="track" id="statusRecordTrack">
-            
-            <div class="form-group">
-                <label for="statusSelectField">Select Matrix Processing Target State:</label>
-                <select name="status" id="statusSelectField" class="form-control select-input-dark" style="width: 100%; box-sizing: border-box;">
-                    <option value="Awaiting Payment">Awaiting Payment</option>
-                    <option value="Awaiting Document Upload">Awaiting Document Upload</option>
-                    <option value="Ready for Review">Ready for Review</option>
-                    <option value="Cleared — Verification Confirmed">Cleared — Verification Confirmed</option>
-                    <option value="Flagged — Image Unclear">Flagged — Image Unclear</option>
-                </select>
-            </div>
-            
-            <div style="margin-top: 1rem;">
-                <button type="submit" class="btn-portal-primary">Update Operational Runway Trajectory</button>
-            </div>
-        </form>
+
+        </main>
     </div>
-</div>
-
-<div class="modal-overlay" id="flagModalOverlay">
-    <div class="modal-card" style="max-width: 450px; border-top-color: var(--brand-alert);">
-        <div class="flex-between">
-            <div class="modal-header">
-                <h3>Flag & Audit Reject Core Failure</h3>
+    <div class="modal-overlay" id="statusModalOverlay">
+        <div class="modal-card" style="max-width: 450px;">
+            <div class="flex-between">
+                <div class="modal-header">
+                    <h3>Configure Pipeline Status Trajectory</h3>
+                </div>
+                <button class="close-modal-btn" onclick="closeStatusModal()">&times;</button>
             </div>
-            <button class="close-modal-btn" onclick="closeFlagModal()">&times;</button>
+
+            <form method="POST" action="{{ url_for('update_candidate_status') }}" class="modal-body-form">
+                <input type="hidden" name="id" id="statusRecordId">
+                <input type="hidden" name="track" id="statusRecordTrack">
+
+                <div class="form-group">
+                    <label for="statusSelectField">Select Matrix Processing Target State:</label>
+                    <select name="status" id="statusSelectField" class="form-control select-input-dark"
+                        style="width: 100%; box-sizing: border-box;">
+                        <option value="Awaiting Payment">Awaiting Payment</option>
+                        <option value="Awaiting Document Upload">Awaiting Document Upload</option>
+                        <option value="Ready for Review">Ready for Review</option>
+                        <option value="Cleared — Verification Confirmed">Cleared — Verification Confirmed</option>
+                        <option value="Flagged — Image Unclear">Flagged — Image Unclear</option>
+                    </select>
+                </div>
+
+                <div style="margin-top: 1rem;">
+                    <button type="submit" class="btn-portal-primary">Update Operational Runway Trajectory</button>
+                </div>
+            </form>
         </div>
-        
-        <form method="POST" action="{{ url_for('flag_document') }}" class="modal-body-form">
-            <input type="hidden" name="id" id="flagRecordId">
-            <input type="hidden" name="track" id="flagRecordTrack">
-            
-            <div class="form-group">
-                <label for="flagReasonInput">Specify Non-Compliance Reason Log:</label>
-                <textarea name="flag_reason" id="flagReasonInput" class="form-control" rows="4" placeholder="e.g. Identity documentation resolution limits exceeded. Please scan original document pages under standard illumination parameters." required style="width: 100%; box-sizing: border-box; resize: vertical;"></textarea>
-            </div>
-            
-            <div class="alert-notice-box" style="background: rgba(255,82,82,0.1); border-color: var(--brand-burgundy); color: var(--brand-white);">
-                <i class="fa-solid fa-triangle-exclamation" style="color:var(--brand-alert)"></i> Triggering this execution logs an instant notification prompt on the client's home dashboard demanding asset updates.
-            </div>
-            
-            <div style="margin-top: 1rem;">
-                <button type="submit" class="btn-portal-primary" style="background: var(--brand-alert); color: #fff;">Reject Compliance Integrity Verification</button>
-            </div>
-        </form>
     </div>
-</div>
+
+    <div class="modal-overlay" id="flagModalOverlay">
+        <div class="modal-card" style="max-width: 450px; border-top-color: var(--brand-alert);">
+            <div class="flex-between">
+                <div class="modal-header">
+                    <h3>Flag & Audit Reject Core Failure</h3>
+                </div>
+                <button class="close-modal-btn" onclick="closeFlagModal()">&times;</button>
+            </div>
+
+            <form method="POST" action="{{ url_for('flag_document') }}" class="modal-body-form">
+                <input type="hidden" name="id" id="flagRecordId">
+                <input type="hidden" name="track" id="flagRecordTrack">
+
+                <div class="form-group">
+                    <label for="flagReasonInput">Specify Non-Compliance Reason Log:</label>
+                    <textarea name="flag_reason" id="flagReasonInput" class="form-control" rows="4"
+                        placeholder="e.g. Identity documentation resolution limits exceeded. Please scan original document pages under standard illumination parameters."
+                        required style="width: 100%; box-sizing: border-box; resize: vertical;"></textarea>
+                </div>
+
+                <div class="alert-notice-box"
+                    style="background: rgba(255,82,82,0.1); border-color: var(--brand-burgundy); color: var(--brand-white);">
+                    <i class="fa-solid fa-triangle-exclamation" style="color:var(--brand-alert)"></i> Triggering this
+                    execution logs an instant notification prompt on the client's home dashboard demanding asset
+                    updates.
+                </div>
+
+                <div style="margin-top: 1rem;">
+                    <button type="submit" class="btn-portal-primary"
+                        style="background: var(--brand-alert); color: #fff;">Reject Compliance Integrity
+                        Verification</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
 
-<script>
-    // System Multi-Tab Routing Navigation Engine
-    function switchAdminTab(event, tabIdentifier) {
-        // Deactivate all running menu selector buttons
-        const menuItems = document.querySelectorAll('.sidebar-menu .menu-item');
-        menuItems.forEach(item => item.classList.remove('active'));
-        
-        // Hide all template tab blocks
-        const tabContents = document.querySelectorAll('.tab-content');
-        tabContents.forEach(content => content.classList.remove('active-content'));
-        
-        // Activate explicitly chosen target metrics space
-        event.currentTarget.classList.add('active');
-        document.getElementById('tab-' + tabIdentifier).classList.add('active-content');
+    <script>
+        // System Multi-Tab Routing Navigation Engine
+        function switchAdminTab(event, tabIdentifier) {
+            // Deactivate all running menu selector buttons
+            const menuItems = document.querySelectorAll('.sidebar-menu .menu-item');
+            menuItems.forEach(item => item.classList.remove('active'));
 
-        // Persist track references gracefully via url updates without hard refreshing
-        const url = new URL(window.location);
-        url.searchParams.set('tab', tabIdentifier);
-        window.history.pushState({}, '', url);
-    }
+            // Hide all template tab blocks
+            const tabContents = document.querySelectorAll('.tab-content');
+            tabContents.forEach(content => content.classList.remove('active-content'));
 
-    // Top Ribbon Notification Interactive Window Dropdowns Controls
-    function toggleNotificationDropdown(event) {
-        event.stopPropagation();
-        document.getElementById('adminNotificationPanel').classList.toggle('open-dropdown');
-    }
+            // Activate explicitly chosen target metrics space
+            event.currentTarget.classList.add('active');
+            document.getElementById('tab-' + tabIdentifier).classList.add('active-content');
 
-    // Modal Display Orchestration Methods
-    function openStatusModal(recordId, currentStatus, platformTrack) {
-        document.getElementById('statusRecordId').value = recordId;
-        document.getElementById('statusRecordTrack').value = platformTrack;
-        document.getElementById('statusSelectField').value = currentStatus;
-        document.getElementById('statusModalOverlay').classList.add('open');
-    }
-    function closeStatusModal() {
-        document.getElementById('statusModalOverlay').classList.remove('open');
-    }
-
-    function openFlagModal(recordId, platformTrack) {
-        document.getElementById('flagRecordId').value = recordId;
-        document.getElementById('flagRecordTrack').value = platformTrack;
-        document.getElementById('flagModalOverlay').classList.add('open');
-    }
-    function closeFlagModal() {
-        document.getElementById('flagModalOverlay').classList.remove('open');
-    }
-
-    // Page-Load Router Interceptor mapping back to explicit active tabs via url query state
-    window.addEventListener('DOMContentLoaded', () => {
-        const urlParams = new URLSearchParams(window.location.search);
-        const persistedTab = urlParams.get('tab');
-        if (persistedTab) {
-            const targetedBtn = document.querySelector(`button[onclick*="'${persistedTab}'"]`);
-            if (targetedBtn) {
-                const structuralMockEvent = { currentTarget: targetedBtn };
-                switchAdminTab(structuralMockEvent, persistedTab);
-            }
-        } else {
-            // Default check fallback safely maps to overview view screen frame
-            const initialBtn = document.querySelector(`button[onclick*="'overview'"]`);
-            if (initialBtn) {
-                switchAdminTab({ currentTarget: initialBtn }, 'overview');
-            }
+            // Persist track references gracefully via url updates without hard refreshing
+            const url = new URL(window.location);
+            url.searchParams.set('tab', tabIdentifier);
+            window.history.pushState({}, '', url);
         }
 
-        // Global Event listener closure for dropdown interface maps
-        document.addEventListener('click', () => {
-            document.getElementById('adminNotificationPanel').classList.remove('open-dropdown');
+        // Top Ribbon Notification Interactive Window Dropdowns Controls
+        function toggleNotificationDropdown(event) {
+            event.stopPropagation();
+            document.getElementById('adminNotificationPanel').classList.toggle('open-dropdown');
+        }
+
+        // Modal Display Orchestration Methods
+        function openStatusModal(recordId, currentStatus, platformTrack) {
+            document.getElementById('statusRecordId').value = recordId;
+            document.getElementById('statusRecordTrack').value = platformTrack;
+            document.getElementById('statusSelectField').value = currentStatus;
+            document.getElementById('statusModalOverlay').classList.add('open');
+        }
+        function closeStatusModal() {
+            document.getElementById('statusModalOverlay').classList.remove('open');
+        }
+
+        function openFlagModal(recordId, platformTrack) {
+            document.getElementById('flagRecordId').value = recordId;
+            document.getElementById('flagRecordTrack').value = platformTrack;
+            document.getElementById('flagModalOverlay').classList.add('open');
+        }
+        function closeFlagModal() {
+            document.getElementById('flagModalOverlay').classList.remove('open');
+        }
+
+        // Page-Load Router Interceptor mapping back to explicit active tabs via url query state
+        window.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const persistedTab = urlParams.get('tab');
+            if (persistedTab) {
+                const targetedBtn = document.querySelector(`button[onclick*="'${persistedTab}'"]`);
+                if (targetedBtn) {
+                    const structuralMockEvent = { currentTarget: targetedBtn };
+                    switchAdminTab(structuralMockEvent, persistedTab);
+                }
+            } else {
+                // Default check fallback safely maps to overview view screen frame
+                const initialBtn = document.querySelector(`button[onclick*="'overview'"]`);
+                if (initialBtn) {
+                    switchAdminTab({ currentTarget: initialBtn }, 'overview');
+                }
+            }
+
+            // Global Event listener closure for dropdown interface maps
+            document.addEventListener('click', () => {
+                document.getElementById('adminNotificationPanel').classList.remove('open-dropdown');
+            });
         });
-    });
-</script>
+        // Function to toggle the mobile drawer sidebar open or closed
+        function toggleMobileSidebar(event) {
+            if (event) event.stopPropagation();
+            const sidebar = document.querySelector('.dashboard-sidebar');
+            sidebar.classList.toggle('mobile-open');
+        }
+
+        // Enhance your existing switchAdminTab to close the sidebar automatically after selecting an item on mobile
+        const originalSwitchAdminTab = switchAdminTab;
+        switchAdminTab = function (event, tabIdentifier) {
+            // Run the native tab utility selection framework
+            originalSwitchAdminTab(event, tabIdentifier);
+
+            // Safely pull down mobile navigation drawer upon click
+            const sidebar = document.querySelector('.dashboard-sidebar');
+            if (sidebar.classList.contains('mobile-open')) {
+                sidebar.classList.remove('mobile-open');
+            }
+        };
+
+        // Global DOM Click Interceptor: Automatically dismisses sidebar menu if user clicks anywhere outside of it
+        document.addEventListener('click', (event) => {
+            const sidebar = document.querySelector('.dashboard-sidebar');
+            const toggleBtn = document.querySelector('.mobile-menu-toggle');
+
+            if (sidebar && sidebar.classList.contains('mobile-open')) {
+                if (!sidebar.contains(event.target) && !toggleBtn.contains(event.target)) {
+                    sidebar.classList.remove('mobile-open');
+                }
+            }
+        });
+    </script>
 
 </body>
+
 </html>
