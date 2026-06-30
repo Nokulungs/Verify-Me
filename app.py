@@ -1960,7 +1960,7 @@ def token_upload_portal(token):
                         license_file_path = %s,
                         linkedin_handle = %s, 
                         other_social_handle=%s,
-                        popia_consent_granted_at = %s,
+                        consent_granted_at = %s,
                         status = 'Ready for Review'
                     WHERE upload_token = %s
                 """, (
@@ -1971,7 +1971,7 @@ def token_upload_portal(token):
                     update_fields.get("license_file_path", screening.get('license_file_path')),
                     update_fields.get("other_social_handle"), 
                     update_fields.get("linkedin_handle"),
-                    update_fields.get("popia_consent_granted_at"),
+                    update_fields.get("consent_granted_at"),
                     token
                 ))
                 conn.commit()
