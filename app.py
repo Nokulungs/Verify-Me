@@ -1898,8 +1898,7 @@ def token_upload_portal(token):
     Handles secure candidate verification context, streams multi-vector static assets 
     directly to AWS S3, and links cloud endpoints into the database registry.
     """
-    # 🗄️ 1. FETCH THE TARGET RECORD SECURELY USING YOUR HELPER FUNCTION
-    # We use RealDictCursor so that 'screening['id']' mappings work perfectly
+    # 🗄️ 1. FETCH THE TARGET RECORD SECURELY USING REALDICTCURSOR
     with get_db_connection() as conn:
         with conn.cursor(cursor_factory=RealDictCursor) as cursor:
             cursor.execute("SELECT * FROM screenings WHERE upload_token = %s", (token,))
@@ -1912,21 +1911,23 @@ def token_upload_portal(token):
 
     # 🔄 3. POST ROUTE LAYER (Form Submission Processing)
     if request.method == 'POST':
-        # Retrieve text input metrics from the DOM template
+        # Retrieve text input fields from the HTML DOM template
         id_number = request.form.get('id_number')
         license_number = request.form.get('license_number')
-        social_handle = request.form.get('social_handle')
+        linkedin_handle = request.form.get('linkedin_handle')
+        other_social_handle = request.form.get('other_social_handle')
         
         # Pull raw binary streams out of the MultiDict wrapper safely
         id_file = request.files.get('id_file')
         qual_file = request.files.get('qualification_file')
         license_file = request.files.get('license_file')
         
-        # 🛡️ Initialize staging dictionary to build update parameters dynamically
+        # 🛡️ Initialize staging dictionary matched to exact table column schemas
         update_fields = {
-            "candidate_id_number": id_number,
-            "license_number": license_number,
-            "social_handle": social_handle,
+            "candidate_id_number": id_number if id_number else screening.get('candidate_id_number'),
+            "drivers_license_number": license_number if license_number else screening.get('drivers_license_number'),
+            "linkedin_handle": linkedin_handle if linkedin_handle else screening.get('linkedin_handle'),
+            "other_social_handle": other_social_handle if other_social_handle else screening.get('other_social_handle'),
             "consent_granted_at": datetime.utcnow()
         }
         
@@ -1949,10 +1950,9 @@ def token_upload_portal(token):
             secure_name = f"CAND_{screening['id']}_LIC_{werkzeug.utils.secure_filename(license_file.filename)}"
             s3_url = upload_file_to_s3(license_file, secure_name)
             if s3_url:
-                update_fields["license_file_path"] = s3_url
+                update_fields["drivers_license_file_path"] = s3_url
 
         # 🗄️ 4. DATABASE TRANSACT MATRIX 
-        # Safely acquire a separate connection block for the update phase
         with get_db_connection() as conn:
             with conn.cursor() as cursor:
                 cursor.execute("""
@@ -1960,19 +1960,21 @@ def token_upload_portal(token):
                         candidate_id_number = %s, 
                         id_file_path = %s,
                         qualification_file_path = %s,
-                        license_number = %s, 
-                        license_file_path = %s,
-                        social_handle = %s, 
+                        drivers_license_number = %s, 
+                        drivers_license_file_path = %s,
+                        linkedin_handle = %s, 
+                        other_social_handle = %s,
                         consent_granted_at = %s,
                         status = 'Ready for Review'
                     WHERE upload_token = %s
                 """, (
-                    update_fields.get("id_number"), 
+                    update_fields.get("candidate_id_number"), 
                     update_fields.get("id_file_path", screening.get('id_file_path')),
                     update_fields.get("qualification_file_path", screening.get('qualification_file_path')),
-                    update_fields.get("license_number"), 
-                    update_fields.get("license_file_path", screening.get('license_file_path')), # 💡 Changed from screening['license_file_path']
-                    update_fields.get("social_handle"), 
+                    update_fields.get("drivers_license_number"), 
+                    update_fields.get("drivers_license_file_path", screening.get('drivers_license_file_path')),
+                    update_fields.get("linkedin_handle"), 
+                    update_fields.get("other_social_handle"),
                     update_fields.get("consent_granted_at"),
                     token
                 ))
@@ -1982,7 +1984,7 @@ def token_upload_portal(token):
 
     # 🎨 5. GET ROUTE LAYER (Initial Interface Compile)
     return render_template('upload_portal.html', screening=screening)
-
+    
 @app.route('/admin/export-monthly-report')
 def export_monthly_report():
     # Matrix Rate definitions matching corporate calculations
