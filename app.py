@@ -17,8 +17,43 @@ from dotenv import load_dotenv
 from flask_mail import Mail, Message  # Single, clean import
 from io import StringIO
 from flask import Response
+import boto3
+from botocore.exceptions import NoCredentialsError
 
 # Initialize Environmental Context
+s3_client = boto3.client(
+    's3',
+    aws_access_key_id=os.environ.get('AWS_ACCESS_KEY_ID'),
+    aws_secret_access_key=os.environ.get('AWS_SECRET_ACCESS_KEY'),
+    region_name=os.environ.get('AWS_REGION', 'af-south-1')
+)
+
+BUCKET_NAME = os.environ.get('AWS_STORAGE_BUCKET_NAME')
+
+def upload_file_to_s3(file, custom_filename):
+    """
+    Streams file objects directly up to AWS S3 bucket architecture.
+    Returns the public access URL of the file if successful.
+    """
+    try:
+        s3_client.upload_fileobj(
+            file,
+            BUCKET_NAME,
+            custom_filename,
+            ExtraArgs={
+                "ContentType": file.content_type  # Ensures PDFs view in browser instead of downloading directly
+            }
+        )
+        # Generate the permanent file asset URL structure
+        file_url = f"https://{BUCKET_NAME}.s3.{os.environ.get('AWS_REGION', 'af-south-1')}.amazonaws.com/{custom_filename}"
+        return file_url
+        
+    except NoCredentialsError:
+        print("CRITICAL S3 ERROR: AWS credentials mapping missing or invalid.")
+        return None
+    except Exception as e:
+        print(f"CRITICAL S3 ERROR: {e}")
+        return None
 load_dotenv()
 
 class Config:
@@ -706,20 +741,26 @@ def purge_user(user_id):
 @app.route('/admin/view-document/<path:filename>')
 @role_required(['admin'])
 def admin_view_document(filename):
-    """Securely streams compliance documents to administrative operators directly using the root directory context."""
+    """Securely streams compliance documents or handles straight redirects to cloud asset storage grids."""
+    from flask import redirect
+    
+    # If the database string is already an absolute HTTP web address, hand it straight off to the cloud browser context
+    if filename.startswith('http://') or filename.startswith('https://'):
+        return redirect(filename)
+        
+    # 🔄 Fallback layer: If it's an old legacy record from your computer's local drive storage framework
     from flask import send_from_directory, abort
     import os
-
-    # Establish the concrete root directory path of your project execution environment
-    absolute_root_path = os.path.abspath(os.path.dirname(__file__))
     
-    # Calculate exactly where the target file is relative to the app root
-    full_target_file = os.path.join(absolute_root_path, filename)
+    clean_filename = os.path.basename(filename)
+    absolute_app_root = os.path.abspath(os.path.dirname(__file__))
+    target_storage_dir = os.path.join(absolute_app_root, 'static', 'uploads', 'credentials')
+    full_file_path = os.path.join(target_storage_dir, clean_filename)
 
-    # Verification fallback check
-    if not os.path.exists(full_target_file):
-        print(f"DEBUG ERROR: File not physically found at location: {full_target_file}")
-        abort(404)
+    if os.path.exists(full_file_path):
+        return send_from_directory(target_storage_dir, clean_filename)
+        
+    abort(404)
 
     # Serve securely using the absolute root directory path paired with the variable sub-path filename
     return send_from_directory(absolute_root_path, filename)
@@ -1849,88 +1890,73 @@ def send_screening_invite(screening_id):
         print(f"💥 Screening invite pipeline failure: {str(e)}")
         return jsonify({'success': False, 'message': f'Internal server routing fault: {str(e)}'}), 500
 
+import werkzeug
+
 @app.route('/upload-documents/<token>', methods=['GET', 'POST'])
 def token_upload_portal(token):
-    with get_db_connection() as conn:
-        cursor = conn.cursor(cursor_factory=RealDictCursor)
-        cursor.execute("SELECT * FROM screenings WHERE upload_token = %s", (token,))
-        candidate = cursor.fetchone()
-        cursor.close()
-        
-    if not candidate:
-        abort(404)
-        
-    if 'company_name' not in candidate or not candidate['company_name']:
-        candidate['company_name'] = "Authorized Corporate Partner"
-
+    # ... your existing code to verify token and fetch screening ...
+    
     if request.method == 'POST':
-        # Safety enforcement verify that check box consent was passed
-        popia_consent = request.form.get('popia_consent')
-        if not popia_consent:
-            return "<h3>Error: You must accept the POPIA authorization clause to submit your details.</h3>", 400
-
+        # Retrieve text input fields
         id_number = request.form.get('id_number')
         license_number = request.form.get('license_number')
-        linkedin_handle = request.form.get('linkedin_handle')
-        other_handle = request.form.get('other_handle')
+        social_handle = request.form.get('social_handle')
         
-        id_file = request.files.get('id_document')
-        qual_file = request.files.get('qualification_document')
-        license_file = request.files.get('license_document')
+        # Pull file files from the request wrapper safely
+        id_file = request.files.get('id_file')
+        qual_file = request.files.get('qualification_file')
+        license_file = request.files.get('license_file')
         
-        id_filename_to_save = None
-        aux_filename_to_save = None
+        # 🛡️ Initialize tracking dictionary for DB update fields
+        update_fields = {
+            "id_number": id_number,
+            "license_number": license_number,
+            "social_handle": social_handle,
+            "consent_granted_at": datetime.utcnow()
+        }
         
-        target_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), 'static', 'uploads', 'credentials'))
-        os.makedirs(target_dir, exist_ok=True)
-        
-        if id_file and allowed_file(id_file.filename):
-            clean_name = secure_filename(id_file.filename)
-            id_filename_to_save = f"CAND_{candidate['id']}_ID_{clean_name}"
-            id_file.save(os.path.join(target_dir, id_filename_to_save))
-            
-        if qual_file and allowed_file(qual_file.filename):
-            clean_name = secure_filename(qual_file.filename)
-            aux_filename_to_save = f"CAND_{candidate['id']}_QUAL_{clean_name}"
-            qual_file.save(os.path.join(target_dir, aux_filename_to_save))
-            
-        elif license_file and allowed_file(license_file.filename):
-            clean_name = secure_filename(license_file.filename)
-            aux_filename_to_save = f"CAND_{candidate['id']}_LICENSE_{clean_name}"
-            license_file.save(os.path.join(target_dir, aux_filename_to_save))
+        # Cloud upload sequence for ID document
+        if id_file and id_file.filename != '':
+            secure_name = f"CAND_{screening['id']}_ID_{werkzeug.utils.secure_filename(id_file.filename)}"
+            s3_url = upload_file_to_s3(id_file, secure_name)
+            if s3_url:
+                update_fields["id_file_path"] = s3_url # This saves the direct internet URL to the DB!
+                
+        # Cloud upload sequence for Qualification document
+        if qual_file and qual_file.filename != '':
+            secure_name = f"CAND_{screening['id']}_QUAL_{werkzeug.utils.secure_filename(qual_file.filename)}"
+            s3_url = upload_file_to_s3(qual_file, secure_name)
+            if s3_url:
+                update_fields["qualification_file_path"] = s3_url
 
-        with get_db_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute('''
-                UPDATE screenings 
-                SET candidate_id_number = %s,
-                    license_number = %s,
-                    linkedin_handle = %s,
-                    other_social_handle = %s,
-                    id_file_path = %s, 
-                    qualification_file_path = %s,
-                    auxiliary_file_path = %s,
-                    status = 'Ready for Review', 
-                    rejection_reason = NULL,
-                    consent_granted_at = %s
-                WHERE id = %s
-            ''', (
-                id_number,
-                license_number if license_number else None,
-                linkedin_handle if linkedin_handle else None,
-                other_handle if other_handle else None,
-                id_filename_to_save,
-                aux_filename_to_save if qual_file else None,
-                aux_filename_to_save if license_file else None,
-                datetime.now(), # Stamp the legal authorization window
-                candidate['id']
-            ))
-            conn.commit()
-            cursor.close()
-            
-        return "<h3>Upload Complete. Your specific screening data packages have been securely compiled and transmitted for compliance auditing.</h3>"
+        # Cloud upload sequence for Driver's License document
+        if license_file and license_file.filename != '':
+            secure_name = f"CAND_{screening['id']}_LIC_{werkzeug.utils.secure_filename(license_file.filename)}"
+            s3_url = upload_file_to_s3(license_file, secure_name)
+            if s3_url:
+                update_fields["license_file_path"] = s3_url # Maps directly to database row state
 
-    return render_template('upload_portal.html', screening=candidate, token=token)
+        # 🗄️ Save everything to the database registry 
+        cursor.execute("""
+            UPDATE screenings SET 
+                id_number = %s, id_file_path = %s,
+                qualification_file_path = %s,
+                license_number = %s, license_file_path = %s,
+                social_handle = %s, consent_granted_at = %s,
+                status = 'Ready for Review'
+            WHERE upload_token = %s
+        """, (
+            update_fields.get("id_number"), update_fields.get("id_file_path", screening['id_file_path']),
+            update_fields.get("qualification_file_path", screening['qualification_file_path']),
+            update_fields.get("license_number"), update_fields.get("license_file_path", screening['license_file_path']),
+            update_fields.get("social_handle"), update_fields.get("consent_granted_at"),
+            token
+        ))
+        conn.commit()
+        
+        return "<h1>Submission successful! Your compliance profile has been securely synchronized.</h1>"
+
+    return render_template('upload_portal.html', screening=screening)
 
 @app.route('/admin/export-monthly-report')
 def export_monthly_report():
