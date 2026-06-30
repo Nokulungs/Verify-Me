@@ -1968,10 +1968,10 @@ def token_upload_portal(token):
                     WHERE upload_token = %s
                 """, (
                     update_fields.get("id_number"), 
-                    update_fields.get("id_file_path", screening['id_file_path']),
-                    update_fields.get("qualification_file_path", screening['qualification_file_path']),
+                    update_fields.get("id_file_path", screening.get('id_file_path')),
+                    update_fields.get("qualification_file_path", screening.get('qualification_file_path')),
                     update_fields.get("license_number"), 
-                    update_fields.get("license_file_path", screening['license_file_path']),
+                    update_fields.get("license_file_path", screening.get('license_file_path')), # 💡 Changed from screening['license_file_path']
                     update_fields.get("social_handle"), 
                     update_fields.get("consent_granted_at"),
                     token
@@ -1982,7 +1982,7 @@ def token_upload_portal(token):
 
     # 🎨 5. GET ROUTE LAYER (Initial Interface Compile)
     return render_template('upload_portal.html', screening=screening)
-        
+
 @app.route('/admin/export-monthly-report')
 def export_monthly_report():
     # Matrix Rate definitions matching corporate calculations
