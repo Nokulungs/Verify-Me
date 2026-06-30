@@ -1895,96 +1895,90 @@ import werkzeug
 @app.route('/upload-documents/<token>', methods=['GET', 'POST'])
 def token_upload_portal(token):
     """
-    Handles secure candidate verification context, streams multi-vector static assets 
-    directly to AWS S3, and links cloud endpoints into the database registry.
+    Secure onboarding matrix that takes candidate credentials, streams raw binary files
+    straight up to AWS S3, updates the tracking columns, and triggers an administrative alert state.
     """
-    # 🗄️ 1. FETCH THE TARGET RECORD SECURELY USING REALDICTCURSOR
+    # 🗄️ 1. Fetch record securely using the unique safe token format
     with get_db_connection() as conn:
         with conn.cursor(cursor_factory=RealDictCursor) as cursor:
             cursor.execute("SELECT * FROM screenings WHERE upload_token = %s", (token,))
-            screening = cursor.fetchone() 
+            screening = cursor.fetchone()
 
-    # 🛑 2. GUARD SECURITY GATEWAY
+    # 🛑 2. Guard security boundary against injection or old slots
     if not screening:
-        print(f"SECURITY ALERT: Unauthorized access attempt using invalid token: {token}")
+        print(f"SECURITY BREACH THREAT: Unauthorized token asset interaction: {token}")
         abort(404)
 
-    # 🔄 3. POST ROUTE LAYER (Form Submission Processing)
+    # 🔄 3. POST Layer: Process Submitted Identity & Compliance Files
     if request.method == 'POST':
-        # Retrieve text input fields from the HTML DOM template
         id_number = request.form.get('id_number')
         license_number = request.form.get('license_number')
-        linkedin_handle = request.form.get('linkedin_handle')
-        other_social_handle = request.form.get('other_social_handle')
+        social_handle = request.form.get('social_handle')
         
-        # Pull raw binary streams out of the MultiDict wrapper safely
         id_file = request.files.get('id_file')
         qual_file = request.files.get('qualification_file')
         license_file = request.files.get('license_file')
         
-        # 🛡️ Initialize staging dictionary matched to exact table column schemas
+        # Pull table definitions directly out of your schema configuration
         update_fields = {
-            "candidate_id_number": id_number if id_number else screening.get('candidate_id_number'),
-            "drivers_license_number": license_number if license_number else screening.get('drivers_license_number'),
-            "linkedin_handle": linkedin_handle if linkedin_handle else screening.get('linkedin_handle'),
-            "other_social_handle": other_social_handle if other_social_handle else screening.get('other_social_handle'),
-            "consent_granted_at": datetime.utcnow()
+            "id_number": id_number if id_number else screening.get('id_number'),
+            "license_number": license_number if license_number else screening.get('license_number'),
+            "social_handle": social_handle if social_handle else screening.get('social_handle'),
+            "popia_consent_granted_at": datetime.utcnow()
         }
         
-        # ☁️ Pipeline A: ID Document Cloud Stream
+        # ☁️ AWS S3 Stream Pipeline A: Identification Certificate
         if id_file and id_file.filename != '':
-            secure_name = f"CAND_{screening['id']}_ID_{werkzeug.utils.secure_filename(id_file.filename)}"
+            secure_name = f"CAND_{screening['id']}_ID_{secure_filename(id_file.filename)}"
             s3_url = upload_file_to_s3(id_file, secure_name)
             if s3_url:
                 update_fields["id_file_path"] = s3_url
                 
-        # ☁️ Pipeline B: Qualification Matrix Cloud Stream
+        # ☁️ AWS S3 Stream Pipeline B: Qualification Matrix Data
         if qual_file and qual_file.filename != '':
-            secure_name = f"CAND_{screening['id']}_QUAL_{werkzeug.utils.secure_filename(qual_file.filename)}"
+            secure_name = f"CAND_{screening['id']}_QUAL_{secure_filename(qual_file.filename)}"
             s3_url = upload_file_to_s3(qual_file, secure_name)
             if s3_url:
                 update_fields["qualification_file_path"] = s3_url
 
-        # ☁️ Pipeline C: Driver's License Cloud Stream
+        # ☁️ AWS S3 Stream Pipeline C: Road Traffic Driver Licence
         if license_file and license_file.filename != '':
-            secure_name = f"CAND_{screening['id']}_LIC_{werkzeug.utils.secure_filename(license_file.filename)}"
+            secure_name = f"CAND_{screening['id']}_LIC_{secure_filename(license_file.filename)}"
             s3_url = upload_file_to_s3(license_file, secure_name)
             if s3_url:
-                update_fields["drivers_license_file_path"] = s3_url
+                update_fields["license_file_path"] = s3_url
 
-        # 🗄️ 4. DATABASE TRANSACT MATRIX 
+        # 🗄️ 4. Execute Transaction and upgrade state to trigger Admin visibility
         with get_db_connection() as conn:
             with conn.cursor() as cursor:
                 cursor.execute("""
                     UPDATE screenings SET 
-                        candidate_id_number = %s, 
+                        id_number = %s, 
                         id_file_path = %s,
                         qualification_file_path = %s,
                         license_number = %s, 
                         license_file_path = %s,
-                        linkedin_handle = %s, 
-                        other_social_handle = %s,
-                        consent_granted_at = %s,
+                        social_handle = %s, 
+                        popia_consent_granted_at = %s,
                         status = 'Ready for Review'
                     WHERE upload_token = %s
                 """, (
-                    update_fields.get("candidate_id_number"), 
+                    update_fields.get("id_number"), 
                     update_fields.get("id_file_path", screening.get('id_file_path')),
                     update_fields.get("qualification_file_path", screening.get('qualification_file_path')),
                     update_fields.get("license_number"), 
-                    update_fields.get("license_file_path", screening.get('drivers_license_file_path')),
-                    update_fields.get("linkedin_handle"), 
-                    update_fields.get("other_social_handle"),
-                    update_fields.get("consent_granted_at"),
+                    update_fields.get("license_file_path", screening.get('license_file_path')),
+                    update_fields.get("social_handle"), 
+                    update_fields.get("popia_consent_granted_at"),
                     token
                 ))
                 conn.commit()
         
-        return "<h1>Submission successful! Your compliance profile has been securely synchronized.</h1>"
+        return "<h1 style='font-family:sans-serif; text-align:center; padding-top:10%; color:#4eb637;'>Submission Successful! Your compliance profile has been securely synchronized.</h1>"
 
-    # 🎨 5. GET ROUTE LAYER (Initial Interface Compile)
+    # 🎨 5. Compile Portal UI layout for initial GET actions
     return render_template('upload_portal.html', screening=screening)
-
+    
 @app.route('/admin/export-monthly-report')
 def export_monthly_report():
     # Matrix Rate definitions matching corporate calculations
