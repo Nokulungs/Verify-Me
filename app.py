@@ -55,7 +55,7 @@ BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 # --- FILE CAPTURE CONFIGURATIONS ---
 UPLOAD_FOLDER = os.path.join('static', 'uploads', 'receipts')
 DOCS_FOLDER = os.path.join('static', 'uploads', 'credentials')
-UPLOAD_REGISTRY_DIR = os.path.join('static', 'uploads', 'registries')
+UPLOAD_REGISTRY_DIR = os.path.join(BASE_DIR,'s' 'uploads', 'registries')
 ALLOWED_EXTENSIONS = {'pdf', 'png', 'jpg', 'jpeg'}
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -98,7 +98,7 @@ def get_db_connection():
     return conn
 
 def init_db():
-    """Initializes verification schemas inside PostgreSQL."""
+    """Initializes verification schemas and default market rates inside PostgreSQL."""
     conn = get_db_connection()
     cursor = conn.cursor()
     
@@ -112,10 +112,12 @@ def init_db():
             individual_id TEXT,                
             company_name TEXT,                  
             company_contact TEXT,              
+            phone TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
-    ''')
+    ''');
     
+    # Updated screenings table configuration with dynamic pricing lock-ins
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS screenings (
             id SERIAL PRIMARY KEY,
@@ -123,6 +125,8 @@ def init_db():
             candidate_name TEXT NOT NULL,
             candidate_email TEXT NOT NULL,       
             screening_type TEXT NOT NULL,        
+            institution_variant TEXT,            
+            charged_amount DECIMAL(10, 2) DEFAULT 0.00, 
             status TEXT DEFAULT 'Awaiting Payment', 
             payment_method TEXT DEFAULT 'manual_eft',                 
             payment_status TEXT DEFAULT 'Pending',
@@ -130,10 +134,11 @@ def init_db():
             pop_file_path TEXT,                  
             id_file_path TEXT,                   
             qualification_file_path TEXT,        
+            upload_token TEXT,
             rejection_reason TEXT,               
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
-    ''')
+    ''');
 
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS individual_audits (
@@ -150,9 +155,62 @@ def init_db():
             rejection_reason TEXT,               
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
-    ''')
+    ''');
+
+    # 🆕 NEW: Dynamic Administrative Control Price Matrix Setup
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS pricing_settings (
+            id SERIAL PRIMARY KEY,
+            key_name VARCHAR(100) UNIQUE NOT NULL,
+            display_name VARCHAR(100) NOT NULL,
+            price_zar DECIMAL(10, 2) NOT NULL,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''');
+
+    # 🆕 NEW: Password Resets Table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS password_resets (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            token TEXT NOT NULL,
+            expires_at TIMESTAMP NOT NULL,
+            used BOOLEAN DEFAULT FALSE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''');
     conn.commit()
 
+    # Pre-seed pricing matrix table values if empty
+    try:
+        cursor.execute("SELECT COUNT(*) FROM pricing_settings")
+        if cursor.fetchone()[0] == 0:
+            default_matrix = [
+                ('Identity Verification', 'Identity Verification & Validation', 30.00),
+                ('Criminal Check', 'Criminal Record & Background Check', 240.00),
+                ('SAQA Foreign Evaluation', 'SAQA Certificate Evaluation', 360.00),
+                ('Credit Check', 'Credit and financial checks', 185.00),
+                ('Licence Verification', 'Licence Verification', 150.00),
+                ('Global Compliance', 'Global compliance Screening', 450.00),
+                ('Social Media Footprint', 'Social Media Footprint analysis', 220.00),
+                ('Matric (Pre-1992)', 'Matric (Pre-1992)', 280.00),
+                ('Matric (Post-1992)', 'Matric (Post-1992)', 190.00),
+                ('University of Pretoria (PTA)', 'University of Pretoria (PTA)', 228.00),
+                ('University of Johannesburg (JHB)', 'University of Johannesburg (JHB)', 336.00),
+                ('University of the Witwatersrand (WITS)', 'University of the Witwatersrand (WITS)', 336.00),
+                ('All N Certificates', 'All N Certificates', 200.00),
+                ('Other Tertiary Institutions', 'Other Tertiary Institutions', 240.00)
+            ]
+            cursor.executemany('''
+                INSERT INTO pricing_settings (key_name, display_name, price_zar)
+                VALUES (%s, %s, %s)
+            ''', default_matrix)
+            conn.commit()
+            print("⚙️ Seed Optimization: Populated default ZAR values into the tracking system.")
+    except Exception as matrix_err:
+        print(f"Pricing matrix diagnostic issue: {matrix_err}")
+
+    # Seed Admin Account
     try:
         cursor.execute("SELECT 1 FROM users WHERE applicant_type = 'admin'")
         if not cursor.fetchone():
@@ -312,11 +370,141 @@ def login():
 
     return render_template('auth/login.html')
 
+
+@app.route('/submit-screening', methods=['POST'])
+def submit_screening():
+    if 'user_id' not in session or session.get('applicant_type') != 'corporate':
+        flash('Unauthorized entry point.', 'danger')
+        return redirect(url_for('dashboard'))
+
+    candidate_name = request.form.get('candidate_name')
+    candidate_email = request.form.get('candidate_email')
+    
+    # Capture multiple selections from your front-end checkboxes/multi-select
+    selected_verifications = request.form.getlist('verification_types') 
+    institution_variant = request.form.get('institution_variant', None)
+
+    if not candidate_name or not candidate_email or not selected_verifications:
+        flash('Missing required verification fields.', 'danger')
+        return redirect(url_for('dashboard'))
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        # 1. Fetch current dynamic pricing records directly from PostgreSQL
+        cursor.execute("SELECT key_name, price_zar FROM pricing_settings")
+        price_map = {row[0]: float(row[1]) for row in cursor.fetchall()}
+
+        # 2. Loop through selections, match keys, and aggregate the true total cost
+        total_calculated_charge = 0.00
+        for verification in selected_verifications:
+            # Check for structural variant pricing mappings (e.g., specific universities)
+            if verification == 'Tertiary Education' and institution_variant in price_map:
+                total_calculated_charge += price_map[institution_variant]
+            elif verification in price_map:
+                total_calculated_charge += price_map[verification]
+            else:
+                # Standard fallback structural item base cost
+                total_calculated_charge += price_map.get('Other Tertiary Institutions', 240.00)
+
+        # 3. File Processing Blocks
+        pop_file = request.files.get('pop_file')
+        id_file = request.files.get('id_file')
+        qual_file = request.files.get('qualification_file')
+
+        pop_path = save_file_safely(pop_file, 'proof_of_payments') if pop_file else None
+        id_path = save_file_safely(id_file, 'identities') if id_file else None
+        qual_path = save_file_safely(qual_file, 'qualifications') if qual_file else None
+
+        # Generation token for candidate direct links if backgrounding is needed
+        upload_token = generate_secure_token()
+
+        # Join the mapped choices cleanly to represent the screening configuration bulk bundle
+        screening_bundle_name = ", ".join(selected_verifications)
+
+        # 4. Write back into the system database with frozen transactional rates locked in place
+        cursor.execute('''
+            INSERT INTO screenings (
+                user_id, candidate_name, candidate_email, screening_type, 
+                institution_variant, charged_amount, status, payment_status, 
+                pop_file_path, id_file_path, qualification_file_path, upload_token
+            )
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        ''', (
+            current_user.id, candidate_name, candidate_email, screening_bundle_name,
+            institution_variant, total_calculated_charge, 'Awaiting Payment', 'Pending',
+            pop_path, id_path, qual_path, upload_token
+        ))
+        
+        conn.commit()
+        flash(f'Screening order configured! Total transactional balance calculated: R{total_calculated_charge:.2f}', 'success')
+
+    except Exception as err:
+        conn.rollback()
+        print(f"Error executing processing run setup: {err}")
+        flash('An internal system error occurred while calculating verification parameters.', 'danger')
+    finally:
+        cursor.close()
+        conn.close()
+
+    return redirect(url_for('dashboard'))
+
+
+def save_file_safely(file_storage, folder):
+    """Utility helper to secure name schemas and structure file uploads."""
+    import os
+    from werkzeug.utils import secure_filename
+    
+    UPLOAD_FOLDER = os.path.join('static', 'uploads', folder)
+    if not os.path.exists(UPLOAD_FOLDER):
+        os.makedirs(UPLOAD_FOLDER)
+        
+    filename = secure_filename(file_storage.filename)
+    unique_name = f"{generate_secure_token()[:8]}_{filename}"
+    full_path = os.path.join(UPLOAD_FOLDER, unique_name)
+    file_storage.save(full_path)
+    return full_path
+
+
+def generate_secure_token():
+    import secrets
+    return secrets.token_urlsafe(16)
+
 # ─── THE ADMINISTRATIVE MASTER WORKSPACE VAULT ───────────
-@app.route('/admin/workspace')
+@app.route('/admin/workspace', methods=['GET', 'POST'])
 @role_required(['admin'])
 def admin_dashboard():
-    # 1. Define the commercial price rate mapping matrix
+    # --------------------------------------------------------------------------
+    # 🆕 ACTION BLOCK: Handle Price Metric Form Updates (POST Submissions)
+    # --------------------------------------------------------------------------
+    if request.method == 'POST':
+        updated_prices = request.form.getlist('prices[]')
+        setting_ids = request.form.getlist('ids[]')
+        
+        try:
+            with get_db_connection() as conn:
+                with conn.cursor() as cursor:
+                    for setting_id, price in zip(setting_ids, updated_prices):
+                        clean_price = float(price) if price else 0.00
+                        cursor.execute("""
+                            UPDATE pricing_settings 
+                            SET price_zar = %s, updated_at = NOW()
+                            WHERE id = %s
+                        """, (clean_price, setting_id))
+                    conn.commit()
+            flash('Dynamic verification pricing settings matrices updated successfully.', 'success')
+        except Exception as e:
+            flash(f'Failed to adjust pricing data: {str(e)}', 'error')
+            
+        # Forces the admin workspace view to focus cleanly back on the pricing tab panel layout
+        return redirect(url_for('admin_dashboard', tab='pricing'))
+
+    # --------------------------------------------------------------------------
+    # 🔍 READ BLOCK: Fetching operational dataset parameters (GET Request)
+    # --------------------------------------------------------------------------
+    
+    # 1. Fallback dictionary for internal revenue computations if records aren't generated yet
     SCREENING_PRICES = {
         'Identity Verification & Validation': 450.00,
         'Criminal Record & Background Check': 550.00,
@@ -328,6 +516,14 @@ def admin_dashboard():
 
     with get_db_connection() as conn:
         cursor = conn.cursor(cursor_factory=RealDictCursor)
+        
+        # Pull live operational prices straight out of the database settings matrix
+        cursor.execute("SELECT * FROM pricing_settings ORDER BY id ASC")
+        pricing_entries = cursor.fetchall()
+        
+        # Override the hardcoded fallback map dictionary if live settings metrics are populated in DB
+        if pricing_entries:
+            SCREENING_PRICES = {item['display_name']: float(item['price_zar']) for item in pricing_entries}
         
         # 2. Base metrics counts
         cursor.execute("SELECT COUNT(*) FROM users WHERE applicant_type != 'admin'")
@@ -346,7 +542,6 @@ def admin_dashboard():
         cursor.execute("SELECT verification_type FROM individual_audits WHERE payment_status = 'Completed';")
         individual_rows = cursor.fetchall()
         for row in individual_rows:
-            # Since RealDictCursor returns key-value pairs, access by column name string
             v_type = row['verification_type']
             total_revenue += SCREENING_PRICES.get(v_type, 0.0)
 
@@ -416,7 +611,7 @@ def admin_dashboard():
         users_ledger = cursor.fetchall()
         cursor.close()
     
-    # 5. Single unified return context
+    # 5. Single unified return context explicitly offering pricing_entries array matrices
     return render_template(
         'admin_dashboard.html',
         total_revenue=total_revenue,
@@ -427,7 +622,8 @@ def admin_dashboard():
         corporate_candidates=corporate_candidates,
         individual_requests=individual_requests,
         payments_queue=payments_queue,
-        users_ledger=users_ledger
+        users_ledger=users_ledger,
+        pricing_entries=pricing_entries  # 🚀 Live database settings are now fully piped to the HTML engine
     )
 
 @app.route('/admin/update-candidate-status', methods=['POST'])
@@ -569,6 +765,16 @@ def dashboard_corporate():
             WHERE user_id = %s AND (payment_status IN ('Pending Checkout', 'Pending', 'Cancelled') OR status = 'Awaiting Payment')
         ''', (user_id,))
         unpaid_count = cursor.fetchone()['count']
+
+        pricing_entries = [] # 🆕 Safeguards against NameError exceptions if something goes wrong
+
+        try:
+            with get_db_connection() as conn:
+                with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                    cursor.execute("SELECT * FROM pricing_settings ORDER BY id ASC")
+                    pricing_entries = cursor.fetchall()
+        except Exception as e:
+             print(f"Failed to fetch dynamic corporate pricing settings matrix: {e}")
         
         cursor.close()
 
@@ -579,7 +785,8 @@ def dashboard_corporate():
         attention_required_count=attention_required_count,
         unpaid_count=unpaid_count,
         hide_navbar=True, 
-        hide_footer=True
+        hide_footer=True,
+        pricing_entries=pricing_entries
     )
 
 # 🌟 Create a clean mirror fallback so url_for('dashboard_corporate') never fails
@@ -610,8 +817,6 @@ def initiate_screening():
         flash('Invalid verification array selection.', 'error')
         return redirect(url_for('dashboard_corporate'))
 
-    cost_per_candidate = calculate_individual_cost(screening_type)
-
     csv_path = None
     if csv_file and csv_file.filename != '':
         filename = secure_filename(csv_file.filename)
@@ -636,9 +841,13 @@ def initiate_screening():
         for row in csv_input:
             if not row or len(row) < 2: 
                 continue
-            c_name, c_email = row[0].strip(), row[1].strip()
+            c_name = row[0].strip()
+            c_email = row[1].strip()
+            # Approach B variant reading mapping configuration
+            c_variant = row[2].strip() if len(row) > 2 else ''
+            
             if c_name and c_email: 
-                staged_rows.append((c_name, c_email))
+                staged_rows.append((c_name, c_email, c_variant))
 
         if not staged_rows:
             flash('No functional candidates verified inside data stream registry.', 'error')
@@ -652,143 +861,112 @@ def initiate_screening():
         flash(f'Bulk metrics processing exception generated: {str(e)}', 'error')
         return redirect(url_for('dashboard_corporate'))
 
-    # ==================== CASE 1: MANUAL EFT FLOW ====================
+    # Prepare file storage paths if handling Manual EFT
+    pop_saved_path = None
     if payment_method == 'manual_eft':
         if 'pop_receipt' not in request.files:
             flash('Proof of payment document required for manual ledger checkout tracking.', 'error')
             return redirect(url_for('dashboard_corporate'))
 
         pop_file = request.files['pop_receipt']
-        pop_saved_path = None
         if pop_file and pop_file.filename != '' and allowed_file(pop_file.filename):
             base_name = secure_filename(pop_file.filename)
             unique_filename = f"{payment_ref}_{base_name}"
             pop_saved_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
             pop_file.save(pop_saved_path)
 
-        duplicates_skipped = 0
-        with get_db_connection() as conn:
-            cursor = conn.cursor(cursor_factory=RealDictCursor)
-            for c_name, c_email in staged_rows:
-                cursor.execute('''
-                    SELECT 1 FROM screenings 
-                    WHERE user_id = %s AND candidate_email = %s AND screening_type = %s
-                    LIMIT 1
-                ''', (session['user_id'], c_email, screening_type))
-                if cursor.fetchone():
-                    duplicates_skipped += 1
-                    continue
+    # Process pricing lookups and insert operations
+    duplicates_skipped = 0
+    total_batch_bill_amount = 0.0
+    
+    with get_db_connection() as conn:
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        
+        # Pull live rate parameters out of the DB pricing matrix
+        cursor.execute("SELECT key_name, price_zar FROM pricing_settings")
+        live_prices = {row['key_name']: float(row['price_zar']) for row in cursor.fetchall()}
+        
+        for c_name, c_email, c_variant in staged_rows:
+            # Rule A: Cross-check distinct compound unique configurations
+            cursor.execute('''
+                SELECT 1 FROM screenings 
+                WHERE user_id = %s AND candidate_email = %s AND screening_type = %s
+                LIMIT 1
+            ''', (session['user_id'], c_email, screening_type))
+            if cursor.fetchone():
+                duplicates_skipped += 1
+                continue
 
-                # Generate secure portal token
-                upload_token = secrets.token_urlsafe(32)
+            # Calculate individual row total utilizing Approach B's delimiter splitting architecture
+            row_calculated_charge = 0.0
+            
+            if screening_type == 'Qualification Verification':
+                if ';' in c_variant:
+                    # Clean split cell by semicolon for multiple items
+                    individual_variants = [v.strip() for v in c_variant.split(';') if v.strip()]
+                    for variant in individual_variants:
+                        row_calculated_charge += live_prices.get(variant, live_prices.get('Other Tertiary Institutions', 240.00))
+                elif c_variant:
+                    row_calculated_charge += live_prices.get(c_variant, live_prices.get('Other Tertiary Institutions', 240.00))
+                else:
+                    row_calculated_charge += live_prices.get('Other Tertiary Institutions', 240.00)
+            else:
+                # Use flat mapping keys for standalone services (Identity, Criminal, etc.)
+                row_calculated_charge += live_prices.get(screening_type, live_prices.get('Identity Verification', 30.00))
 
-                cursor.execute('''
-                    INSERT INTO screenings (
-                        user_id, candidate_name, candidate_email, screening_type, status, 
-                        payment_method, payment_status, payment_ref, pop_file_path, upload_token
-                    ) VALUES (%s, %s, %s, %s, 'Pending Input', %s, 'Pending Review', %s, %s, %s)
-                ''', (session['user_id'], c_name, c_email, screening_type, 'manual_eft', payment_ref, pop_saved_path, upload_token))
-                
-                # Build link & Send Email securely within the App Context
-                invite_link = f"{Config.BASE_URL}/upload-documents/{upload_token}"
-                msg = Message(
-                    subject=f"Action Required: VerifyMe Screening Link for {c_name}",
-                    recipients=[c_email]
-                )
-                msg.html = f"""
-                <!DOCTYPE html>
-                <html>
-                <body style="font-family: 'Segoe UI', Arial, sans-serif; background-color: #121413; color: #f5f5f5; padding: 20px;">
-                    <div style="background-color: #1a1d1b; max-width: 550px; margin: 0 auto; padding: 30px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05);">
-                        <div style="font-size: 1.5rem; font-weight: bold; color: #4eb637; margin-bottom: 20px; font-family: monospace;">// VERIFYME CONTAINER</div>
-                        <h2 style="color: #ffffff;">Hello {c_name},</h2>
-                        <p style="color: #a3a3a3;">An automated enterprise background screening request (<strong>{screening_type}</strong>) has been deployed for you by {session.get('display_name', 'an Enterprise Client')}.</p>
-                        <p style="color: #a3a3a3;">To advance this identity verification process, please click the secure button below to access your documentation upload workspace:</p>
-                        <div style="text-align: center; margin: 30px 0;">
-                            <a href="{invite_link}" style="background-color: #4eb637; color: #000000; text-decoration: none; padding: 12px 24px; font-weight: 600; border-radius: 6px; display: inline-block;">Open Verification Portal</a>
-                        </div>
-                        <p style="color: #a3a3a3;">Once uploaded, your tracking state will automatically shift to <strong>Ready for Review</strong>.</p>
+            total_batch_bill_amount += row_calculated_charge
+            upload_token = secrets.token_urlsafe(32)
+
+            # Insert screening rows with specific charged_amount footprint logged safely
+            cursor.execute('''
+                INSERT INTO screenings (
+                    user_id, candidate_name, candidate_email, screening_type, institution_variant, 
+                    charged_amount, status, payment_method, payment_status, payment_ref, pop_file_path, upload_token
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ''', (
+                session['user_id'], c_name, c_email, screening_type, c_variant or None,
+                row_calculated_charge, 'Pending Input', payment_method, 
+                'Pending Review' if payment_method == 'manual_eft' else 'Pending Checkout',
+                payment_ref, pop_saved_path, upload_token
+            ))
+            
+            # Dispatch invite links securely
+            invite_link = f"{Config.BASE_URL}/upload-documents/{upload_token}"
+            msg = Message(
+                subject=f"Action Required: VerifyMe Screening Link for {c_name}",
+                recipients=[c_email]
+            )
+            msg.html = f"""
+            <!DOCTYPE html>
+            <html>
+            <body style="font-family: 'Segoe UI', Arial, sans-serif; background-color: #121413; color: #f5f5f5; padding: 20px;">
+                <div style="background-color: #1a1d1b; max-width: 550px; margin: 0 auto; padding: 30px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05);">
+                    <div style="font-size: 1.5rem; font-weight: bold; color: #4eb637; margin-bottom: 20px; font-family: monospace;">// VERIFYME CONTAINER</div>
+                    <h2 style="color: #ffffff;">Hello {c_name},</h2>
+                    <p style="color: #a3a3a3;">An automated enterprise background screening request (<strong>{screening_type}</strong>) has been deployed for you by {session.get('display_name', 'an Enterprise Client')}.</p>
+                    <p style="color: #a3a3a3;">To advance this identity verification process, please click the secure button below to access your documentation upload workspace:</p>
+                    <div style="text-align: center; margin: 30px 0;">
+                        <a href="{invite_link}" style="background-color: #4eb637; color: #000000; text-decoration: none; padding: 12px 24px; font-weight: 600; border-radius: 6px; display: inline-block;">Open Verification Portal</a>
                     </div>
                 </body>
                 </html>
                 """
-                with app.app_context():
-                    mail.send(msg)
-                
-            conn.commit()
-            cursor.close()
-
-        if duplicates_skipped == len(staged_rows):
-            flash("Batch processing skipped: All candidates in this file are already registered for this screening type.", "warning")
-        elif duplicates_skipped > 0:
-            flash(f"Staged pipeline records under Reference {payment_ref}. Loaded {len(staged_rows) - duplicates_skipped} new entries ({duplicates_skipped} duplicates automatically skipped).", "success")
-        else:
-            flash(f'Successfully staged {len(staged_rows)} pipeline items under Reference {payment_ref}. Automated launch requires administrator validation.', 'success')
+            with app.app_context():
+                mail.send(msg)
             
+        conn.commit()
+        cursor.close()
+
+    if duplicates_skipped == len(staged_rows):
+        flash("Batch processing skipped: All candidates in this file are already registered for this screening type.", "warning")
         return redirect(url_for('dashboard_corporate'))
 
-    # ==================== CASE 2: PAYFAST FLOW ====================
+    if payment_method == 'manual_eft':
+        flash(f"Staged pipeline records under Reference {payment_ref}. Loaded {len(staged_rows) - duplicates_skipped} entries. Total dynamic value calculated: ZAR {total_batch_bill_amount:.2f}", "success")
+        return redirect(url_for('dashboard_corporate'))
     else:
-        duplicates_skipped = 0
-        with get_db_connection() as conn:
-            cursor = conn.cursor(cursor_factory=RealDictCursor)
-            for c_name, c_email in staged_rows:
-                cursor.execute('''
-                    SELECT 1 FROM screenings 
-                    WHERE user_id = %s AND candidate_email = %s AND screening_type = %s
-                    LIMIT 1
-                ''', (session['user_id'], c_email, screening_type))
-                if cursor.fetchone():
-                    duplicates_skipped += 1
-                    continue
-
-                # Generate secure portal token
-                upload_token = secrets.token_urlsafe(32)
-
-                cursor.execute('''
-                    INSERT INTO screenings (
-                        user_id, candidate_name, candidate_email, screening_type, status, 
-                        payment_method, payment_status, payment_ref, upload_token
-                    ) VALUES (%s, %s, %s, %s, 'Pending Input', %s, 'Pending Review', %s, %s)
-                ''', (session['user_id'], c_name, c_email, screening_type, 'payfast', payment_ref, upload_token))
-                
-                # Build link & Send Email securely within the App Context
-                invite_link = f"{Config.BASE_URL}/upload-documents/{upload_token}"
-                msg = Message(
-                    subject=f"Action Required: VerifyMe Screening Link for {c_name}",
-                    recipients=[c_email]
-                )
-                msg.html = f"""
-                <!DOCTYPE html>
-                <html>
-                <body style="font-family: 'Segoe UI', Arial, sans-serif; background-color: #121413; color: #f5f5f5; padding: 20px;">
-                    <div style="background-color: #1a1d1b; max-width: 550px; margin: 0 auto; padding: 30px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05);">
-                        <div style="font-size: 1.5rem; font-weight: bold; color: #4eb637; margin-bottom: 20px; font-family: monospace;">// VERIFYME CONTAINER</div>
-                        <h2 style="color: #ffffff;">Hello {c_name},</h2>
-                        <p style="color: #a3a3a3;">An automated enterprise background screening request (<strong>{screening_type}</strong>) has been deployed for you by {session.get('display_name', 'an Enterprise Client')}.</p>
-                        <p style="color: #a3a3a3;">To advance this identity verification process, please click the secure button below to access your documentation upload workspace:</p>
-                        <div style="text-align: center; margin: 30px 0;">
-                            <a href="{invite_link}" style="background-color: #4eb637; color: #000000; text-decoration: none; padding: 12px 24px; font-weight: 600; border-radius: 6px; display: inline-block;">Open Verification Portal</a>
-                        </div>
-                        <p style="color: #a3a3a3;">Once uploaded, your tracking state will automatically shift to <strong>Ready for Review</strong>.</p>
-                    </div>
-                </body>
-                </html>
-                """
-                with app.app_context():
-                    mail.send(msg)
-                
-            conn.commit()
-            cursor.close()
-
-        if duplicates_skipped == len(staged_rows):
-            flash("Batch processing skipped: All candidates in this file are already registered for this screening type.", "warning")
-            return redirect(url_for('dashboard_corporate'))
-            
-        active_count = len(staged_rows) - duplicates_skipped
-        updated_bill_amount = cost_per_candidate * active_count
-
-        return redirect(url_for('payfast_checkout', record_id="BATCH", custom_ref=payment_ref, custom_amt=updated_bill_amount))
+        # Route directly into Checkout with dynamically calculated batch total matrix amount
+        return redirect(url_for('payfast_checkout', record_id="BATCH", custom_ref=payment_ref, custom_amt=total_batch_bill_amount))
 
 @app.route('/collect/upload-credentials/<int:candidate_id>', methods=['GET', 'POST'])
 def candidate_upload_portal(candidate_id):
@@ -1680,68 +1858,77 @@ def token_upload_portal(token):
     if not candidate:
         abort(404)
         
+    if 'company_name' not in candidate or not candidate['company_name']:
+        candidate['company_name'] = "Authorized Corporate Partner"
+
     if request.method == 'POST':
-        id_file = request.files.get('identity_doc')
-        qual_file = request.files.get('qualification_doc')
+        # Safety enforcement verify that check box consent was passed
+        popia_consent = request.form.get('popia_consent')
+        if not popia_consent:
+            return "<h3>Error: You must accept the POPIA authorization clause to submit your details.</h3>", 400
+
+        id_number = request.form.get('id_number')
+        license_number = request.form.get('license_number')
+        linkedin_handle = request.form.get('linkedin_handle')
+        other_handle = request.form.get('other_handle')
+        
+        id_file = request.files.get('id_document')
+        qual_file = request.files.get('qualification_document')
+        license_file = request.files.get('license_document')
         
         id_filename_to_save = None
-        qual_filename_to_save = None
+        aux_filename_to_save = None
         
-        # 1. HARDCODE THE TARGET PATH DIRECTLY TO AVOID CONFIG MISSES
         target_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), 'static', 'uploads', 'credentials'))
-        
-        # 2. FORCE SYSTEM TO CREATE THE FOLDER IF IT DOES NOT EXIST YET
         os.makedirs(target_dir, exist_ok=True)
         
         if id_file and allowed_file(id_file.filename):
             clean_name = secure_filename(id_file.filename)
             id_filename_to_save = f"CAND_{candidate['id']}_ID_{clean_name}"
-            
-            # Save the file physically to disk
-            full_id_path = os.path.join(target_dir, id_filename_to_save)
-            id_file.save(full_id_path)
-            print(f"SUCCESS: ID File saved physically at: {full_id_path}") # Check your terminal for this!
+            id_file.save(os.path.join(target_dir, id_filename_to_save))
             
         if qual_file and allowed_file(qual_file.filename):
             clean_name = secure_filename(qual_file.filename)
-            qual_filename_to_save = f"CAND_{candidate['id']}_QUAL_{clean_name}"
+            aux_filename_to_save = f"CAND_{candidate['id']}_QUAL_{clean_name}"
+            qual_file.save(os.path.join(target_dir, aux_filename_to_save))
             
-            # Save the file physically to disk
-            full_qual_path = os.path.join(target_dir, qual_filename_to_save)
-            qual_file.save(full_qual_path)
-            print(f"SUCCESS: Qualification File saved physically at: {full_qual_path}")
-            
+        elif license_file and allowed_file(license_file.filename):
+            clean_name = secure_filename(license_file.filename)
+            aux_filename_to_save = f"CAND_{candidate['id']}_LICENSE_{clean_name}"
+            license_file.save(os.path.join(target_dir, aux_filename_to_save))
+
         with get_db_connection() as conn:
             cursor = conn.cursor()
-            # 3. Save ONLY the clean filename into the database
             cursor.execute('''
                 UPDATE screenings 
-                SET id_file_path = %s, 
-                    qualification_file_path = %s, 
+                SET candidate_id_number = %s,
+                    license_number = %s,
+                    linkedin_handle = %s,
+                    other_social_handle = %s,
+                    id_file_path = %s, 
+                    qualification_file_path = %s,
+                    auxiliary_file_path = %s,
                     status = 'Ready for Review', 
-                    rejection_reason = NULL 
+                    rejection_reason = NULL,
+                    consent_granted_at = %s
                 WHERE id = %s
-            ''', (id_filename_to_save, qual_filename_to_save, candidate['id']))
+            ''', (
+                id_number,
+                license_number if license_number else None,
+                linkedin_handle if linkedin_handle else None,
+                other_handle if other_handle else None,
+                id_filename_to_save,
+                aux_filename_to_save if qual_file else None,
+                aux_filename_to_save if license_file else None,
+                datetime.now(), # Stamp the legal authorization window
+                candidate['id']
+            ))
             conn.commit()
             cursor.close()
             
-        return "<h3>Upload Complete. Your files have been securely transmitted to our administrative operators for compliance auditing.</h3>"
+        return "<h3>Upload Complete. Your specific screening data packages have been securely compiled and transmitted for compliance auditing.</h3>"
 
-    return f"""
-    <html>
-        <body style="background:#111; color:#fff; font-family:sans-serif; padding: 3rem; max-width: 500px; margin: auto;">
-            <h2>VerifyMe Security Portal</h2>
-            <p>Hello <strong>{candidate['candidate_name']}</strong>, please upload clear digital file records for your <strong>{candidate['screening_type']}</strong>.</p>
-            <form method="POST" enctype="multipart/form-data" style="background:#1c1c1c; padding:2rem; border-radius:8px;">
-                <label style="display:block; margin-bottom:0.5rem;">National ID Document:</label>
-                <input type="file" name="identity_doc" required style="margin-bottom:1.5rem;"><br>
-                <label style="display:block; margin-bottom:0.5rem;">Qualification Certificate Matrix (Optional):</label>
-                <input type="file" name="qualification_doc"><br><br>
-                <button type="submit" style="background:#4eb637; color:#000; border:none; padding:0.5rem 1rem; font-weight:bold; border-radius:4px; cursor:pointer;">Submit Compliance Documents</button>
-            </form>
-        </body>
-    </html>
-    """
+    return render_template('upload_portal.html', screening=candidate, token=token)
 
 @app.route('/admin/export-monthly-report')
 def export_monthly_report():
@@ -1818,6 +2005,45 @@ def export_monthly_report():
         mimetype="text/csv",
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
+
+@app.route('/admin/pricing-matrix', methods=['GET', 'POST'])
+def admin_pricing_matrix():
+    # 1. Enforce strict session access verification
+    if 'user_id' not in session or session.get('applicant_type') != 'admin':
+        flash('Unauthorized console entry point.', 'error')
+        return redirect(url_for('login'))
+
+    if request.method == 'POST':
+        # 2. Capture the pricing modifications submitted via form arrays
+        updated_prices = request.form.getlist('prices[]')
+        setting_ids = request.form.getlist('ids[]')
+        
+        try:
+            with get_db_connection() as conn:
+                with conn.cursor() as cursor:
+                    for setting_id, price in zip(setting_ids, updated_prices):
+                        # Convert input securely to numeric float types
+                        clean_price = float(price) if price else 0.00
+                        cursor.execute("""
+                            UPDATE pricing_settings 
+                            SET price_zar = %s, updated_at = NOW()
+                            WHERE id = %s
+                        """, (clean_price, setting_id))
+                    conn.commit()
+            flash('Dynamic verification pricing settings matrices updated successfully.', 'success')
+        except Exception as e:
+            flash(f'Failed to adjust pricing data: {str(e)}', 'error')
+            
+        return redirect(url_for('admin_pricing_matrix'))
+
+    # 3. GET request: Fetch all current pricing parameters to display on screen
+    with get_db_connection() as conn:
+        with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+            cursor.execute("SELECT * FROM pricing_settings ORDER BY id ASC")
+            pricing_entries = cursor.fetchall()
+
+    # Pass the data out to a dedicated admin portal view template
+    return render_template('admin_dashboard.html', pricing_entries=pricing_entries)
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
