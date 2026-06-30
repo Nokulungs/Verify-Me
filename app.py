@@ -1894,20 +1894,33 @@ import werkzeug
 
 @app.route('/upload-documents/<token>', methods=['GET', 'POST'])
 def token_upload_portal(token):
-    # ... your existing code to verify token and fetch screening ...
-    
+    """
+    Handles secure candidate verification context, streams multi-vector static assets 
+    directly to AWS S3, and links cloud endpoints into the database registry.
+    """
+    # 🗄️ 1. GLOBAL SCOPE INITIALIZATION: Fetch the target screening row instantly
+    # This guarantees 'screening' exists for both GET and POST requests.
+    cursor.execute("SELECT * FROM screenings WHERE upload_token = %s", (token,))
+    screening = cursor.fetchone() 
+
+    # 🛑 2. GUARD SECURITY GATEWAY
+    if not screening:
+        print(f"SECURITY ALERT: Unauthorized cluster access attempt using invalid token framework: {token}")
+        abort(404)
+
+    # 🔄 3. POST ROUTE LAYER (Form Submission Processing)
     if request.method == 'POST':
-        # Retrieve text input fields
+        # Retrieve text input metrics from the DOM template
         id_number = request.form.get('id_number')
         license_number = request.form.get('license_number')
         social_handle = request.form.get('social_handle')
         
-        # Pull file files from the request wrapper safely
+        # Pull raw binary streams out of the MultiDict wrapper safely
         id_file = request.files.get('id_file')
         qual_file = request.files.get('qualification_file')
         license_file = request.files.get('license_file')
         
-        # 🛡️ Initialize tracking dictionary for DB update fields
+        # 🛡️ Initialize staging dictionary to build update parameters dynamically
         update_fields = {
             "id_number": id_number,
             "license_number": license_number,
@@ -1915,49 +1928,58 @@ def token_upload_portal(token):
             "consent_granted_at": datetime.utcnow()
         }
         
-        # Cloud upload sequence for ID document
+        # ☁️ Pipeline A: ID Document Cloud Stream
         if id_file and id_file.filename != '':
             secure_name = f"CAND_{screening['id']}_ID_{werkzeug.utils.secure_filename(id_file.filename)}"
             s3_url = upload_file_to_s3(id_file, secure_name)
             if s3_url:
-                update_fields["id_file_path"] = s3_url # This saves the direct internet URL to the DB!
+                update_fields["id_file_path"] = s3_url
                 
-        # Cloud upload sequence for Qualification document
+        # ☁️ Pipeline B: Qualification Matrix Cloud Stream
         if qual_file and qual_file.filename != '':
             secure_name = f"CAND_{screening['id']}_QUAL_{werkzeug.utils.secure_filename(qual_file.filename)}"
             s3_url = upload_file_to_s3(qual_file, secure_name)
             if s3_url:
                 update_fields["qualification_file_path"] = s3_url
 
-        # Cloud upload sequence for Driver's License document
+        # ☁️ Pipeline C: Driver's License Cloud Stream
         if license_file and license_file.filename != '':
             secure_name = f"CAND_{screening['id']}_LIC_{werkzeug.utils.secure_filename(license_file.filename)}"
             s3_url = upload_file_to_s3(license_file, secure_name)
             if s3_url:
-                update_fields["license_file_path"] = s3_url # Maps directly to database row state
+                update_fields["license_file_path"] = s3_url
 
-        # 🗄️ Save everything to the database registry 
+        # 🗄️ 4. DATABASE TRANSACT MATRIX 
+        # Fallback values prevent overwriting previously uploaded items if a field was left blank this round
         cursor.execute("""
             UPDATE screenings SET 
-                id_number = %s, id_file_path = %s,
+                id_number = %s, 
+                id_file_path = %s,
                 qualification_file_path = %s,
-                license_number = %s, license_file_path = %s,
-                social_handle = %s, consent_granted_at = %s,
+                license_number = %s, 
+                license_file_path = %s,
+                social_handle = %s, 
+                consent_granted_at = %s,
                 status = 'Ready for Review'
             WHERE upload_token = %s
         """, (
-            update_fields.get("id_number"), update_fields.get("id_file_path", screening['id_file_path']),
+            update_fields.get("id_number"), 
+            update_fields.get("id_file_path", screening['id_file_path']),
             update_fields.get("qualification_file_path", screening['qualification_file_path']),
-            update_fields.get("license_number"), update_fields.get("license_file_path", screening['license_file_path']),
-            update_fields.get("social_handle"), update_fields.get("consent_granted_at"),
+            update_fields.get("license_number"), 
+            update_fields.get("license_file_path", screening['license_file_path']),
+            update_fields.get("social_handle"), 
+            update_fields.get("consent_granted_at"),
             token
         ))
         conn.commit()
         
         return "<h1>Submission successful! Your compliance profile has been securely synchronized.</h1>"
 
+    # 🎨 5. GET ROUTE LAYER (Initial Interface Compile)
+    # This has structural access to the 'screening' dataset context built on line 12.
     return render_template('upload_portal.html', screening=screening)
-
+    
 @app.route('/admin/export-monthly-report')
 def export_monthly_report():
     # Matrix Rate definitions matching corporate calculations
