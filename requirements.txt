@@ -4,3 +4,5 @@ packaging==26.2
 python-dotenv==1.2.2
 psycopg2-binary==2.9.9
 Flask-Mail==0.10.0
+boto3==1.34.0
+botocore==1.34.0
