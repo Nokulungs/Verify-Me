@@ -1953,22 +1953,24 @@ def token_upload_portal(token):
             with conn.cursor() as cursor:
                 cursor.execute("""
                     UPDATE screenings SET 
-                        id_number = %s, 
+                        candidate_id_number = %s, 
                         id_file_path = %s,
                         qualification_file_path = %s,
                         license_number = %s, 
                         license_file_path = %s,
-                        social_handle = %s, 
+                        linkedin_handle = %s, 
+                        other_social_handle=%s,
                         popia_consent_granted_at = %s,
                         status = 'Ready for Review'
                     WHERE upload_token = %s
                 """, (
-                    update_fields.get("id_number"), 
+                    update_fields.get("candidate_id_number"), 
                     update_fields.get("id_file_path", screening.get('id_file_path')),
                     update_fields.get("qualification_file_path", screening.get('qualification_file_path')),
                     update_fields.get("license_number"), 
                     update_fields.get("license_file_path", screening.get('license_file_path')),
-                    update_fields.get("social_handle"), 
+                    update_fields.get("other_social_handle"), 
+                    update_fields.get("linkedin_handle"),
                     update_fields.get("popia_consent_granted_at"),
                     token
                 ))
@@ -1978,7 +1980,7 @@ def token_upload_portal(token):
 
     # 🎨 5. Compile Portal UI layout for initial GET actions
     return render_template('upload_portal.html', screening=screening)
-    
+
 @app.route('/admin/export-monthly-report')
 def export_monthly_report():
     # Matrix Rate definitions matching corporate calculations
