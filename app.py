@@ -1924,7 +1924,7 @@ def token_upload_portal(token):
         
         # 🛡️ Initialize staging dictionary to build update parameters dynamically
         update_fields = {
-            "id_number": id_number,
+            "candidate_id_number": id_number,
             "license_number": license_number,
             "social_handle": social_handle,
             "consent_granted_at": datetime.utcnow()
@@ -1957,7 +1957,7 @@ def token_upload_portal(token):
             with conn.cursor() as cursor:
                 cursor.execute("""
                     UPDATE screenings SET 
-                        id_number = %s, 
+                        candidate_id_number = %s, 
                         id_file_path = %s,
                         qualification_file_path = %s,
                         license_number = %s, 
