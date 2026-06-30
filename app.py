@@ -703,29 +703,26 @@ def purge_user(user_id):
     flash("Master profile purged successfully.", "success")
     return redirect(url_for('admin_dashboard', tab='users'))
 
-@app.route('/admin/view-document/<path:filename>')  # Changed <filename> to <path:filename> to accept sub-paths securely
+@app.route('/admin/view-document/<path:filename>')
 @role_required(['admin'])
 def admin_view_document(filename):
-    """Securely streams compliance documents to administrative operators by stripping path variations."""
-    import os
+    """Securely streams compliance documents to administrative operators directly using the root directory context."""
     from flask import send_from_directory, abort
+    import os
 
-    # 1. Extract ONLY the trailing clean file name (e.g., 'CAND_36_ID_SN_Bembe_ID.pdf')
-    clean_filename = os.path.basename(filename)
-
-    # 2. Establish your concrete storage container source folder
-    directory = app.config.get('DOCS_FOLDER', os.path.join(app.root_path, 'static', 'uploads', 'credentials'))
-
-    # 3. Join them to look exactly in the right directory
-    target_file_path = os.path.join(directory, clean_filename)
+    # Establish the concrete root directory path of your project execution environment
+    absolute_root_path = os.path.abspath(os.path.dirname(__file__))
+    
+    # Calculate exactly where the target file is relative to the app root
+    full_target_file = os.path.join(absolute_root_path, filename)
 
     # Verification fallback check
-    if not os.path.exists(target_file_path):
-        print(f"DEBUG ERROR: File not physically found at location: {target_file_path}")
+    if not os.path.exists(full_target_file):
+        print(f"DEBUG ERROR: File not physically found at location: {full_target_file}")
         abort(404)
 
-    return send_from_directory(directory, clean_filename)
-
+    # Serve securely using the absolute root directory path paired with the variable sub-path filename
+    return send_from_directory(absolute_root_path, filename)
 # --- SECURED CORPORATE WORKSPACE & DATA PROCESSING ---
 @app.route('/dashboard/corporate')
 def dashboard_corporate():
