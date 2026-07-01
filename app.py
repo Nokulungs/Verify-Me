@@ -28,31 +28,25 @@ s3_client = boto3.client(
     region_name=os.environ.get('AWS_REGION', 'af-south-1')
 )
 
-BUCKET_NAME = os.environ.get('AWS_STORAGE_BUCKET_NAME')
-
 def upload_file_to_s3(file, custom_filename):
     """
     Streams file objects directly up to AWS S3 bucket architecture.
     Returns the public access URL of the file if successful.
     """
     try:
+        print(f"[DEBUG S3] Attempting upload for {custom_filename} to bucket {BUCKET_NAME}...")
         s3_client.upload_fileobj(
             file,
             BUCKET_NAME,
             custom_filename,
-            ExtraArgs={
-                "ContentType": file.content_type  # Ensures PDFs view in browser instead of downloading directly
-            }
+            ExtraArgs={"ACL": "public-read"}
         )
-        # Generate the permanent file asset URL structure
-        file_url = f"https://{BUCKET_NAME}.s3.{os.environ.get('AWS_REGION', 'af-south-1')}.amazonaws.com/{custom_filename}"
-        return file_url
-        
-    except NoCredentialsError:
-        print("CRITICAL S3 ERROR: AWS credentials mapping missing or invalid.")
-        return None
+        url = f"https://{BUCKET_NAME}.s3.amazonaws.com/{custom_filename}"
+        print(f"[DEBUG S3] Upload successful! URL: {url}")
+        return url
     except Exception as e:
-        print(f"CRITICAL S3 ERROR: {e}")
+        # 🚨 This will output the exact AWS error (e.g. AccessDenied, InvalidAccessKeyId) directly into your Render logs!
+        print(f"[🚨 CRITICAL S3 ERROR] Failed to upload {custom_filename}: {str(e)}")
         return None
 load_dotenv()
 
