@@ -752,9 +752,11 @@ def admin_view_document(filename):
     target_storage_dir = os.path.join(absolute_app_root, 'static', 'uploads', 'credentials')
     full_file_path = os.path.join(target_storage_dir, clean_filename)
 
+    print(f"🔍 Looking for file: {full_file_path}")
+    
     if os.path.exists(full_file_path):
         return send_from_directory(target_storage_dir, clean_filename)
-        
+    
     abort(404)
 
     # Serve securely using the absolute root directory path paired with the variable sub-path filename
@@ -1893,6 +1895,9 @@ def token_upload_portal(token):
     Secure onboarding matrix that takes candidate credentials, streams raw binary files
     straight up to AWS S3, updates the tracking columns, and triggers an administrative alert state.
     """
+    print(f"🚀 token_upload_portal called with token: {token[:20]}...")
+    print(f"🚀 Request method: {request.method}")
+    
     # 🗄️ 1. Fetch record securely using the unique safe token format
     with get_db_connection() as conn:
         with conn.cursor(cursor_factory=RealDictCursor) as cursor:
@@ -1906,75 +1911,152 @@ def token_upload_portal(token):
 
     # 🔄 3. POST Layer: Process Submitted Identity & Compliance Files
     if request.method == 'POST':
-        id_number = request.form.get('id_number')
-        license_number = request.form.get('license_number')
-        social_handle = request.form.get('social_handle')
+        print("📤 Processing POST request...")
+        print(f"📝 Form data: {request.form}")
+        print(f"📁 Files: {request.files}")
         
-        id_file = request.files.get('id_file')
-        qual_file = request.files.get('qualification_file')
-        license_file = request.files.get('license_file')
+        # Get form data - MATCHING YOUR HTML
+        id_number = request.form.get('id_number', '').strip()
+        license_number = request.form.get('license_number', '').strip()
+        linkedin_handle = request.form.get('linkedin_handle', '').strip()
+        other_handle = request.form.get('other_handle', '').strip()
+        popia_consent = request.form.get('popia_consent') == 'on'
         
-        # Pull table definitions directly out of your schema configuration
-        update_fields = {
-            "id_number": id_number if id_number else screening.get('id_number'),
-            "license_number": license_number if license_number else screening.get('license_number'),
-            "social_handle": social_handle if social_handle else screening.get('social_handle'),
-            "popia_consent_granted_at": datetime.utcnow()
-        }
+        # Get files - MATCHING YOUR HTML NAMES
+        id_file = request.files.get('id_document')
+        qual_file = request.files.get('qualification_document')
+        license_file = request.files.get('license_document')
         
-        # ☁️ AWS S3 Stream Pipeline A: Identification Certificate
-        if id_file and id_file.filename != '':
+        print(f"📁 ID file: {id_file.filename if id_file else 'None'}")
+        print(f"📁 QUAL file: {qual_file.filename if qual_file else 'None'}")
+        print(f"📁 LICENSE file: {license_file.filename if license_file else 'None'}")
+        
+        # Track file paths (S3 URLs or local paths)
+        file_paths = {}
+        
+        # Set up storage location (local fallback)
+        target_dir = app.config.get('DOCS_FOLDER', os.path.join(app.root_path, 'static', 'uploads', 'credentials'))
+        os.makedirs(target_dir, exist_ok=True)
+        
+        # Process ID Document
+        if id_file and id_file.filename != '' and allowed_file(id_file.filename):
             secure_name = f"CAND_{screening['id']}_ID_{secure_filename(id_file.filename)}"
-            s3_url = upload_file_to_s3(id_file, secure_name)
-            if s3_url:
-                update_fields["id_file_path"] = s3_url
+            if BUCKET_NAME:
+                # Upload to S3
+                s3_url = upload_file_to_s3(id_file, secure_name)
+                if s3_url:
+                    file_paths["id_file_path"] = s3_url
+                    print(f"✅ ID File uploaded to S3: {s3_url}")
+            else:
+                # Fallback to local storage
+                local_path = os.path.join(target_dir, secure_name)
+                id_file.save(local_path)
+                file_paths["id_file_path"] = secure_name  # Store just the filename for local access
+                print(f"✅ ID File saved locally: {local_path}")
                 
-        # ☁️ AWS S3 Stream Pipeline B: Qualification Matrix Data
-        if qual_file and qual_file.filename != '':
+        # Process Qualification Document
+        if qual_file and qual_file.filename != '' and allowed_file(qual_file.filename):
             secure_name = f"CAND_{screening['id']}_QUAL_{secure_filename(qual_file.filename)}"
-            s3_url = upload_file_to_s3(qual_file, secure_name)
-            if s3_url:
-                update_fields["qualification_file_path"] = s3_url
+            if BUCKET_NAME:
+                s3_url = upload_file_to_s3(qual_file, secure_name)
+                if s3_url:
+                    file_paths["qualification_file_path"] = s3_url
+                    print(f"✅ QUAL File uploaded to S3: {s3_url}")
+            else:
+                local_path = os.path.join(target_dir, secure_name)
+                qual_file.save(local_path)
+                file_paths["qualification_file_path"] = secure_name
+                print(f"✅ QUAL File saved locally: {local_path}")
 
-        # ☁️ AWS S3 Stream Pipeline C: Road Traffic Driver Licence
-        if license_file and license_file.filename != '':
+        # Process License Document
+        if license_file and license_file.filename != '' and allowed_file(license_file.filename):
             secure_name = f"CAND_{screening['id']}_LIC_{secure_filename(license_file.filename)}"
-            s3_url = upload_file_to_s3(license_file, secure_name)
-            if s3_url:
-                update_fields["license_file_path"] = s3_url
+            if BUCKET_NAME:
+                s3_url = upload_file_to_s3(license_file, secure_name)
+                if s3_url:
+                    file_paths["license_file_path"] = s3_url
+                    print(f"✅ LICENSE File uploaded to S3: {s3_url}")
+            else:
+                local_path = os.path.join(target_dir, secure_name)
+                license_file.save(local_path)
+                file_paths["license_file_path"] = secure_name
+                print(f"✅ LICENSE File saved locally: {local_path}")
 
-        # 🗄️ 4. Execute Transaction and upgrade state to trigger Admin visibility
+        # 🗄️ 4. Execute Transaction - USING THE CORRECT COLUMN NAMES FROM YOUR SCHEMA
         with get_db_connection() as conn:
             with conn.cursor() as cursor:
-                cursor.execute("""
-                    UPDATE screenings SET 
-                        candidate_id_number = %s, 
-                        id_file_path = %s,
-                        qualification_file_path = %s,
-                        license_number = %s, 
-                        license_file_path = %s,
-                        linkedin_handle = %s, 
-                        other_social_handle=%s,
-                        consent_granted_at = %s,
-                        status = 'Ready for Review'
-                    WHERE upload_token = %s
-                """, (
-                    update_fields.get("candidate_id_number"), 
-                    update_fields.get("id_file_path", screening.get('id_file_path')),
-                    update_fields.get("qualification_file_path", screening.get('qualification_file_path')),
-                    update_fields.get("license_number"), 
-                    update_fields.get("license_file_path", screening.get('license_file_path')),
-                    update_fields.get("other_social_handle"), 
-                    update_fields.get("linkedin_handle"),
-                    update_fields.get("consent_granted_at"),
-                    token
-                ))
-                conn.commit()
+                # Build the UPDATE query dynamically
+                update_fields = []
+                params = []
+                
+                # Add text fields - USING CORRECT COLUMN NAMES FROM YOUR DATABASE
+                if id_number:
+                    update_fields.append("candidate_id_number = %s")  # ← CORRECT column name
+                    params.append(id_number)
+                if license_number:
+                    update_fields.append("license_number = %s")  # ← CORRECT column name
+                    params.append(license_number)
+                if linkedin_handle:
+                    update_fields.append("linkedin_handle = %s")  # ← CORRECT column name
+                    params.append(linkedin_handle)
+                if other_handle:
+                    update_fields.append("other_social_handle = %s")  # ← CORRECT column name
+                    params.append(other_handle)
+                if popia_consent:
+                    update_fields.append("consent_granted_at = %s")  # ← CORRECT column name
+                    params.append(datetime.utcnow())
+                
+                # Add file paths
+                for field, value in file_paths.items():
+                    update_fields.append(f"{field} = %s")
+                    params.append(value)
+                
+                # Always update status
+                update_fields.append("status = %s")
+                params.append("Ready for Review")
+                
+                # Add token for WHERE clause
+                params.append(token)
+                
+                if update_fields:
+                    query = f"UPDATE screenings SET {', '.join(update_fields)} WHERE upload_token = %s"
+                    print(f"📝 Executing SQL: {query}")
+                    print(f"📝 Params: {params}")
+                    cursor.execute(query, params)
+                    conn.commit()
+                    print(f"✅ Database updated for screening {screening['id']}")
+                else:
+                    print("⚠️ No fields to update - nothing was uploaded!")
         
-        return "<h1 style='font-family:sans-serif; text-align:center; padding-top:10%; color:#4eb637;'>Submission Successful! Your compliance profile has been securely synchronized.</h1>"
+        # Return success page
+        return """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Upload Complete | VerifyMe</title>
+            <style>
+                body { background: #121413; color: #f5f5f5; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 1.5rem; }
+                .success-box { background: #1a1d1b; border: 1px solid rgba(78, 182, 55, 0.3); border-radius: 16px; padding: 3rem; max-width: 500px; text-align: center; }
+                h1 { color: #4eb637; margin-top: 0; }
+                p { color: #a3a3a3; line-height: 1.6; }
+                .check-icon { font-size: 4rem; color: #4eb637; margin-bottom: 1rem; }
+            </style>
+        </head>
+        <body>
+            <div class="success-box">
+                <div class="check-icon">✅</div>
+                <h1>Upload Complete!</h1>
+                <p>Your files have been securely transmitted to our administrative operators for compliance auditing.</p>
+                <p style="font-size: 0.9rem;">You can close this window now.</p>
+            </div>
+        </body>
+        </html>
+        """
 
     # 🎨 5. Compile Portal UI layout for initial GET actions
-    return render_template('upload_portal.html', screening=screening)
+    return render_template('upload_portal.html', screening=screening, token=token)
 
 @app.route('/admin/export-monthly-report')
 def export_monthly_report():

@@ -186,7 +186,7 @@
         <div class="meta-tag"><i class="fa-solid fa-shield-halved"></i> Audit Path: {{ screening.screening_type }}</div>
     </div>
 
-    <form  method="POST" enctype="multipart/form-data">
+    <form action="{{ url_for('token_upload_portal', token=token) }}" method="POST" enctype="multipart/form-data">
         
         <div class="form-section-title">Identity Credentials</div>
         
