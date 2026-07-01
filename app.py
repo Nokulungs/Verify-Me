@@ -25,9 +25,9 @@ s3_client = boto3.client(
     's3',
     aws_access_key_id=os.environ.get('AWS_ACCESS_KEY_ID'),
     aws_secret_access_key=os.environ.get('AWS_SECRET_ACCESS_KEY'),
-    region_name=os.environ.get('AWS_REGION', 'af-south-1'),
-    BUCKET_NAME = os.environ.get('AWS_STORAGE_BUCKET_NAME')
+    region_name=os.environ.get('AWS_REGION', 'af-south-1')
 )
+BUCKET_NAME = os.environ.get('AWS_STORAGE_BUCKET_NAME')
 
 def upload_file_to_s3(file, custom_filename):
     """
