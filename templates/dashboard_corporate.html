@@ -590,7 +590,7 @@
                                 {% set generic_qual = pricing_entries | selectattr('display_name', 'equalto',
                                 'Qualification Verification') | first %}
                                 <option value="Qualification Verification"
-                                    data-price="{{ generic_qual.price_zar if generic_qual else '350.00' }}">
+                                    data-price="{{ generic_qual.price_zar if generic_qual else '240.00' }}">
                                     Qualification Verification (Dynamic Rate based on CSV Variant)
                                 </option>
                             </select>
@@ -616,6 +616,20 @@
 
                         <div class="form-group">
                             <label for="csv-upload">Upload Candidate Registry (CSV Format: Name, Email)</label>
+                            <a href="{{ url_for('download_template') }}"
+                                style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; background-color:#4eb637; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 8px; color: black; font-size: 0.9rem; font-weight: 500; text-decoration: none; transition: all 0.25s ease; cursor: pointer;"
+                                onmouseover="this.style.backgroundColor='rgba(255, 255, 255, 0.1)'; this.style.borderColor='rgba(255, 255, 255, 0.3)'; this.style.transform='translateY(-1px)';"
+                                onmouseout="this.style.backgroundColor='rgba(255, 255, 255, 0.05)'; this.style.borderColor='rgba(255, 255, 255, 0.15)'; this.style.transform='translateY(0)';"
+                                onmousedown="this.style.transform='translateY(0)';">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                                    stroke-linejoin="round" style="opacity: 0.8;">
+                                    <path d="M21 15v4a2 2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v4"></path>
+                                    <polyline points="7 10 12 15 17 10"></polyline>
+                                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                                </svg>
+                                Download Batch CSV Template
+                            </a>
                             <div class="csv-upload-dropzone">
                                 <input type="file" id="csv-upload" name="candidate_csv" accept=".csv"
                                     onchange="updateCSVLabel(this)">
@@ -862,6 +876,7 @@
     }
 
     // UPDATED: Automatically updates candidate metrics input box out of CSV line count natively
+    // UPDATED: Automatically updates candidate metrics input box out of CSV line count natively
     function updateCSVLabel(input) {
         if (input.files && input.files.length > 0) {
             const file = input.files[0];
@@ -890,35 +905,91 @@
                 const globalBasePrice = selectedOption ? parseFloat(selectedOption.getAttribute('data-price')) || 0.00 : 0.00;
                 const isQualificationSelected = vectorSelect ? vectorSelect.value.includes('Qualification') : false;
 
-                // Loop through each candidate row to parse column layout structure
+                // Build a map of pricing from the hidden spans for quick lookup
+                const priceMap = {};
+                const hiddenSpans = document.querySelectorAll('#hidden-pricing-pool span');
+                for (let span of hiddenSpans) {
+                    const name = span.getAttribute('data-name').toLowerCase().replace(/\s+/g, '').trim();
+                    priceMap[name] = parseFloat(span.getAttribute('data-price'));
+                }
+
+                // 🔥 SMART KEYWORD DETECTION - MATCHES BACKEND LOGIC
+                function detectInstitutionCategory(variantText) {
+                    if (!variantText) return null;
+
+                    const text = variantText.toLowerCase().trim();
+
+                    // University of Johannesburg (UJ)
+                    if (text.includes('johannesburg') || text.includes('uj') || text.includes('jhb')) {
+                        return 'University of Johannesburg (JHB)';
+                    }
+
+                    // University of the Witwatersrand (WITS)
+                    if (text.includes('wits') || text.includes('witwatersrand')) {
+                        return 'University of the Witwatersrand (WITS)';
+                    }
+
+                    // University of Pretoria (UP/PTA)
+                    if (text.includes('pretoria') || text.includes('pta') || text.includes('up') || text.includes('tuks')) {
+                        return 'University of Pretoria (PTA)';
+                    }
+
+                    // TVET / N Certificates
+                    if (text.includes('tvet') || text.includes('n certificate') ||
+                        text.includes('n1') || text.includes('n2') || text.includes('n3') ||
+                        text.includes('n4') || text.includes('n5') || text.includes('n6') ||
+                        text.includes('college') && text.includes('tvet')) {
+                        return 'All N Certificates';
+                    }
+
+                    // SAQA / Foreign Evaluation
+                    if (text.includes('saqa') || text.includes('foreign') || text.includes('evaluation')) {
+                        return 'SAQA Foreign Evaluation';
+                    }
+
+                    // Matric (Pre-1992)
+                    if (text.includes('pre-1992') || text.includes('pre 1992') || text.includes('pre1992')) {
+                        return 'Matric (Pre-1992)';
+                    }
+
+                    // Matric (Post-1992)
+                    if (text.includes('post-1992') || text.includes('post 1992') || text.includes('post1992')) {
+                        return 'Matric (Post-1992)';
+                    }
+
+                    // Any university/tertiary mention
+                    if (text.includes('university') || text.includes('tertiary') ||
+                        text.includes('college') || text.includes('institute') || text.includes('school')) {
+                        return 'Other Tertiary Institutions';
+                    }
+
+                    return null;
+                }
+
+                // Loop through each candidate row
                 for (let i = startIdx; i < rows.length; i++) {
                     let line = rows[i].trim();
                     if (!line) continue;
 
-                    // 🌟 FIX 1: Support BOTH commas and semicolons dynamically
+                    // Support BOTH commas and semicolons
                     let columns = line.includes(';') ? line.split(';') : line.split(',');
-
                     candidateCount++;
 
                     if (isQualificationSelected && columns.length >= 3 && columns[2] !== "" && columns[2].toLowerCase() !== "n/a") {
-                        let matchedCustomPrice = null;
+                        const variantText = columns[2].trim();
 
-                        // 🌟 FIX 2: Lowercase and strip ALL spaces to ensure bulletproof string matching
-                        const rowInput = columns[2].toLowerCase().replace(/\s+/g, '').trim();
+                        // 🔥 Use the SAME detection logic as backend
+                        const detectedCategory = detectInstitutionCategory(variantText);
 
-                        // Scan our hidden pool elements to find the custom price matching the CSV's 3rd column row text
-                        const hiddenSpans = document.querySelectorAll('#hidden-pricing-pool span');
-                        for (let span of hiddenSpans) {
-                            const dbName = span.getAttribute('data-name').toLowerCase().replace(/\s+/g, '');
-
-                            if (dbName.includes(rowInput) || rowInput.includes(dbName)) {
-                                matchedCustomPrice = parseFloat(span.getAttribute('data-price'));
-                                break;
-                            }
+                        let matchedPrice = null;
+                        if (detectedCategory) {
+                            // Look up the price using the detected category
+                            const categoryKey = detectedCategory.toLowerCase().replace(/\s+/g, '').trim();
+                            matchedPrice = priceMap[categoryKey];
                         }
 
-                        // Accumulate using the custom price if found, otherwise fall back to generic base rate
-                        totalRunningCost += (matchedCustomPrice !== null) ? matchedCustomPrice : globalBasePrice;
+                        // Use matched price or fallback to global base
+                        totalRunningCost += (matchedPrice !== null && matchedPrice !== undefined) ? matchedPrice : globalBasePrice;
                     } else {
                         totalRunningCost += globalBasePrice;
                     }
@@ -926,13 +997,13 @@
 
                 if (candidateCount < 1) candidateCount = 1;
 
-                // Update the form counter field input natively
+                // Update the form counter field
                 const countInput = document.getElementById('candidate-count');
                 if (countInput) {
                     countInput.value = candidateCount;
                 }
 
-                // Update UI billing blocks with our clean sum matrix
+                // Update UI billing blocks
                 const summaryText = document.getElementById('summary-text');
                 const totalPriceDisplay = document.getElementById('total-price-display');
 
@@ -940,14 +1011,14 @@
                     summaryText.innerHTML = `${candidateCount} candidate(s) &times; ${vectorSelect.value} <br><small style="color: var(--brand-muted);">Processed itemized matrices via custom registry columns (VAT Incl.)</small>`;
                 }
                 if (totalPriceDisplay) {
-                    // 🌟 FIX 3: Output the cost directly since VAT is already bundled inside the price
                     totalPriceDisplay.textContent = `R${totalRunningCost.toFixed(2)}`;
                 }
 
-                // Print status message back inside dropzone label
+                // Update dropzone label with success message
                 document.getElementById('csv-label').innerHTML = `
-                <i class="fa-solid fa-circle-check text-lime" style="font-size: 1.5rem; display:block; margin-bottom:0.5rem;"></i> 
+                <i class="fa-solid fa-circle-check text-lime" style="color: #4eb637; font-size: 1.5rem; display:block; margin-bottom:0.5rem;"></i> 
                 Registry Verified: <b>${file.name}</b> (${candidateCount} candidates parsed)
+                ${isQualificationSelected ? `<div style="font-size: 0.75rem; color: var(--brand-lime); margin-top: 0.25rem;">✓ Dynamic pricing applied to ${candidateCount} record(s)</div>` : ''}
             `;
             };
             reader.readAsText(file);

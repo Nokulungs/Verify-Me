@@ -19,6 +19,10 @@ from io import StringIO
 from flask import Response
 import boto3
 from botocore.exceptions import NoCredentialsError
+import zipfile
+import tempfile
+from flask import send_file
+import requests
 
 # Initialize Environmental Context
 s3_client = boto3.client(
@@ -155,21 +159,22 @@ def init_db():
             candidate_name TEXT NOT NULL,
             candidate_email TEXT NOT NULL,       
             screening_type TEXT NOT NULL,        
-            institution_variant TEXT,            
+            institution_variant VARCHAR(255),            
             charged_amount DECIMAL(10, 2) DEFAULT 0.00, 
             status TEXT DEFAULT 'Awaiting Payment', 
             payment_method TEXT DEFAULT 'manual_eft',                 
             payment_status TEXT DEFAULT 'Pending',
             payment_ref TEXT,                    
             pop_file_path TEXT, 
-            id_number TEXT,                 
+            candidate_id_number VARCHAR(50),     
             id_file_path TEXT,   
-            license_number TEXT,
+            license_number VARCHAR(50),          
             license_file_path TEXT,                
             qualification_file_path TEXT,  
-            social_handle TEXT,
-            popia_consent_granted_at TIMESTAMP,
-            upload_token TEXT,
+            linkedin_handle VARCHAR(255),        
+            other_social_handle VARCHAR(255),    
+            auxiliary_file_path VARCHAR(255),    
+            consent_granted_at TIMESTAMP,        
             rejection_reason TEXT,               
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
@@ -930,30 +935,42 @@ def initiate_screening():
             # Rule A: Cross-check distinct compound unique configurations
             cursor.execute('''
                 SELECT 1 FROM screenings 
-                WHERE user_id = %s AND candidate_email = %s AND screening_type = %s
+                WHERE user_id = %s AND candidate_email = %s AND screening_type = %s 
                 LIMIT 1
             ''', (session['user_id'], c_email, screening_type))
+            
             if cursor.fetchone():
                 duplicates_skipped += 1
                 continue
 
             # Calculate individual row total utilizing Approach B's delimiter splitting architecture
             row_calculated_charge = 0.0
+            resolved_variant_db_string = "Other Tertiary Institutions"
             
-            if screening_type == 'Qualification Verification':
-                if ';' in c_variant:
-                    # Clean split cell by semicolon for multiple items
-                    individual_variants = [v.strip() for v in c_variant.split(';') if v.strip()]
-                    for variant in individual_variants:
-                        row_calculated_charge += live_prices.get(variant, live_prices.get('Other Tertiary Institutions', 240.00))
-                elif c_variant:
-                    row_calculated_charge += live_prices.get(c_variant, live_prices.get('Other Tertiary Institutions', 240.00))
+            # 🔄 CHANGED: Now handles both potential form value strings correctly
+            if screening_type in ['Qualification Verification', 'Tertiary Education']:
+                variant_lower = c_variant.lower()
+                
+                # Smart Keyword Matrix Routing Engine Checks
+                if 'johannesburg' in variant_lower or 'uj' in variant_lower or 'jhb' in variant_lower:
+                    resolved_variant_db_string = "University of Johannesburg (JHB)"
+                elif 'wits' in variant_lower or 'witwatersrand' in variant_lower:
+                    resolved_variant_db_string = "University of the Witwatersrand (WITS)"
+                elif 'pretoria' in variant_lower or 'up' in variant_lower or 'pta' in variant_lower or 'tuks' in variant_lower:
+                    resolved_variant_db_string = "University of Pretoria (PTA)"
+                elif 'tvet' in variant_lower or 'college' in variant_lower or 'certificate' in variant_lower:
+                    resolved_variant_db_string = "All N Certificates"
+                elif 'matric pre' in variant_lower or 'pre 1992' in variant_lower:
+                    resolved_variant_db_string = "Matric (Pre-1992)"
+                elif 'matric post' in variant_lower or 'post 1992' in variant_lower or 'matric' in variant_lower:
+                    resolved_variant_db_string = "Matric (Post-1992)"
                 else:
-                    row_calculated_charge += live_prices.get('Other Tertiary Institutions', 240.00)
+                    resolved_variant_db_string = "Other Tertiary Institutions"
+                    
+                row_calculated_charge = live_prices.get(resolved_variant_db_string, 240.00)
             else:
-                # Use flat mapping keys for standalone services (Identity, Criminal, etc.)
-                row_calculated_charge += live_prices.get(screening_type, live_prices.get('Identity Verification', 30.00))
-
+                row_calculated_charge = live_prices.get(screening_type, live_prices.get('Identity Verification', 30.00))
+                
             total_batch_bill_amount += row_calculated_charge
             upload_token = secrets.token_urlsafe(32)
 
@@ -2172,6 +2189,186 @@ def admin_pricing_matrix():
 
     # Pass the data out to a dedicated admin portal view template
     return render_template('admin_dashboard.html', pricing_entries=pricing_entries)
+
+@app.route('/admin/download-company-package/<company_name>')
+@role_required(['admin'])
+def download_company_package(company_name):
+    """
+    Generates a ZIP archive containing all screening records and documents for a specific company.
+    """
+    import os
+    import zipfile
+    import io
+    from datetime import datetime
+    
+    # Decode URL-encoded company name
+    company_name = urllib.parse.unquote(company_name)
+    
+    # Fetch all screening records for this company
+    with get_db_connection() as conn:
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        cursor.execute("""
+            SELECT s.*, u.company_name, u.email as company_email
+            FROM screenings s
+            JOIN users u ON s.user_id = u.id
+            WHERE u.company_name = %s
+            ORDER BY s.created_at DESC
+        """, (company_name,))
+        records = cursor.fetchall()
+        cursor.close()
+    
+    if not records:
+        flash(f"No screening records found for company: {company_name}", "error")
+        return redirect(url_for('admin_dashboard', tab='corporate'))
+    
+    # Create an in-memory ZIP file
+    zip_buffer = io.BytesIO()
+    
+    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+        # 1. Create a master summary CSV
+        summary_csv = io.StringIO()
+        csv_writer = csv.writer(summary_csv)
+        
+        # Write headers
+        csv_writer.writerow([
+            'Candidate ID', 'Candidate Name', 'Candidate Email', 'Screening Type',
+            'Status', 'Payment Status', 'ID Number', 'License Number',
+            'LinkedIn Handle', 'Other Social Handle', 'Created At',
+            'ID Document', 'Qualification Document', 'License Document'
+        ])
+        
+        # Track which documents we've already added to avoid duplicates
+        added_files = set()
+        doc_folder = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'static', 'uploads', 'credentials')
+        
+        for record in records:
+            # Add row to CSV
+            csv_writer.writerow([
+                f"CC-{record['id']}",
+                record['candidate_name'],
+                record['candidate_email'],
+                record['screening_type'],
+                record['status'],
+                record['payment_status'],
+                record.get('candidate_id_number', ''),
+                record.get('license_number', ''),
+                record.get('linkedin_handle', ''),
+                record.get('other_social_handle', ''),
+                record['created_at'],
+                record.get('id_file_path', ''),
+                record.get('qualification_file_path', ''),
+                record.get('license_file_path', '')
+            ])
+            
+            # Helper function to add documents to ZIP
+            def add_document_to_zip(file_path, prefix, record_id):
+                if not file_path:
+                    return
+                
+                # If it's a URL (S3), we need to download it first
+                if file_path.startswith('http://') or file_path.startswith('https://'):
+                    try:
+                        import requests
+                        response = requests.get(file_path, timeout=30)
+                        if response.status_code == 200:
+                            # Extract filename from URL or use a generated name
+                            file_name = file_path.split('/')[-1]
+                            if not file_name:
+                                file_name = f"{prefix}_{record_id}.pdf"
+                            # Add to ZIP with a clean name
+                            zip_file.writestr(
+                                f"documents/{prefix}_{record_id}_{file_name}",
+                                response.content
+                            )
+                            print(f"✅ Downloaded from S3: {file_name}")
+                    except Exception as e:
+                        print(f"⚠️ Failed to download from S3: {e}")
+                else:
+                    # Local file - clean the path and copy
+                    clean_filename = os.path.basename(file_path)
+                    full_path = os.path.join(doc_folder, clean_filename)
+                    
+                    if os.path.exists(full_path) and clean_filename not in added_files:
+                        try:
+                            zip_file.write(
+                                full_path,
+                                f"documents/{prefix}_{record['id']}_{clean_filename}"
+                            )
+                            added_files.add(clean_filename)
+                            print(f"✅ Added local file: {clean_filename}")
+                        except Exception as e:
+                            print(f"⚠️ Failed to add file {clean_filename}: {e}")
+            
+            # Add each document type
+            add_document_to_zip(record.get('id_file_path'), 'ID', record['id'])
+            add_document_to_zip(record.get('qualification_file_path'), 'QUAL', record['id'])
+            add_document_to_zip(record.get('license_file_path'), 'LIC', record['id'])
+        
+        # Add the summary CSV to the zip
+        zip_file.writestr('summary.csv', summary_csv.getvalue())
+        
+        # 2. Add a README file
+        readme_content = f"""
+VERIFYME SCREENING PACKAGE
+==========================
+Company: {company_name}
+Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+Total Candidates: {len(records)}
+
+This package contains:
+1. summary.csv - Complete listing of all candidates and their verification details
+2. documents/ - All uploaded documents organized by candidate
+
+For any questions, please contact the VerifyMe support team.
+        """
+        zip_file.writestr('README.txt', readme_content)
+    
+    # Prepare the response
+    zip_buffer.seek(0)
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    filename = f"{company_name.replace(' ', '_')}_screening_package_{timestamp}.zip"
+    
+    return send_file(
+        zip_buffer,
+        mimetype='application/zip',
+        as_attachment=True,
+        download_name=filename
+    )
+
+@app.route('/download-template')
+def download_template():
+    """
+    Generates a memory-buffered CSV template using semicolon separators for corporate batch loads.
+    """
+    si = io.StringIO()
+    writer = csv.writer(si, delimiter=';')
+    
+    # 1. Output the mandatory precise headers
+    writer.writerow(['Name', 'Email', 'Institution_or_Variant'])
+    
+    # 2. Provide a clean placeholder row as an example
+    writer.writerow(['John Doe', 'john.doe@example.com', 'University of Pretoria'])
+    writer.writerow(['Jane Smith', 'jane.smith@example.com', 'Matric Post 1992'])
+    writer.writerow(['Sipho Khumalo', 'sipho.k@example.com', 'South West TVET College'])
+    
+    # 3. Add an instructional legend utilizing '#' lines which the backend engine will automatically ignore
+    writer.writerow([])
+    writer.writerow(['# --- HELP LEGEND: VERIFICATION MATCH MATRIX GUIDE ---'])
+    writer.writerow(['# For Column 3 (Institution_or_Variant), specify the true provider text.'])
+    writer.writerow(['# System rules will auto-map keywords:'])
+    writer.writerow(['# - Keywords containing "Johannesburg" / "UJ" -> University of Johannesburg'])
+    writer.writerow(['# - Keywords containing "Wits" / "Witwatersrand" -> WITS University'])
+    writer.writerow(['# - Keywords containing "Pretoria" / "UP" -> University of Pretoria'])
+    writer.writerow(['# - Keywords containing "TVET" / "College" / "Certificate" -> TVET Colleges'])
+    writer.writerow(['# - Keywords containing "Matric Pre 1992" / "Matric Post 1992" -> Schooling Level'])
+    writer.writerow(['# - Any other text default parses cleanly to "Other Institutions" rate lines.'])
+
+    output = si.getvalue()
+    return Response(
+        output,
+        mimetype="text/csv",
+        headers={"Content-Disposition": "attachment; filename=verify_me_template.csv"}
+    )
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
