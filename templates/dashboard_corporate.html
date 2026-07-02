@@ -570,8 +570,8 @@
                         <div class="form-group">
                             <label for="vector-select">Select Screening Vector Type</label>
                             <select id="vector-select" name="screening_type" class="form-control"
-                                onchange="calculateCost()" style="background:#1f2521; color:#fff;">
-                                <option value="" disabled selected hidden>Select corporate audit focus...</option>
+                                onchange="calculateCost()" style="background:#1f2521; color:#fff;" required>
+                                <option value="" disabled selected hidden >Select corporate audit focus...</option>
 
                                 {% for item in pricing_entries %}
                                 {% set name_lower = item.display_name|lower %}
@@ -878,153 +878,181 @@
     // UPDATED: Automatically updates candidate metrics input box out of CSV line count natively
     // UPDATED: Automatically updates candidate metrics input box out of CSV line count natively
     function updateCSVLabel(input) {
-        if (input.files && input.files.length > 0) {
-            const file = input.files[0];
-            const reader = new FileReader();
+    if (input.files && input.files.length > 0) {
+        const file = input.files[0];
+        const reader = new FileReader();
 
-            reader.onload = function (e) {
-                const text = e.target.result;
-                // Split by line breaks and filter out empty rows
-                const rows = text.split(/\r?\n/).filter(line => line.trim() !== "");
+        reader.onload = function (e) {
+            const text = e.target.result;
+            const rows = text.split(/\r?\n/).filter(line => line.trim() !== "");
 
-                if (rows.length === 0) return;
+            console.log("📄 CSV Rows:", rows);
 
-                // Check if the first row is a header line
-                let startIdx = 0;
-                const firstRowLower = rows[0].toLowerCase();
-                if (firstRowLower.includes('name') || firstRowLower.includes('email') || firstRowLower.includes('institution') || firstRowLower.includes('variant')) {
-                    startIdx = 1;
+            if (rows.length === 0) return;
+
+            // Check if the first row is a header line
+            let startIdx = 0;
+            const firstRowLower = rows[0].toLowerCase();
+            if (firstRowLower.includes('name') || firstRowLower.includes('email') || firstRowLower.includes('institution') || firstRowLower.includes('variant')) {
+                startIdx = 1;
+            }
+
+            let candidateCount = 0;
+            let totalRunningCost = 0;
+
+            const vectorSelect = document.getElementById('vector-select');
+            const selectedOption = vectorSelect ? vectorSelect.options[vectorSelect.selectedIndex] : null;
+            const globalBasePrice = selectedOption ? parseFloat(selectedOption.getAttribute('data-price')) || 0.00 : 0.00;
+            const isQualificationSelected = vectorSelect ? vectorSelect.value.includes('Qualification') : false;
+
+            // Build a map of pricing from the hidden spans
+            const priceMap = {};
+            const hiddenSpans = document.querySelectorAll('#hidden-pricing-pool span');
+            console.log("🔍 Hidden spans found:", hiddenSpans.length);
+            
+            for (let span of hiddenSpans) {
+                const name = span.getAttribute('data-name').toLowerCase().trim();
+                const price = parseFloat(span.getAttribute('data-price'));
+                priceMap[name] = price;
+                console.log(`📊 Price map: "${name}" = R${price}`);
+            }
+
+            // 🔥 SMART KEYWORD DETECTION - MATCHES BACKEND LOGIC
+            // 🔥 IMPROVED SMART KEYWORD DETECTION - HANDLES ALL CASES
+function detectInstitutionCategory(variantText) {
+    if (!variantText) return null;
+    
+    const text = variantText.toLowerCase().trim();
+    console.log("🔎 Detecting for:", text);
+    
+    // 🔥 CHECK: Matric (Pre-1992) - MUST be checked BEFORE general "matric"
+    if (text.includes('pre') && text.includes('1992') || 
+        text.includes('pre-1992') || text.includes('pre 1992') || 
+        text.includes('pre1992') || text.includes('matric pre')) {
+        console.log("✅ Matched: Matric (Pre-1992)");
+        return 'Matric (Pre-1992)';
+    }
+    
+    // 🔥 CHECK: Matric (Post-1992) - MUST be checked BEFORE general "matric"
+    if (text.includes('post') && text.includes('1992') || 
+        text.includes('post-1992') || text.includes('post 1992') || 
+        text.includes('post1992') || text.includes('matric post') || 
+        (text.includes('matric') && !text.includes('pre'))) {
+        console.log("✅ Matched: Matric (Post-1992)");
+        return 'Matric (Post-1992)';
+    }
+    
+    // 🔥 CHECK: TVET / N Certificates - MUST be checked BEFORE general "certificate" or "college"
+    if (text.includes('tvet') || text.includes('n certificate') || 
+        text.includes('n1') || text.includes('n2') || text.includes('n3') || 
+        text.includes('n4') || text.includes('n5') || text.includes('n6') ||
+        text.includes('tvet college') || text.includes('technical college') ||
+        text.includes('vocational') || text.includes('nated') ||
+        (text.includes('certificate') && !text.includes('matric'))) {
+        console.log("✅ Matched: All N Certificates");
+        return 'All N Certificates';
+    }
+    
+    // University of Johannesburg (UJ)
+    if (text.includes('johannesburg') || text.includes('uj') || text.includes('jhb')) {
+        console.log("✅ Matched: University of Johannesburg (JHB)");
+        return 'University of Johannesburg (JHB)';
+    }
+    
+    // University of the Witwatersrand (WITS)
+    if (text.includes('wits') || text.includes('witwatersrand')) {
+        console.log("✅ Matched: University of the Witwatersrand (WITS)");
+        return 'University of the Witwatersrand (WITS)';
+    }
+    
+    // University of Pretoria (UP/PTA)
+    if (text.includes('pretoria') || text.includes('pta') || text.includes('up') || text.includes('tuks')) {
+        console.log("✅ Matched: University of Pretoria (PTA)");
+        return 'University of Pretoria (PTA)';
+    }
+    
+    // SAQA / Foreign Evaluation
+    if (text.includes('saqa') || text.includes('foreign') || text.includes('evaluation')) {
+        console.log("✅ Matched: SAQA Foreign Evaluation");
+        return 'SAQA Foreign Evaluation';
+    }
+    
+    // 🔥 Any university/tertiary mention - FINAL FALLBACK
+    if (text.includes('university') || text.includes('tertiary') || 
+        text.includes('institute') || text.includes('school') || 
+        text.includes('academy')) {
+        console.log("✅ Matched: Other Tertiary Institutions");
+        return 'Other Tertiary Institutions';
+    }
+    
+    console.log("⚠️ No match found, returning null");
+    return null;
+}
+            // Loop through each candidate row
+            for (let i = startIdx; i < rows.length; i++) {
+                let line = rows[i].trim();
+                if (!line) continue;
+
+                // Support BOTH commas and semicolons
+                let columns = line.includes(';') ? line.split(';') : line.split(',');
+                candidateCount++;
+
+                if (isQualificationSelected && columns.length >= 3 && columns[2] !== "" && columns[2].toLowerCase() !== "n/a") {
+                    const variantText = columns[2].trim();
+                    console.log(`🔎 Processing variant: "${variantText}"`);
+                    
+                    const detectedCategory = detectInstitutionCategory(variantText);
+                    console.log(`🔎 Detected: "${detectedCategory}"`);
+                    
+                    let matchedPrice = null;
+                    if (detectedCategory) {
+                        // 🔥 EXACT MATCH - use the display_name as-is from the database
+                        const categoryKey = detectedCategory.toLowerCase().trim();
+                        console.log(`🔎 Looking up: "${categoryKey}"`);
+                        matchedPrice = priceMap[categoryKey];
+                        console.log(`🔎 Found price: ${matchedPrice}`);
+                    }
+                    
+                    // Use matched price or fallback to global base
+                    const priceToUse = (matchedPrice !== null && matchedPrice !== undefined) ? matchedPrice : globalBasePrice;
+                    console.log(`💰 Using price: R${priceToUse}`);
+                    totalRunningCost += priceToUse;
+                } else {
+                    totalRunningCost += globalBasePrice;
                 }
+            }
 
-                let candidateCount = 0;
-                let totalRunningCost = 0;
+            if (candidateCount < 1) candidateCount = 1;
 
-                // Get the globally selected base price from the dropdown
-                const vectorSelect = document.getElementById('vector-select');
-                const selectedOption = vectorSelect ? vectorSelect.options[vectorSelect.selectedIndex] : null;
-                const globalBasePrice = selectedOption ? parseFloat(selectedOption.getAttribute('data-price')) || 0.00 : 0.00;
-                const isQualificationSelected = vectorSelect ? vectorSelect.value.includes('Qualification') : false;
+            console.log(`📊 FINAL: ${candidateCount} candidates, total: R${totalRunningCost}`);
 
-                // Build a map of pricing from the hidden spans for quick lookup
-                const priceMap = {};
-                const hiddenSpans = document.querySelectorAll('#hidden-pricing-pool span');
-                for (let span of hiddenSpans) {
-                    const name = span.getAttribute('data-name').toLowerCase().replace(/\s+/g, '').trim();
-                    priceMap[name] = parseFloat(span.getAttribute('data-price'));
-                }
+            // Update the form counter field
+            const countInput = document.getElementById('candidate-count');
+            if (countInput) {
+                countInput.value = candidateCount;
+            }
 
-                // 🔥 SMART KEYWORD DETECTION - MATCHES BACKEND LOGIC
-                function detectInstitutionCategory(variantText) {
-                    if (!variantText) return null;
+            // Update UI billing blocks
+            const summaryText = document.getElementById('summary-text');
+            const totalPriceDisplay = document.getElementById('total-price-display');
 
-                    const text = variantText.toLowerCase().trim();
+            if (summaryText && vectorSelect && vectorSelect.value !== "") {
+                summaryText.innerHTML = `${candidateCount} candidate(s) &times; ${vectorSelect.value} <br><small style="color: var(--brand-muted);">Processed itemized matrices via custom registry columns (VAT Incl.)</small>`;
+            }
+            if (totalPriceDisplay) {
+                totalPriceDisplay.textContent = `R${totalRunningCost.toFixed(2)}`;
+            }
 
-                    // University of Johannesburg (UJ)
-                    if (text.includes('johannesburg') || text.includes('uj') || text.includes('jhb')) {
-                        return 'University of Johannesburg (JHB)';
-                    }
-
-                    // University of the Witwatersrand (WITS)
-                    if (text.includes('wits') || text.includes('witwatersrand')) {
-                        return 'University of the Witwatersrand (WITS)';
-                    }
-
-                    // University of Pretoria (UP/PTA)
-                    if (text.includes('pretoria') || text.includes('pta') || text.includes('up') || text.includes('tuks')) {
-                        return 'University of Pretoria (PTA)';
-                    }
-
-                    // TVET / N Certificates
-                    if (text.includes('tvet') || text.includes('n certificate') ||
-                        text.includes('n1') || text.includes('n2') || text.includes('n3') ||
-                        text.includes('n4') || text.includes('n5') || text.includes('n6') ||
-                        text.includes('college') && text.includes('tvet')) {
-                        return 'All N Certificates';
-                    }
-
-                    // SAQA / Foreign Evaluation
-                    if (text.includes('saqa') || text.includes('foreign') || text.includes('evaluation')) {
-                        return 'SAQA Foreign Evaluation';
-                    }
-
-                    // Matric (Pre-1992)
-                    if (text.includes('pre-1992') || text.includes('pre 1992') || text.includes('pre1992')) {
-                        return 'Matric (Pre-1992)';
-                    }
-
-                    // Matric (Post-1992)
-                    if (text.includes('post-1992') || text.includes('post 1992') || text.includes('post1992')) {
-                        return 'Matric (Post-1992)';
-                    }
-
-                    // Any university/tertiary mention
-                    if (text.includes('university') || text.includes('tertiary') ||
-                        text.includes('college') || text.includes('institute') || text.includes('school')) {
-                        return 'Other Tertiary Institutions';
-                    }
-
-                    return null;
-                }
-
-                // Loop through each candidate row
-                for (let i = startIdx; i < rows.length; i++) {
-                    let line = rows[i].trim();
-                    if (!line) continue;
-
-                    // Support BOTH commas and semicolons
-                    let columns = line.includes(';') ? line.split(';') : line.split(',');
-                    candidateCount++;
-
-                    if (isQualificationSelected && columns.length >= 3 && columns[2] !== "" && columns[2].toLowerCase() !== "n/a") {
-                        const variantText = columns[2].trim();
-
-                        // 🔥 Use the SAME detection logic as backend
-                        const detectedCategory = detectInstitutionCategory(variantText);
-
-                        let matchedPrice = null;
-                        if (detectedCategory) {
-                            // Look up the price using the detected category
-                            const categoryKey = detectedCategory.toLowerCase().replace(/\s+/g, '').trim();
-                            matchedPrice = priceMap[categoryKey];
-                        }
-
-                        // Use matched price or fallback to global base
-                        totalRunningCost += (matchedPrice !== null && matchedPrice !== undefined) ? matchedPrice : globalBasePrice;
-                    } else {
-                        totalRunningCost += globalBasePrice;
-                    }
-                }
-
-                if (candidateCount < 1) candidateCount = 1;
-
-                // Update the form counter field
-                const countInput = document.getElementById('candidate-count');
-                if (countInput) {
-                    countInput.value = candidateCount;
-                }
-
-                // Update UI billing blocks
-                const summaryText = document.getElementById('summary-text');
-                const totalPriceDisplay = document.getElementById('total-price-display');
-
-                if (summaryText && vectorSelect && vectorSelect.value !== "") {
-                    summaryText.innerHTML = `${candidateCount} candidate(s) &times; ${vectorSelect.value} <br><small style="color: var(--brand-muted);">Processed itemized matrices via custom registry columns (VAT Incl.)</small>`;
-                }
-                if (totalPriceDisplay) {
-                    totalPriceDisplay.textContent = `R${totalRunningCost.toFixed(2)}`;
-                }
-
-                // Update dropzone label with success message
-                document.getElementById('csv-label').innerHTML = `
+            // Update dropzone label
+            document.getElementById('csv-label').innerHTML = `
                 <i class="fa-solid fa-circle-check text-lime" style="color: #4eb637; font-size: 1.5rem; display:block; margin-bottom:0.5rem;"></i> 
                 Registry Verified: <b>${file.name}</b> (${candidateCount} candidates parsed)
                 ${isQualificationSelected ? `<div style="font-size: 0.75rem; color: var(--brand-lime); margin-top: 0.25rem;">✓ Dynamic pricing applied to ${candidateCount} record(s)</div>` : ''}
             `;
-            };
-            reader.readAsText(file);
-        }
+        };
+        reader.readAsText(file);
     }
-
+}
     function updatePOPLabel(input) {
         if (input.files && input.files.length > 0) {
             document.getElementById('pop-label').innerHTML = `<i class="fa-solid fa-circle-check text-cyan" style="font-size: 1.5rem; display:block; margin-bottom:0.5rem;"></i> Attached: <b>${input.files[0].name}</b>`;

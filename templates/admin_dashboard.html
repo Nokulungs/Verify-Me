@@ -683,329 +683,190 @@
             </div>
 
             <div id="tab-corporate" class="tab-content">
-    <div class="filter-ribbon-bar">
-        <label style="font-size: 0.85rem; font-family: var(--font-mono); color: var(--brand-muted); text-transform: uppercase;">Filter Corporate Accounts:</label>
-        <form method="GET" action="{{ url_for('admin_dashboard') }}" style="display:flex; gap:0.75rem; flex-wrap: wrap; align-items: center; width: 100%;">
-            <select name="company_filter" class="select-input-dark" id="companyFilterSelect" style="min-width: 200px;">
-                <option value="">-- Display All Working Entities --</option>
-                {% for comp in companies %}
-                <option value="{{ comp.company_name }}" {% if selected_company==comp.company_name %}selected{% endif %}>{{ comp.company_name }}</option>
-                {% endfor %}
-            </select>
-            <button type="submit" class="btn-table-row" style="border-color: var(--brand-olive);">
-                <i class="fa-solid fa-filter"></i> Apply Matrix
-            </button>
-            {% if selected_company %}
-            <a href="{{ url_for('admin_dashboard') }}" class="btn-table-row" style="text-decoration:none; display:inline-flex; align-items:center;">
-                <i class="fa-solid fa-times"></i> Clear
-            </a>
-            {% endif %}
-            
-            {% if selected_company %}
-            <div style="flex:1; display:flex; justify-content:flex-end; gap: 0.75rem;">
-                <a href="{{ url_for('download_company_package', company_name=selected_company|urlencode) }}" 
-                   class="btn-table-row" 
-                   style="text-decoration: none; color: #fff; background: var(--brand-lime); border-color: var(--brand-lime); padding: 0.5rem 1.2rem; border-radius: var(--radius-sm); font-weight: 700; display: inline-flex; align-items: center; gap: 8px; transition: all 0.2s ease;">
-                    <i class="fa-solid fa-file-zipper"></i> Download ZIP Package
-                </a>
-            </div>
-            {% endif %}
-        </form>
-    </div>
-
-    <div class="table-container">
-        <div class="table-header flex-between" style="padding-right: 1.5rem; flex-wrap: wrap; gap: 1rem;">
-            <div>
-                <h3>Enterprise Employee Screening Array</h3>
-                {% if selected_company %}
-                <div style="font-size: 0.8rem; color: var(--brand-lime); margin-top: 4px;">
-                    <i class="fa-solid fa-building"></i> Currently viewing: <strong>{{ selected_company }}</strong>
-                    {% set candidate_count = corporate_candidates|length %}
-                    ({{ candidate_count }} candidate{{ 's' if candidate_count != 1 else '' }})
-                </div>
-                {% endif %}
-            </div>
-            <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
-                <a href="{{ url_for('export_corporate_csv', company_filter=selected_company) }}" 
-                   class="btn-table-row"
-                   style="text-decoration: none; color: var(--brand-lime); border-color: var(--brand-lime);">
-                    <i class="fa-solid fa-file-csv"></i> Export CSV
-                </a>
-                {% if selected_company %}
-                <a href="{{ url_for('download_company_package', company_name=selected_company|urlencode) }}" 
-                   class="btn-table-row" 
-                   style="text-decoration: none; color: #fff; background: var(--brand-lime); border-color: var(--brand-lime);">
-                    <i class="fa-solid fa-file-zipper"></i> Download ZIP Package
-                </a>
-                {% endif %}
-            </div>
-        </div>
-        
-        <table class="matrix-table">
-            <thead>
-                <tr>
-                    <th>ID Code</th>
-                    <th>Enterprise</th>
-                    <th>Candidate Target</th>
-                    <th>Audit Vector</th>
-                    <th>Pipeline State</th>
-                    <th>Billing Status</th>
-                    <th>Actions Terminal</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for candidate in corporate_candidates %}
-                <tr>
-                    <td class="mono-text">#CC-{{ candidate.id }}</td>
-                    <td class="font-bold text-white">{{ candidate.company_name }}</td>
-                    <td>
-                        <div>{{ candidate.candidate_name }}</div>
-                        <div style="font-size:0.75rem; color: var(--brand-muted); margin-bottom: 4px;">
-                            {{ candidate.candidate_email }}
-                        </div>
-
-                        <div style="font-size: 0.72rem; line-height: 1.3; border-top: 1px solid rgba(255,255,255,0.03); padding-top: 4px;">
-                            {% if candidate.candidate_id_number %}
-                            <div><span style="color:#8a9e8d;">ID:</span> <span class="mono-text" style="color:#fff;">{{ candidate.candidate_id_number }}</span></div>
-                            {% endif %}
-                            {% if candidate.license_number %}
-                            <div><span style="color:#e0ae24;">Lic #:</span> <span class="mono-text" style="color:#fff;">{{ candidate.license_number }}</span></div>
-                            {% endif %}
-                            {% if candidate.linkedin_handle or candidate.other_social_handle %}
-                            <div>
-                                <span style="color:#00b4d8;">Social:</span>
-                                <span style="color:var(--brand-lime);">
-                                    {{ candidate.linkedin_handle if candidate.linkedin_handle else candidate.other_social_handle }}
-                                </span>
-                            </div>
-                            {% endif %}
-                            {% if candidate.consent_granted_at %}
-                            <div style="color: #666; font-size: 0.65rem; margin-top: 2px;">
-                                <i class="fa-solid fa-gavel"></i> POPIA Consent Logged
-                            </div>
-                            {% endif %}
-                        </div>
-                    </td>
-                    <td><span class="instruction-badge postnet">{{ candidate.screening_type }}</span></td>
-                    <td>
-                        {% if 'Cleared' in candidate.status %}
-                        <span class="status-badge badge-cleared"><i class="fa-solid fa-circle-check"></i> {{ candidate.status }}</span>
-                        {% elif 'Flagged' in candidate.status %}
-                        <span class="status-badge badge-flagged"><i class="fa-solid fa-circle-exclamation"></i> {{ candidate.status }}</span>
-                        {% elif 'Review' in candidate.status %}
-                        <span class="status-badge badge-processing"><i class="fa-solid fa-spinner fa-spin"></i> {{ candidate.status }}</span>
-                        {% else %}
-                        <span class="status-badge badge-pending"><i class="fa-solid fa-clock"></i> {{ candidate.status }}</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        <span class="mono-text {% if candidate.payment_status == 'Completed' %}cyan-text{% else %}burgundy-text{% endif %}">
-                            {{ candidate.payment_status }}
-                        </span>
-                    </td>
-                    <td>
-                        <div style="display:flex; gap:0.5rem; align-items: center;">
-                            <button class="btn-table-row" onclick="openStatusModal('{{ candidate.id }}', '{{ candidate.status }}', 'corporate')">
-                                <i class="fa-solid fa-sliders"></i> State
-                            </button>
-                            <button class="btn-table-row" style="color: var(--brand-alert);" onclick="openFlagModal('{{ candidate.id }}', 'corporate')">
-                                <i class="fa-solid fa-flag"></i> Flag
-                            </button>
-
-                            {% if candidate.id_file_path or candidate.qualification_file_path or candidate.auxiliary_file_path %}
-                            <div style="display:flex; flex-direction:column; gap:4px; font-size:0.7rem; border-left: 1px solid rgba(255,255,255,0.08); padding-left: 0.5rem;">
-                                {% if candidate.id_file_path %}
-                                <a href="{{ url_for('admin_view_document', filename=candidate.id_file_path) }}" target="_blank" class="pop-file-link" style="color: var(--brand-lime); text-decoration: none; display: flex; align-items: center; gap: 4px;">
-                                    <i class="fa-solid fa-id-card"></i> ID Copy
-                                </a>
-                                {% endif %}
-
-                                {% if candidate.qualification_file_path %}
-                                <a href="{{ url_for('admin_view_document', filename=candidate.qualification_file_path) }}" target="_blank" class="pop-file-link" style="color: #00b4d8; text-decoration: none; display: flex; align-items: center; gap: 4px;">
-                                    <i class="fa-solid fa-graduation-cap"></i> Academic Cert
-                                </a>
-                                {% endif %}
-
-                                {% if candidate.auxiliary_file_path %}
-                                <a href="{{ url_for('admin_view_document', filename=candidate.auxiliary_file_path) }}" target="_blank" class="pop-file-link" style="color: #e0ae24; text-decoration: none; display: flex; align-items: center; gap: 4px;">
-                                    <i class="fa-solid fa-id-badge"></i> License Card
-                                </a>
-                                {% endif %}
-                            </div>
-                            {% endif %}
-                        </div>
-                    </td>
-                </tr>
-                {% else %}
-                <tr>
-                    <td colspan="7" style="text-align:center; padding: 3rem; color: var(--brand-muted);">
-                        No corporate candidates logged inside running cluster array frames.
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-</div>
-
-            <div id="tab-individual" class="tab-content">
-                <div class="table-container">
-                    <div class="table-header flex-between" style="padding-right: 1.5rem;">
-                        <h3>Self-Verification Individual Audit Pipelines</h3>
-                        <a href="{{ url_for('export_individual_csv') }}" class="btn-table-row"
-                            style="text-decoration: none; color: var(--brand-lime); border-color: var(--brand-lime);">
-                            <i class="fa-solid fa-file-csv"></i> Export Matrix (.CSV)
+                <div class="filter-ribbon-bar">
+                    <label
+                        style="font-size: 0.85rem; font-family: var(--font-mono); color: var(--brand-muted); text-transform: uppercase;">Filter
+                        Corporate Accounts:</label>
+                    <form method="GET" action="{{ url_for('admin_dashboard') }}"
+                        style="display:flex; gap:0.75rem; flex-wrap: wrap; align-items: center; width: 100%;">
+                        <select name="company_filter" class="select-input-dark" id="companyFilterSelect"
+                            style="min-width: 200px;">
+                            <option value="">-- Display All Working Entities --</option>
+                            {% for comp in companies %}
+                            <option value="{{ comp.company_name }}" {% if selected_company==comp.company_name
+                                %}selected{% endif %}>{{ comp.company_name }}</option>
+                            {% endfor %}
+                        </select>
+                        <button type="submit" class="btn-table-row" style="border-color: var(--brand-olive);">
+                            <i class="fa-solid fa-filter"></i> Apply Matrix
+                        </button>
+                        {% if selected_company %}
+                        <a href="{{ url_for('admin_dashboard') }}" class="btn-table-row"
+                            style="text-decoration:none; display:inline-flex; align-items:center;">
+                            <i class="fa-solid fa-times"></i> Clear
                         </a>
+                        {% endif %}
+
+                        {% if selected_company %}
+                        <div style="flex:1; display:flex; justify-content:flex-end; gap: 0.75rem;">
+                            <a href="{{ url_for('download_company_package', company_name=selected_company|urlencode) }}"
+                                class="btn-table-row"
+                                style="text-decoration: none; color: #fff; background: var(--brand-lime); border-color: var(--brand-lime); padding: 0.5rem 1.2rem; border-radius: var(--radius-sm); font-weight: 700; display: inline-flex; align-items: center; gap: 8px; transition: all 0.2s ease;">
+                                <i class="fa-solid fa-file-zipper"></i> Download ZIP Package
+                            </a>
+                        </div>
+                        {% endif %}
+                    </form>
+                </div>
+
+                <div class="table-container">
+                    <div class="table-header flex-between" style="padding-right: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+                        <div>
+                            <h3>Enterprise Employee Screening Array</h3>
+                            {% if selected_company %}
+                            <div style="font-size: 0.8rem; color: var(--brand-lime); margin-top: 4px;">
+                                <i class="fa-solid fa-building"></i> Currently viewing: <strong>{{ selected_company
+                                    }}</strong>
+                                {% set candidate_count = corporate_candidates|length %}
+                                ({{ candidate_count }} candidate{{ 's' if candidate_count != 1 else '' }})
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                            <a href="{{ url_for('export_corporate_csv', company_filter=selected_company) }}"
+                                class="btn-table-row"
+                                style="text-decoration: none; color: var(--brand-lime); border-color: var(--brand-lime);">
+                                <i class="fa-solid fa-file-csv"></i> Export CSV
+                            </a>
+                            {% if selected_company %}
+                            <a href="{{ url_for('download_company_package', company_name=selected_company|urlencode) }}"
+                                class="btn-table-row"
+                                style="text-decoration: none; color: #fff; background: var(--brand-lime); border-color: var(--brand-lime);">
+                                <i class="fa-solid fa-file-zipper"></i> Download ZIP Package
+                            </a>
+                            {% endif %}
+                        </div>
                     </div>
+
                     <table class="matrix-table">
                         <thead>
                             <tr>
-                                <th>Audit Run Token</th>
-                                <th>Applicant Registered Account</th>
-                                <th>Audit Target Focus</th>
-                                <th>Pipeline Status State</th>
-                                <th>Billing State</th>
-                                <th>Verification Source Data</th>
-                                <th>Action Controls</th>
+                                <th>ID Code</th>
+                                <th>Enterprise</th>
+                                <th>Candidate Target</th>
+                                <th>Audit Vector</th>
+                                <th>Pipeline State</th>
+                                <th>Billing Status</th>
+                                <th>Actions Terminal</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {% for req in individual_requests %}
+                            {% for candidate in corporate_candidates %}
                             <tr>
-                                <td class="mono-text">#IND-{{ req.id }}</td>
-                                <td class="font-bold text-white">{{ req.email }}</td>
-                                <td><span class="instruction-badge postnet">{{ req.verification_type }}</span></td>
+                                <td class="mono-text">#CC-{{ candidate.id }}</td>
+                                <td class="font-bold text-white">{{ candidate.company_name }}</td>
                                 <td>
-                                    {% if 'Cleared' in req.status %}
+                                    <div>{{ candidate.candidate_name }}</div>
+                                    <div style="font-size:0.75rem; color: var(--brand-muted); margin-bottom: 4px;">
+                                        {{ candidate.candidate_email }}
+                                    </div>
+
+                                    <div
+                                        style="font-size: 0.72rem; line-height: 1.3; border-top: 1px solid rgba(255,255,255,0.03); padding-top: 4px;">
+                                        {% if candidate.candidate_id_number %}
+                                        <div><span style="color:#8a9e8d;">ID:</span> <span class="mono-text"
+                                                style="color:#fff;">{{ candidate.candidate_id_number }}</span></div>
+                                        {% endif %}
+                                        {% if candidate.license_number %}
+                                        <div><span style="color:#e0ae24;">Lic #:</span> <span class="mono-text"
+                                                style="color:#fff;">{{ candidate.license_number }}</span></div>
+                                        {% endif %}
+                                        {% if candidate.linkedin_handle or candidate.other_social_handle %}
+                                        <div>
+                                            <span style="color:#00b4d8;">Social:</span>
+                                            <span style="color:var(--brand-lime);">
+                                                {{ candidate.linkedin_handle if candidate.linkedin_handle else
+                                                candidate.other_social_handle }}
+                                            </span>
+                                        </div>
+                                        {% endif %}
+                                        {% if candidate.consent_granted_at %}
+                                        <div style="color: #666; font-size: 0.65rem; margin-top: 2px;">
+                                            <i class="fa-solid fa-gavel"></i> POPIA Consent Logged
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                <td><span class="instruction-badge postnet">{{ candidate.screening_type }}</span></td>
+                                <td>
+                                    {% if 'Cleared' in candidate.status %}
                                     <span class="status-badge badge-cleared"><i class="fa-solid fa-circle-check"></i> {{
-                                        req.status }}</span>
-                                    {% elif 'Flagged' in req.status %}
+                                        candidate.status }}</span>
+                                    {% elif 'Flagged' in candidate.status %}
                                     <span class="status-badge badge-flagged"><i
-                                            class="fa-solid fa-circle-exclamation"></i> {{ req.status }}</span>
-                                    {% elif 'Review' in req.status %}
+                                            class="fa-solid fa-circle-exclamation"></i> {{ candidate.status }}</span>
+                                    {% elif 'Review' in candidate.status %}
                                     <span class="status-badge badge-processing"><i
-                                            class="fa-solid fa-spinner fa-spin"></i> {{ req.status }}</span>
+                                            class="fa-solid fa-spinner fa-spin"></i> {{ candidate.status }}</span>
                                     {% else %}
                                     <span class="status-badge badge-pending"><i class="fa-solid fa-clock"></i> {{
-                                        req.status }}</span>
+                                        candidate.status }}</span>
                                     {% endif %}
                                 </td>
-                                <td><span
-                                        class="mono-text {% if req.payment_status == 'Completed' %}cyan-text{% else %}burgundy-text{% endif %}">{{
-                                        req.payment_status }}</span></td>
-                                <td>
-                                    <div style="display:flex; flex-direction:column; gap:4px;">
-                                        {% if req.id_file_path %}
-                                        <a href="/{{ req.id_file_path }}" target="_blank" class="pop-file-link"><i
-                                                class="fa-solid fa-file-shield"></i> Structural Asset 1</a>
-                                        {% endif %}
-                                        {% if req.qualification_file_path %}
-                                        <a href="/{{ req.qualification_file_path }}" target="_blank"
-                                            class="pop-file-link"><i class="fa-solid fa-file-shield"></i> Structural
-                                            Asset 2</a>
-                                        {% endif %}
-                                        {% if not req.id_file_path and not req.qualification_file_path %}
-                                        <span style="font-size:0.75rem; color:var(--brand-muted);">Unsubmitted
-                                            Vault</span>
-                                        {% endif %}
-                                    </div>
-                                </td>
-                                <td>
-                                    <div style="display:flex; gap:0.5rem;">
-                                        <button class="btn-table-row"
-                                            onclick="openStatusModal('{{ req.id }}', '{{ req.status }}', 'individual')"><i
-                                                class="fa-solid fa-sliders"></i> Trajectory</button>
-                                        <button class="btn-table-row" style="color: var(--brand-alert);"
-                                            onclick="openFlagModal('{{ req.id }}', 'individual')"><i
-                                                class="fa-solid fa-flag"></i> Reject</button>
-                                    </div>
-                                </td>
-                            </tr>
-                            {% else %}
-                            <tr>
-                                <td colspan="7" style="text-align:center; padding: 3rem; color: var(--brand-muted);">No
-                                    private citizen individual audit metrics deployed in pipeline.</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <div id="tab-payments" class="tab-content">
-                <div class="table-container">
-                    <div class="table-header">
-                        <h3>Financial Settlements & Manual Bank Wire Ledger Clearance</h3>
-                    </div>
-                    <table class="matrix-table">
-                        <thead>
-                            <tr>
-                                <th>Ledger System Reference Token</th>
-                                <th>Depositing Party Profile Name</th>
-                                <th>Selected Service Variant Target</th>
-                                <th>Invoice Units</th>
-                                <th>Interface Channel</th>
-                                <th>Payment State Status</th>
-                                <th>External POP Document</th>
-                                <th>Terminal Execution Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for pay in payments_queue %}
-                            <tr>
-                                <td class="mono-text" style="color:var(--brand-lime); font-weight:700;">{{
-                                    pay.payment_ref }}</td>
-                                <td class="font-bold text-white">{{ pay.party_name }}</td>
-                                <td><span style="font-size:0.85rem; color:var(--brand-white);">{{ pay.service }}</span>
-                                </td>
-                                <td class="mono-text font-bold">{{ pay.units }} x Run Matrix</td>
-                                <td><span class="instruction-badge postnet" style="text-transform: uppercase;">{{
-                                        pay.type }}</span></td>
                                 <td>
                                     <span
-                                        class="status-badge {% if pay.payment_status == 'Completed' %}badge-cleared{% elif pay.payment_status == 'Pending' %}badge-pending{% else %}badge-flagged{% endif %}">
-                                        {{ pay.payment_status }}
+                                        class="mono-text {% if candidate.payment_status == 'Completed' %}cyan-text{% else %}burgundy-text{% endif %}">
+                                        {{ candidate.payment_status }}
                                     </span>
                                 </td>
                                 <td>
-                                    {% if pay.pop_file_path %}
-                                    <a href="/{{ pay.pop_file_path }}" target="_blank" class="pop-file-link"><i
-                                            class="fa-solid fa-receipt"></i> Check Bank Receipt</a>
-                                    {% else %}
-                                    <span
-                                        style="font-size:0.75rem; color:var(--brand-muted); font-family:var(--font-mono);">Gateway
-                                        Handshake</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {% if pay.payment_status == 'Pending' %}
-                                    <div style="display:flex; gap:0.5rem;">
-                                        <form method="POST" action="{{ url_for('resolve_payment') }}">
-                                            <input type="hidden" name="payment_ref" value="{{ pay.payment_ref }}">
-                                            <input type="hidden" name="action" value="Confirm">
-                                            <button type="submit" class="btn-table-row"
-                                                style="border-color:var(--brand-lime); color:var(--brand-lime);"><i
-                                                    class="fa-solid fa-check"></i> Authorize Deposit</button>
-                                        </form>
-                                        <form method="POST" action="{{ url_for('resolve_payment') }}">
-                                            <input type="hidden" name="payment_ref" value="{{ pay.payment_ref }}">
-                                            <input type="hidden" name="action" value="Reject">
-                                            <button type="submit" class="btn-table-row"
-                                                style="border-color:var(--brand-alert); color:var(--brand-alert);"><i
-                                                    class="fa-solid fa-xmark"></i> Decline</button>
-                                        </form>
+                                    <div style="display:flex; gap:0.5rem; align-items: center;">
+                                        <button class="btn-table-row"
+                                            onclick="openStatusModal('{{ candidate.id }}', '{{ candidate.status }}', 'corporate')">
+                                            <i class="fa-solid fa-sliders"></i> State
+                                        </button>
+                                        <button class="btn-table-row" style="color: var(--brand-alert);"
+                                            onclick="openFlagModal('{{ candidate.id }}', 'corporate')">
+                                            <i class="fa-solid fa-flag"></i> Flag
+                                        </button>
+
+                                        {% if candidate.id_file_path or candidate.qualification_file_path or
+                                        candidate.auxiliary_file_path %}
+                                        <div
+                                            style="display:flex; flex-direction:column; gap:4px; font-size:0.7rem; border-left: 1px solid rgba(255,255,255,0.08); padding-left: 0.5rem;">
+                                            {% if candidate.id_file_path %}
+                                            <a href="{{ url_for('admin_view_document', filename=candidate.id_file_path) }}"
+                                                target="_blank" class="pop-file-link"
+                                                style="color: var(--brand-lime); text-decoration: none; display: flex; align-items: center; gap: 4px;">
+                                                <i class="fa-solid fa-id-card"></i> ID Copy
+                                            </a>
+                                            {% endif %}
+
+                                            {% if candidate.qualification_file_path %}
+                                            <a href="{{ url_for('admin_view_document', filename=candidate.qualification_file_path) }}"
+                                                target="_blank" class="pop-file-link"
+                                                style="color: #00b4d8; text-decoration: none; display: flex; align-items: center; gap: 4px;">
+                                                <i class="fa-solid fa-graduation-cap"></i> Academic Cert
+                                            </a>
+                                            {% endif %}
+
+                                            {% if candidate.auxiliary_file_path %}
+                                            <a href="{{ url_for('admin_view_document', filename=candidate.auxiliary_file_path) }}"
+                                                target="_blank" class="pop-file-link"
+                                                style="color: #e0ae24; text-decoration: none; display: flex; align-items: center; gap: 4px;">
+                                                <i class="fa-solid fa-id-badge"></i> License Card
+                                            </a>
+                                            {% endif %}
+                                        </div>
+                                        {% endif %}
                                     </div>
-                                    {% else %}
-                                    <span
-                                        style="font-size:0.8rem; color:var(--brand-muted); font-family:var(--font-mono);"><i
-                                            class="fa-solid fa-lock"></i> Ledger Settled</span>
-                                    {% endif %}
                                 </td>
                             </tr>
                             {% else %}
                             <tr>
-                                <td colspan="8" style="text-align:center; padding: 3rem; color: var(--brand-muted);">No
-                                    financial references recorded in database vault logs.</td>
+                                <td colspan="7" style="text-align:center; padding: 3rem; color: var(--brand-muted);">
+                                    No corporate candidates logged inside running cluster array frames.
+                                </td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -1013,60 +874,237 @@
                 </div>
             </div>
 
-            <div id="tab-users" class="tab-content">
+            <div id="tab-individual" class="tab-content">
                 <div class="table-container">
-                    <div class="table-header">
-                        <h3>Master Identity Accounts Vault</h3>
+                    <div class="table-header flex-between" style="padding-right: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+                        <div>
+                            <h3>Self-Verification Individual Audit Pipelines</h3>
+                            <div style="font-size: 0.8rem; color: var(--brand-muted); margin-top: 4px;">
+                                {{ individual_requests|length if individual_requests else 0 }} total audit(s) across all
+                                individuals
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                            <a href="{{ url_for('export_individual_csv') }}" class="btn-table-row"
+                                style="text-decoration: none; color: var(--brand-lime); border-color: var(--brand-lime);">
+                                <i class="fa-solid fa-file-csv"></i> Export Matrix (.CSV)
+                            </a>
+                            <a href="{{ url_for('download_all_individual_packages') }}" class="btn-table-row"
+                                style="text-decoration: none; color: #fff; background: var(--brand-lime); border-color: var(--brand-lime);">
+                                <i class="fa-solid fa-file-zipper"></i> Download All Audits (ZIP)
+                            </a>
+                        </div>
                     </div>
-                    <table class="matrix-table">
-                        <thead>
-                            <tr>
-                                <th>User ID System Code</th>
-                                <th>Authenticated Communication Mail</th>
-                                <th>Corporate Entity Legal Name</th>
-                                <th>Individual Full Legal Name</th>
-                                <th>Clearance Access Scope</th>
-                                <th>Actions & Controls</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for user in users_ledger %}
-                            <tr>
-                                <td class="mono-text">#USR-{{ user.id }}</td>
-                                <td class="text-white font-bold">{{ user.email }}</td>
-                                <td>{{ user.company_name if user.company_name else '-' }}</td>
-                                <td>{{ user.individual_name if user.individual_name else '-' }}</td>
-                                <td><span class="instruction-badge postnet" style="text-transform:uppercase;">{{
-                                        user.applicant_type }}</span></td>
-                                <td>
-                                    <div style="display: flex; gap: 0.5rem; align-items: center;">
-                                        <a href="{{ url_for('export_profile_pdf', user_id=user.id) }}" target="_blank"
-                                            class="btn-table-row"
-                                            style="text-decoration: none; color: var(--brand-white); border-color: var(--border-bright); margin: 0;">
-                                            <i class="fa-solid fa-file-pdf"></i> Profile Report
-                                        </a>
-                                        <form method="POST" action="{{ url_for('purge_user', user_id=user.id) }}"
-                                            onsubmit="return confirm('CRITICAL ARTIFACT REMOVAL: System verification to cascade delete entire workspace entities. Proceed?');"
-                                            style="margin: 0;">
-                                            <button type="submit" class="btn-table-row"
-                                                style="color:var(--brand-alert); border-color:rgba(255, 82, 82, 0.2);"><i
-                                                    class="fa-solid fa-trash-can"></i> Purge Matrix</button>
-                                        </form>
-                                    </div>
-                                </td>
-                            </tr>
-                            {% else %}
-                            <tr>
-                                <td colspan="6" style="text-align:center; padding: 3rem; color: var(--brand-muted);">No
-                                    user registries loaded in this cluster array node.</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
                 </div>
+                <table class="matrix-table">
+                    <thead>
+                        <tr>
+                            <th>Audit Run Token</th>
+                            <th>Applicant Registered Account</th>
+                            <th>Audit Target Focus</th>
+                            <th>Pipeline Status State</th>
+                            <th>Billing State</th>
+                            <th>Verification Source Data</th>
+                            <th>Action Controls</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for req in individual_requests %}
+                        <tr>
+                            <td class="mono-text">#IND-{{ req.id }}</td>
+                            <td class="font-bold text-white">{{ req.email }}</td>
+                            <td><span class="instruction-badge postnet">{{ req.verification_type }}</span></td>
+                            <td>
+                                {% if 'Cleared' in req.status %}
+                                <span class="status-badge badge-cleared"><i class="fa-solid fa-circle-check"></i> {{
+                                    req.status }}</span>
+                                {% elif 'Flagged' in req.status %}
+                                <span class="status-badge badge-flagged"><i class="fa-solid fa-circle-exclamation"></i>
+                                    {{ req.status }}</span>
+                                {% elif 'Review' in req.status %}
+                                <span class="status-badge badge-processing"><i class="fa-solid fa-spinner fa-spin"></i>
+                                    {{ req.status }}</span>
+                                {% else %}
+                                <span class="status-badge badge-pending"><i class="fa-solid fa-clock"></i> {{
+                                    req.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td><span
+                                    class="mono-text {% if req.payment_status == 'Completed' %}cyan-text{% else %}burgundy-text{% endif %}">{{
+                                    req.payment_status }}</span></td>
+                            <td>
+                                <div style="display:flex; flex-direction:column; gap:4px;">
+                                    {% if req.id_file_path %}
+                                    <a href="/{{ req.id_file_path }}" target="_blank" class="pop-file-link"><i
+                                            class="fa-solid fa-file-shield"></i> Structural Asset 1</a>
+                                    {% endif %}
+                                    {% if req.qualification_file_path %}
+                                    <a href="/{{ req.qualification_file_path }}" target="_blank"
+                                        class="pop-file-link"><i class="fa-solid fa-file-shield"></i> Structural
+                                        Asset 2</a>
+                                    {% endif %}
+                                    {% if not req.id_file_path and not req.qualification_file_path %}
+                                    <span style="font-size:0.75rem; color:var(--brand-muted);">Unsubmitted
+                                        Vault</span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                <div style="display:flex; gap:0.5rem;">
+                                    <button class="btn-table-row"
+                                        onclick="openStatusModal('{{ req.id }}', '{{ req.status }}', 'individual')"><i
+                                            class="fa-solid fa-sliders"></i> Trajectory</button>
+                                    <button class="btn-table-row" style="color: var(--brand-alert);"
+                                        onclick="openFlagModal('{{ req.id }}', 'individual')"><i
+                                            class="fa-solid fa-flag"></i> Reject</button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7" style="text-align:center; padding: 3rem; color: var(--brand-muted);">No
+                                private citizen individual audit metrics deployed in pipeline.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
+    </div>
 
-        </main>
+    <div id="tab-payments" class="tab-content">
+        <div class="table-container">
+            <div class="table-header">
+                <h3>Financial Settlements & Manual Bank Wire Ledger Clearance</h3>
+            </div>
+            <table class="matrix-table">
+                <thead>
+                    <tr>
+                        <th>Ledger System Reference Token</th>
+                        <th>Depositing Party Profile Name</th>
+                        <th>Selected Service Variant Target</th>
+                        <th>Invoice Units</th>
+                        <th>Interface Channel</th>
+                        <th>Payment State Status</th>
+                        <th>External POP Document</th>
+                        <th>Terminal Execution Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for pay in payments_queue %}
+                    <tr>
+                        <td class="mono-text" style="color:var(--brand-lime); font-weight:700;">{{
+                            pay.payment_ref }}</td>
+                        <td class="font-bold text-white">{{ pay.party_name }}</td>
+                        <td><span style="font-size:0.85rem; color:var(--brand-white);">{{ pay.service }}</span>
+                        </td>
+                        <td class="mono-text font-bold">{{ pay.units }} x Run Matrix</td>
+                        <td><span class="instruction-badge postnet" style="text-transform: uppercase;">{{
+                                pay.type }}</span></td>
+                        <td>
+                            <span
+                                class="status-badge {% if pay.payment_status == 'Completed' %}badge-cleared{% elif pay.payment_status == 'Pending' %}badge-pending{% else %}badge-flagged{% endif %}">
+                                {{ pay.payment_status }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if pay.pop_file_path %}
+                            <a href="/{{ pay.pop_file_path }}" target="_blank" class="pop-file-link"><i
+                                    class="fa-solid fa-receipt"></i> Check Bank Receipt</a>
+                            {% else %}
+                            <span
+                                style="font-size:0.75rem; color:var(--brand-muted); font-family:var(--font-mono);">Gateway
+                                Handshake</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if pay.payment_status == 'Pending' %}
+                            <div style="display:flex; gap:0.5rem;">
+                                <form method="POST" action="{{ url_for('resolve_payment') }}">
+                                    <input type="hidden" name="payment_ref" value="{{ pay.payment_ref }}">
+                                    <input type="hidden" name="action" value="Confirm">
+                                    <button type="submit" class="btn-table-row"
+                                        style="border-color:var(--brand-lime); color:var(--brand-lime);"><i
+                                            class="fa-solid fa-check"></i> Authorize Deposit</button>
+                                </form>
+                                <form method="POST" action="{{ url_for('resolve_payment') }}">
+                                    <input type="hidden" name="payment_ref" value="{{ pay.payment_ref }}">
+                                    <input type="hidden" name="action" value="Reject">
+                                    <button type="submit" class="btn-table-row"
+                                        style="border-color:var(--brand-alert); color:var(--brand-alert);"><i
+                                            class="fa-solid fa-xmark"></i> Decline</button>
+                                </form>
+                            </div>
+                            {% else %}
+                            <span style="font-size:0.8rem; color:var(--brand-muted); font-family:var(--font-mono);"><i
+                                    class="fa-solid fa-lock"></i> Ledger Settled</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="8" style="text-align:center; padding: 3rem; color: var(--brand-muted);">No
+                            financial references recorded in database vault logs.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="tab-users" class="tab-content">
+        <div class="table-container">
+            <div class="table-header">
+                <h3>Master Identity Accounts Vault</h3>
+            </div>
+            <table class="matrix-table">
+                <thead>
+                    <tr>
+                        <th>User ID System Code</th>
+                        <th>Authenticated Communication Mail</th>
+                        <th>Corporate Entity Legal Name</th>
+                        <th>Individual Full Legal Name</th>
+                        <th>Clearance Access Scope</th>
+                        <th>Actions & Controls</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users_ledger %}
+                    <tr>
+                        <td class="mono-text">#USR-{{ user.id }}</td>
+                        <td class="text-white font-bold">{{ user.email }}</td>
+                        <td>{{ user.company_name if user.company_name else '-' }}</td>
+                        <td>{{ user.individual_name if user.individual_name else '-' }}</td>
+                        <td><span class="instruction-badge postnet" style="text-transform:uppercase;">{{
+                                user.applicant_type }}</span></td>
+                        <td>
+                            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                <a href="{{ url_for('export_profile_pdf', user_id=user.id) }}" target="_blank"
+                                    class="btn-table-row"
+                                    style="text-decoration: none; color: var(--brand-white); border-color: var(--border-bright); margin: 0;">
+                                    <i class="fa-solid fa-file-pdf"></i> Profile Report
+                                </a>
+                                <form method="POST" action="{{ url_for('purge_user', user_id=user.id) }}"
+                                    onsubmit="return confirm('CRITICAL ARTIFACT REMOVAL: System verification to cascade delete entire workspace entities. Proceed?');"
+                                    style="margin: 0;">
+                                    <button type="submit" class="btn-table-row"
+                                        style="color:var(--brand-alert); border-color:rgba(255, 82, 82, 0.2);"><i
+                                            class="fa-solid fa-trash-can"></i> Purge Matrix</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" style="text-align:center; padding: 3rem; color: var(--brand-muted);">No
+                            user registries loaded in this cluster array node.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    </main>
     </div>
     <div class="modal-overlay" id="statusModalOverlay">
         <div class="modal-card" style="max-width: 450px;">

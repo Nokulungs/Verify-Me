@@ -892,58 +892,78 @@
             transform: translateY(0);
         }
     }
+
     /* Container positioning wrapper */
-.alert-wrapper {
-    width: 100%;
-    margin-bottom: 2rem;
-    animation: slideInDown 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-}
+    .alert-wrapper {
+        width: 100%;
+        margin-bottom: 2rem;
+        animation: slideInDown 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
 
-/* Base Glassmorphic Layout */
-.glass-alert {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 1rem 1.25rem;
-    border-radius: 12px;
-    font-size: 0.95rem;
-    font-weight: 500;
-    line-height: 1.5;
-    letter-spacing: 0.2px;
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-}
+    /* Base Glassmorphic Layout */
+    .glass-alert {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem 1.25rem;
+        border-radius: 12px;
+        font-size: 0.95rem;
+        font-weight: 500;
+        line-height: 1.5;
+        letter-spacing: 0.2px;
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    }
 
-/* Explicit 'Warning' Crimson Override */
-.glass-alert.alert-warning {
-    background: rgba(139, 0, 0, 0.15); /* Translucent Deep Crimson */
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(220, 20, 60, 0.4); /* Vivid Crimson Border Edge */
-    color: #ff9494; /* Soft readable pastel red text */
-}
+    /* Explicit 'Warning' Crimson Override */
+    .glass-alert.alert-warning {
+        background: rgba(139, 0, 0, 0.15);
+        /* Translucent Deep Crimson */
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(220, 20, 60, 0.4);
+        /* Vivid Crimson Border Edge */
+        color: #ff9494;
+        /* Soft readable pastel red text */
+    }
 
-/* Icon Staging Accent */
-.glass-alert.alert-warning .alert-icon {
-    color: #ff4d4d; /* Bright neon accent red for the SVG */
-    display: flex;
-    align-items: center;
-    flex-shrink: 0;
-}
+    /* Icon Staging Accent */
+    .glass-alert.alert-warning .alert-icon {
+        color: #ff4d4d;
+        /* Bright neon accent red for the SVG */
+        display: flex;
+        align-items: center;
+        flex-shrink: 0;
+    }
 
-.alert-message {
-    flex-grow: 1;
-}
+    .alert-message {
+        flex-grow: 1;
+    }
 
-/* Clean entrance animation entry */
-@keyframes slideInDown {
+    /* Clean entrance animation entry */
+    @keyframes slideInDown {
+        from {
+            transform: translateY(-15px);
+            opacity: 0;
+        }
+
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+    @keyframes fadeIn {
     from {
-        transform: translateY(-15px);
         opacity: 0;
+        transform: translateY(-10px);
     }
     to {
-        transform: translateY(0);
         opacity: 1;
+        transform: translateY(0);
     }
+}
+
+.wizard-error-message {
+    animation: fadeIn 0.2s ease-out;
 }
 </style>
 
@@ -1000,320 +1020,316 @@
             </div>
         </div>
 
-<div class="dashboard-content">
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
+        <div class="dashboard-content">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
             {% for category, msg in messages %}
-                
-                {% if 'canceled' in msg or 'cancelled' in msg or 'dropped' in msg %}
-                    <div class="crimson-glass-banner" style="width: 100% !important; box-sizing: border-box !important; background: rgba(220, 20, 60, 0.16) !important; backdrop-filter: blur(12px) !important; -webkit-backdrop-filter: blur(12px) !important; border: 1px solid rgba(220, 20, 60, 0.55) !important; border-radius: 12px !important; color: #ff9494 !important; padding: 15px 20px !important; font-family: system-ui, -apple-system, sans-serif !important; font-size: 0.95rem !important; font-weight: 600 !important; margin: 0px 0px 25px 0px !important; display: flex !important; align-items: center !important; gap: 12px !important; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4) !important;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ff4d4d" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0 !important;">
-                            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path>
-                            <line x1="12" y1="9" x2="12" y2="13"></line>
-                            <line x1="12" y1="17" x2="12.01" y2="17"></line>
-                        </svg>
-                        <div style="flex-grow: 1 !important; text-align: left !important;">
-                            <strong>Notice:</strong> {{ msg }}
-                        </div>
-                    </div>
 
-                {% else %}
-                    <div style="width: 100% !important; box-sizing: border-box !important; background: rgba(78, 182, 55, 0.1) !important; backdrop-filter: blur(12px) !important; -webkit-backdrop-filter: blur(12px) !important; border: 1px solid rgba(78, 182, 55, 0.25) !important; border-radius: 12px !important; color: #9ee690 !important; padding: 14px 20px !important; font-family: system-ui, -apple-system, sans-serif !important; font-size: 0.95rem !important; font-weight: 500 !important; margin: 0px 0px 25px 0px !important; display: flex !important; align-items: center !important; gap: 12px !important;">
-                        <i class="fa-solid fa-circle-check" style="color: #4eb637; font-size: 1.1rem; flex-shrink: 0;"></i>
-                        <div style="flex-grow: 1 !important; text-align: left !important;">
-                            {{ msg }}
-                        </div>
-                    </div>
-                {% endif %}
+            {% if 'canceled' in msg or 'cancelled' in msg or 'dropped' in msg %}
+            <div class="crimson-glass-banner"
+                style="width: 100% !important; box-sizing: border-box !important; background: rgba(220, 20, 60, 0.16) !important; backdrop-filter: blur(12px) !important; -webkit-backdrop-filter: blur(12px) !important; border: 1px solid rgba(220, 20, 60, 0.55) !important; border-radius: 12px !important; color: #ff9494 !important; padding: 15px 20px !important; font-family: system-ui, -apple-system, sans-serif !important; font-size: 0.95rem !important; font-weight: 600 !important; margin: 0px 0px 25px 0px !important; display: flex !important; align-items: center !important; gap: 12px !important; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4) !important;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
+                    stroke="#ff4d4d" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+                    style="flex-shrink: 0 !important;">
+                    <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path>
+                    <line x1="12" y1="9" x2="12" y2="13"></line>
+                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+                <div style="flex-grow: 1 !important; text-align: left !important;">
+                    <strong>Notice:</strong> {{ msg }}
+                </div>
+            </div>
+
+            {% else %}
+            <div
+                style="width: 100% !important; box-sizing: border-box !important; background: rgba(78, 182, 55, 0.1) !important; backdrop-filter: blur(12px) !important; -webkit-backdrop-filter: blur(12px) !important; border: 1px solid rgba(78, 182, 55, 0.25) !important; border-radius: 12px !important; color: #9ee690 !important; padding: 14px 20px !important; font-family: system-ui, -apple-system, sans-serif !important; font-size: 0.95rem !important; font-weight: 500 !important; margin: 0px 0px 25px 0px !important; display: flex !important; align-items: center !important; gap: 12px !important;">
+                <i class="fa-solid fa-circle-check" style="color: #4eb637; font-size: 1.1rem; flex-shrink: 0;"></i>
+                <div style="flex-grow: 1 !important; text-align: left !important;">
+                    {{ msg }}
+                </div>
+            </div>
+            {% endif %}
 
             {% endfor %}
-        {% endif %}
-    {% endwith %}
+            {% endif %}
+            {% endwith %}
 
-        <div id="tab-overview" class="tab-panel active">
-            <div class="action-row">
-                <div class="action-text">
-                    <h3>Need a background, credit, or credentials clearance certificate?</h3>
-                    <p>Initialize an instant personal forensic verification checking track manually.</p>
-                </div>
-                <button class="btn-prime" onclick="openModal()">
-                    <i class="fa-solid fa-plus"></i> New Request
-                </button>
-            </div>
-
-            <div class="metrics-row">
-                <div class="metric-card">
-                    <div class="metric-label">Total Audits Staged</div>
-                    <div class="metric-val">{{ checks|length }}</div>
-                </div>
-                <div class="metric-card">
-                    <div class="metric-label">Completed Checks</div>
-                    <div class="metric-val">
-                        {% set count = namespace(value=0) %}
-                        {% for c in checks %}{% if c.status == 'Verified' %}{% set count.value = count.value + 1 %}{%
-                        endif %}{% endfor %}
-                        {{ count.value }}
+            <div id="tab-overview" class="tab-panel active">
+                <div class="action-row">
+                    <div class="action-text">
+                        <h3>Need a background, credit, or credentials clearance certificate?</h3>
+                        <p>Initialize an instant personal forensic verification checking track manually.</p>
                     </div>
-                </div>
-                <div class="metric-card">
-                    <div class="metric-label">Pending Verification</div>
-                    <div class="metric-val">
-                        {% set count = namespace(value=0) %}
-                        {% for c in checks %}{% if c.status not in ['Verified', 'Flagged — Image Unclear'] %}{% set
-                        count.value = count.value + 1 %}{% endif %}{% endfor %}
-                        {{ count.value }}
-                    </div>
-                </div>
-            </div>
-
-            <div class="data-table-container">
-                <div class="table-header-block">
-                    <h3>Recent Background Screening Pipelines</h3>
-                </div>
-                <div style="overflow-x: auto;">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Tracking Check Asset</th>
-                                <th>Staged Date</th>
-                                <th>Settlement</th>
-                                <th>Compliance Pipeline Audit Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% if checks %}
-                            {% for check in checks[:5] %}
-                            <tr>
-                                <td style="font-weight: 600;">{{ check.type }}</td>
-                                <td style="font-family: var(--mono); font-size: 13px;">{{ check.date }}</td>
-                                <td>
-                                    <span
-                                        class="badge {% if check.payment_status == 'Completed' %}badge-success{% else %}badge-pending{% endif %}">
-                                        {{ check.payment_status }}
-                                    </span>
-                                </td>
-                                <td>
-                                    <span
-                                        class="badge {% if check.status == 'Verified' %}badge-success{% elif check.status == 'Flagged — Image Unclear' %}badge-error{% else %}badge-pending{% endif %}">
-                                        {{ check.status }}
-                                    </span>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                            {% else %}
-                            <tr>
-                                <td colspan="4" style="text-align: center; color: var(--muted); padding: 32px;">No
-                                    background screening traces tracked to this user workspace account.</td>
-                            </tr>
-                            {% endif %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <div id="tab-requests" class="tab-panel">
-            <div class="data-table-container">
-                <div class="table-header-block">
-                    <h3>Comprehensive Validation History Log</h3>
-                </div>
-                <div style="overflow-x: auto;">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Verification Task Category</th>
-                                <th>Submission Date</th>
-                                <th>Payment Clearance</th>
-                                <th>Workflow Stage Status</th>
-                                <th>System Refusal Flags</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% if requests %}
-                            {% for r in requests %}
-                            <tr>
-                                <td style="font-weight: 600;">{{ r.type }}</td>
-                                <td style="font-family: var(--mono); font-size: 13px;">{{ r.date }}</td>
-                                <td>
-                                    <span
-                                        class="badge {% if r.payment_status == 'Completed' %}badge-success{% else %}badge-pending{% endif %}">
-                                        {{ r.payment_status }}
-                                    </span>
-                                </td>
-                                <td>
-                                    <span
-                                        class="badge {% if r.status == 'Verified' %}badge-success{% elif r.status == 'Flagged — Image Unclear' %}badge-error{% else %}badge-pending{% endif %}">
-                                        {{ r.status }}
-                                    </span>
-                                </td>
-                                <td style="color: var(--error); font-size: 13px;">
-                                    {{ r.rejection_reason if r.rejection_reason else '—' }}
-                                </td>
-                            </tr>
-                            {% endfor %}
-                            {% else %}
-                            <tr>
-                                <td colspan="5" style="text-align: center; color: var(--muted); padding: 32px;">No
-                                    historical background requests mapped to this profile context ledger.</td>
-                            </tr>
-                            {% endif %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <div id="tab-services" class="tab-panel">
-            <div class="services-catalog-grid">
-                <div class="service-item-card">
-                    <div class="service-meta">
-                        <h4>Identity Verification & Validation</h4>
-                        <p>Cross-references National Registry matrices to affirm valid passport, citizenship status, and
-                            baseline legal existence traces.</p>
-                    </div>
-                    <div class="service-pricing-row">
-                        <span class="info-label">Standard Fee</span>
-                        <span class="price-tag">R450.00</span>
-                    </div>
-                </div>
-
-                <div class="service-item-card">
-                    <div class="service-meta">
-                        <h4>Criminal Record & Background Check</h4>
-                        <p>Submits biometric/credential parameters against regulatory fingerprint catalogs to ensure
-                            clean criminal records history profiles.</p>
-                    </div>
-                    <div class="service-pricing-row">
-                        <span class="info-label">Standard Fee</span>
-                        <span class="price-tag">R550.00</span>
-                    </div>
-                </div>
-
-                <div class="service-item-card">
-                    <div class="service-meta">
-                        <h4>Credit & Financial Checks</h4>
-                        <p>Compiles financial records histories, credit history profiles scores, judgment listings, and
-                            debt-to-income trace indicators.</p>
-                    </div>
-                    <div class="service-pricing-row">
-                        <span class="info-label">Standard Fee</span>
-                        <span class="price-tag">R380.00</span>
-                    </div>
-                </div>
-
-                <div class="service-item-card">
-                    <div class="service-meta">
-                        <h4>Professional License Verification</h4>
-                        <p>Validates academic qualifications, certified designations, and active trade organization
-                            board registration states directly with institutions.</p>
-                    </div>
-                    <div class="service-pricing-row">
-                        <span class="info-label">Standard Fee</span>
-                        <span class="price-tag">R320.00</span>
-                    </div>
-                </div>
-
-                <div class="service-item-card">
-                    <div class="service-meta">
-                        <h4>Global Compliance Screening</h4>
-                        <p>Screen candidates against sanctions, PEP, and AML databases for regulatory compliance.</p>
-                    </div>
-                    <div class="service-pricing-row">
-                        <span class="info-label">Standard Fee</span>
-                        <span class="price-tag">R550.00</span>
-                    </div>
-                </div>
-
-                <div class="service-item-card">
-                    <div class="service-meta">
-                        <h4>Social Media & Digital Footprint Analysis</h4>
-                        <p>Analyzes social media activity and digital presence to assess candidate suitability.</p>
-                    </div>
-                    <div class="service-pricing-row">
-                        <span class="info-label">Standard Fee</span>
-                        <span class="price-tag">R550.00</span>
-                    </div>
-                </div>
-
-
-            </div>
-        </div>
-
-        <div id="tab-profile" class="tab-panel">
-    <div class="profile-grid">
-
-        <div class="profile-card">
-            <h3>Account Metadata Parameters</h3>
-            <form id="indiv-profile-form" method="POST" action="/update-profile">
-                <div class="info-group">
-                    <div class="info-label">Legal Name Group String</div>
-                    <div class="info-value" id="val-indiv-name">{{ user_profile.individual_name if user_profile else 'Not Set' }}</div>
-                </div>
-                <div class="info-group">
-                    <div class="info-label">Registered Electronic Mail Workspace</div>
-                    <div class="info-value" id="val-indiv-email">{{ user_profile.email if user_profile else 'Not Set' }}</div>
-                </div>
-                <div class="info-group">
-                    <div class="info-label">National Identity / Passport Track Field</div>
-                    <div class="info-value" id="val-indiv-id">{{ user_profile.individual_id if user_profile else 'Not Set' }}</div>
-                </div>
-                <div class="info-group">
-                    <div class="info-label">Security Workspace Token Initialization Date</div>
-                    <div class="info-value" id="val-indiv-created">{{ user_profile.created_at if user_profile else 'Unknown' }}</div>
-                </div>
-                
-                <div style="display: flex; gap: 0.75rem; margin-top: 1.5rem;">
-                    <button type="button" class="btn-table-row" id="edit-indiv-btn" onclick="enableProfileEditing('indiv')">
-                        <i class="fa-solid fa-pen-to-square"></i> Edit Profile
-                    </button>
-                    <button type="submit" class="btn-portal-primary" id="save-indiv-btn" style="display: none; padding: 0.5rem 1rem;">
-                        <i class="fa-solid fa-floppy-disk"></i> Save Changes
+                    <button class="btn-prime" onclick="openModal()">
+                        <i class="fa-solid fa-plus"></i> New Request
                     </button>
                 </div>
-            </form>
-        </div>
 
-        <div class="analytics-card" style="gap: 1rem;">
-            <div class="card-label" style="border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; font-family: var(--font-mono); font-size: 0.75rem; text-transform: uppercase;">
-                Change Password Securely
-            </div>
-            <form id="indiv-password-form" method="POST" action="/update-security-hash" style="display: flex; flex-direction: column; gap: 1rem; width: 100%;">
-                <div class="form-group">
-                    <label>Current Password</label>
-                    <input type="password" name="current_password" required class="form-control">
-                </div>
-                <div class="form-group">
-                    <label>New Password</label>
-                    <input type="password" name="new_password" id="indiv-new-password" required class="form-control" oninput="checkPasswordStrength(this.value, 'indiv-strength')">
-                    <div style="display: flex; gap: 4px; margin-top: 6px;" id="indiv-strength">
-                        <div style="flex: 1; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; transition: background 0.3s ease;"></div>
-                        <div style="flex: 1; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; transition: background 0.3s ease;"></div>
-                        <div style="flex: 1; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; transition: background 0.3s ease;"></div>
+                <div class="metrics-row">
+                    <div class="metric-card">
+                        <div class="metric-label">Total Audits Staged</div>
+                        <div class="metric-val">{{ checks|length }}</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Completed Checks</div>
+                        <div class="metric-val">
+                            {% set count = namespace(value=0) %}
+                            {% for c in checks %}{% if c.status == 'Verified' %}{% set count.value = count.value + 1
+                            %}{%
+                            endif %}{% endfor %}
+                            {{ count.value }}
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Pending Verification</div>
+                        <div class="metric-val">
+                            {% set count = namespace(value=0) %}
+                            {% for c in checks %}{% if c.status not in ['Verified', 'Flagged — Image Unclear'] %}{% set
+                            count.value = count.value + 1 %}{% endif %}{% endfor %}
+                            {{ count.value }}
+                        </div>
                     </div>
                 </div>
-                <div class="form-group">
-                    <label>Confirm New Password</label>
-                    <input type="password" id="indiv-confirm-password" required class="form-control">
-                </div>
-                <button type="submit" class="btn-table-row" style="align-self: flex-start; margin-top: 0.5rem;">Update Security Hash</button>
-            </form>
-        </div>
 
-        <div class="analytics-card" style="gap: 1rem; border: 1px solid rgba(255, 74, 74, 0.2);">
-            <div class="card-label" style="border-bottom: 1px solid rgba(255, 74, 74, 0.1); padding-bottom: 0.5rem; font-family: var(--font-mono); font-size: 0.75rem; text-transform: uppercase; color: #ff4a4a;">
-                Danger Zone
+                <div class="data-table-container">
+                    <div class="table-header-block">
+                        <h3>Recent Background Screening Pipelines</h3>
+                    </div>
+                    <div style="overflow-x: auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Tracking Check Asset</th>
+                                    <th>Staged Date</th>
+                                    <th>Settlement</th>
+                                    <th>Compliance Pipeline Audit Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if checks %}
+                                {% for check in checks[:5] %}
+                                <tr>
+                                    <td style="font-weight: 600;">{{ check.type }}</td>
+                                    <td style="font-family: var(--mono); font-size: 13px;">{{ check.date }}</td>
+                                    <td>
+                                        <span
+                                            class="badge {% if check.payment_status == 'Completed' %}badge-success{% else %}badge-pending{% endif %}">
+                                            {{ check.payment_status }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span
+                                            class="badge {% if check.status == 'Verified' %}badge-success{% elif check.status == 'Flagged — Image Unclear' %}badge-error{% else %}badge-pending{% endif %}">
+                                            {{ check.status }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                                {% else %}
+                                <tr>
+                                    <td colspan="4" style="text-align: center; color: var(--muted); padding: 32px;">No
+                                        background screening traces tracked to this user workspace account.</td>
+                                </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
-            <p style="margin: 0; font-size: 0.85rem; color: var(--brand-muted); line-height: 1.4;">
-                Once you eliminate your structural account nodes, your data mappings, verification records, and uploaded vectors are immediately expunged from memory.
-            </p>
-            <button type="button" class="btn-table-row" style="color: #ff4a4a; border-color: rgba(255, 74, 74, 0.3); background: rgba(255, 74, 74, 0.05); align-self: flex-start;" onclick="confirmAccountDeletion('indiv')">
-                <i class="fa-solid fa-trash-can"></i> Delete My Account
-            </button>
+
+            <div id="tab-requests" class="tab-panel">
+                <div class="data-table-container">
+                    <div class="table-header-block">
+                        <h3>Comprehensive Validation History Log</h3>
+                    </div>
+                    <div style="overflow-x: auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Verification Task Category</th>
+                                    <th>Submission Date</th>
+                                    <th>Payment Clearance</th>
+                                    <th>Workflow Stage Status</th>
+                                    <th>System Refusal Flags</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if requests %}
+                                {% for r in requests %}
+                                <tr>
+                                    <td style="font-weight: 600;">{{ r.type }}</td>
+                                    <td style="font-family: var(--mono); font-size: 13px;">{{ r.date }}</td>
+                                    <td>
+                                        <span
+                                            class="badge {% if r.payment_status == 'Completed' %}badge-success{% else %}badge-pending{% endif %}">
+                                            {{ r.payment_status }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span
+                                            class="badge {% if r.status == 'Verified' %}badge-success{% elif r.status == 'Flagged — Image Unclear' %}badge-error{% else %}badge-pending{% endif %}">
+                                            {{ r.status }}
+                                        </span>
+                                    </td>
+                                    <td style="color: var(--error); font-size: 13px;">
+                                        {{ r.rejection_reason if r.rejection_reason else '—' }}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                                {% else %}
+                                <tr>
+                                    <td colspan="5" style="text-align: center; color: var(--muted); padding: 32px;">No
+                                        historical background requests mapped to this profile context ledger.</td>
+                                </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-services" class="tab-panel">
+                <div class="services-catalog-grid">
+                    {% for item in pricing_settings %}
+                    {% set name_lower = item.display_name|lower %}
+                    {% if "qualification" not in name_lower and
+                    "matric" not in name_lower and
+                    "university" not in name_lower and
+                    "certificate" not in name_lower and
+                    "tvet" not in name_lower and
+                    "tertiary" not in name_lower %}
+
+                    <div class="service-item-card">
+                        <div class="service-meta">
+                            <h4>{{ item.display_name }}</h4>
+                            <p>
+                                {% if "identity" in name_lower %}
+                                Cross-references National Registry matrices to affirm valid passport, citizenship
+                                status, and baseline legal existence traces.
+                                {% elif "criminal" in name_lower %}
+                                Submits biometric/credential parameters against regulatory fingerprint catalogs to
+                                ensure clean criminal records history profiles.
+                                {% elif "credit" in name_lower %}
+                                Compiles financial records histories, credit history profiles scores, judgment listings,
+                                and debt-to-income trace indicators.
+                                {% elif "license" in name_lower %}
+                                Validates academic qualifications, certified designations, and active trade organization
+                                board registration states directly with institutions.
+                                {% elif "global" in name_lower %}
+                                Screen candidates against sanctions, PEP, and AML databases for regulatory compliance.
+                                {% elif "social" in name_lower %}
+                                Analyzes social media activity and digital presence to assess candidate suitability.
+                                {% else %}
+                                Enterprise operational validation processing path mapped directly to secure clearing
+                                networks.
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="service-pricing-row">
+                            <span class="info-label">Standard Fee</span>
+                            <span class="price-tag">R{{ "%.2f"|format(item.price_zar) }}</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div id="tab-profile" class="tab-panel">
+                <div class="profile-grid">
+
+                    <div class="profile-card">
+                        <h3>Account Metadata Parameters</h3>
+                        <form id="indiv-profile-form" method="POST" action="/update-profile">
+                            <div class="info-group">
+                                <div class="info-label">Legal Name Group String</div>
+                                <div class="info-value" id="val-indiv-name">{{ user_profile.individual_name if
+                                    user_profile else 'Not Set' }}</div>
+                            </div>
+                            <div class="info-group">
+                                <div class="info-label">Registered Electronic Mail Workspace</div>
+                                <div class="info-value" id="val-indiv-email">{{ user_profile.email if user_profile else
+                                    'Not Set' }}</div>
+                            </div>
+                            <div class="info-group">
+                                <div class="info-label">National Identity / Passport Track Field</div>
+                                <div class="info-value" id="val-indiv-id">{{ user_profile.individual_id if user_profile
+                                    else 'Not Set' }}</div>
+                            </div>
+                            <div class="info-group">
+                                <div class="info-label">Security Workspace Token Initialization Date</div>
+                                <div class="info-value" id="val-indiv-created">{{ user_profile.created_at if
+                                    user_profile else 'Unknown' }}</div>
+                            </div>
+
+                            <div style="display: flex; gap: 0.75rem; margin-top: 1.5rem;">
+                                <button type="button" class="btn-table-row" id="edit-indiv-btn"
+                                    onclick="enableProfileEditing('indiv')">
+                                    <i class="fa-solid fa-pen-to-square"></i> Edit Profile
+                                </button>
+                                <button type="submit" class="btn-portal-primary" id="save-indiv-btn"
+                                    style="display: none; padding: 0.5rem 1rem;">
+                                    <i class="fa-solid fa-floppy-disk"></i> Save Changes
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="analytics-card" style="gap: 1rem;">
+                        <div class="card-label"
+                            style="border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; font-family: var(--font-mono); font-size: 0.75rem; text-transform: uppercase;">
+                            Change Password Securely
+                        </div>
+                        <form id="indiv-password-form" method="POST" action="/update-security-hash"
+                            style="display: flex; flex-direction: column; gap: 1rem; width: 100%;">
+                            <div class="form-group">
+                                <label>Current Password</label>
+                                <input type="password" name="current_password" required class="form-control">
+                            </div>
+                            <div class="form-group">
+                                <label>New Password</label>
+                                <input type="password" name="new_password" id="indiv-new-password" required
+                                    class="form-control" oninput="checkPasswordStrength(this.value, 'indiv-strength')">
+                                <div style="display: flex; gap: 4px; margin-top: 6px;" id="indiv-strength">
+                                    <div
+                                        style="flex: 1; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; transition: background 0.3s ease;">
+                                    </div>
+                                    <div
+                                        style="flex: 1; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; transition: background 0.3s ease;">
+                                    </div>
+                                    <div
+                                        style="flex: 1; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; transition: background 0.3s ease;">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Confirm New Password</label>
+                                <input type="password" id="indiv-confirm-password" required class="form-control">
+                            </div>
+                            <button type="submit" class="btn-table-row"
+                                style="align-self: flex-start; margin-top: 0.5rem;">Update Security Hash</button>
+                        </form>
+                    </div>
+
+                    <div class="analytics-card" style="gap: 1rem; border: 1px solid rgba(255, 74, 74, 0.2);">
+                        <div class="card-label"
+                            style="border-bottom: 1px solid rgba(255, 74, 74, 0.1); padding-bottom: 0.5rem; font-family: var(--font-mono); font-size: 0.75rem; text-transform: uppercase; color: #ff4a4a;">
+                            Danger Zone
+                        </div>
+                        <p style="margin: 0; font-size: 0.85rem; color: var(--brand-muted); line-height: 1.4;">
+                            Once you eliminate your structural account nodes, your data mappings, verification records,
+                            and uploaded vectors are immediately expunged from memory.
+                        </p>
+                        <button type="button" class="btn-table-row"
+                            style="color: #ff4a4a; border-color: rgba(255, 74, 74, 0.3); background: rgba(255, 74, 74, 0.05); align-self: flex-start;"
+                            onclick="confirmAccountDeletion('indiv')">
+                            <i class="fa-solid fa-trash-can"></i> Delete My Account
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
-    </div>
-</div>
-</div>
-</main>
+    </main>
 </div>
 
 <div class="modal-overlay" id="requestModal">
@@ -1338,26 +1354,70 @@
                         <label class="input-label-string" for="verification_type">Target Verification Product
                             Domain</label>
                         <select class="form-dropdown-control" id="verification_type" name="verification_type"
-                            onchange="calculateIndividualCost()">
-                            <option value="Identity Verification & Validation" data-price="450" selected>Identity
-                                Verification &amp; Validation — R450.00</option>
-                            <option value="Criminal Record & Background Check" data-price="550">Criminal Record &amp;
-                                Background Check — R550.00</option>
-                            <option value="Credit & Financial Check" data-price="380">Credit &amp; Financial Check —
-                                R380.00</option>
-                            <option value="Professional License Verification" data-price="320">Professional License
-                                Verification — R320.00</option>
-                            <option value="Global Compliance Screening" data-price="620">Global Compliance Screening —
-                                R620.00</option>
-                            <option value="Social Media & Digital Footprint" data-price="280">Social Media &amp; Digital
-                                Footprint — R280.00</option>
+                            onchange="onServiceChange()">
+                            {% for item in pricing_settings %}
+                            {% set name_lower = item.display_name|lower %}
+                            {% if "qualification" not in name_lower and
+                            "matric" not in name_lower and
+                            "university" not in name_lower and
+                            "certificate" not in name_lower and
+                            "tvet" not in name_lower and
+                            "tertiary" not in name_lower %}
+                            <option value="{{ item.display_name }}" data-price="{{ item.price_zar }}">
+                                {{ item.display_name }} — R{{ "%.2f"|format(item.price_zar) }}
+                            </option>
+                            {% endif %}
+                            {% endfor %}
+
+                            <!-- Qualification Option -->
+                            <option value="Qualification Verification" data-price="0">Qualification Verification —
+                                Dynamic Pricing</option>
                         </select>
                     </div>
+
+                    <!-- 🔥 NEW: Qualification Sub-Select (Hidden by default) -->
+                    <div id="qualification-sub-select" style="display: none; margin-bottom: 20px;">
+                        <label class="input-label-string" for="qualification_variant">Select Qualification / Institution
+                            Type</label>
+                        <select class="form-dropdown-control" id="qualification_variant" name="qualification_variant"
+                            onchange="updateQualificationPrice()">
+                            {% for item in pricing_settings %}
+                            {% set name_lower = item.display_name|lower %}
+                            {% if "matric" in name_lower or
+                            "university" in name_lower or
+                            "certificate" in name_lower or
+                            "tvet" in name_lower or
+                            "tertiary" in name_lower %}
+                            <option value="{{ item.display_name }}" data-price="{{ item.price_zar }}">
+                                {% if "johannesburg" in name_lower %}
+                                JHB Univ
+                                {% elif "witwatersrand" in name_lower %}
+                                WITS Univ
+                                {% elif "pretoria" in name_lower %}
+                                PTA Univ
+                                {% elif "matric (pre-1992)" in name_lower %}
+                                Matric Pre-1992
+                                {% elif "matric (post-1992)" in name_lower %}
+                                Matric Post-1992
+                                {% elif "all n certificates" in name_lower %}
+                                All N Certificates
+                                {% elif "other tertiary" in name_lower %}
+                                Other Institutions
+                                {% else %}
+                                {{ item.display_name }}
+                                {% endif %}
+                                — R{{ "%.2f"|format(item.price_zar) }}
+                            </option>
+                            {% endif %}
+                            {% endfor %}
+                        </select>
+                    </div>
+
 
                     <div style="margin-bottom: 20px;">
                         <label class="input-label-string" style="margin-bottom: 8px; display:block;">Settlement
                             Preference Matrix</label>
-                        <div style="display: grid; grid-template-columns: 1s 1fr; gap: 12px;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
                             <label
                                 style="background: rgba(255,255,255,0.02); border: 1px solid var(--border); padding: 12px; border-radius: 6px; display: flex; align-items: center; gap: 10px; cursor: pointer;">
                                 <input type="radio" name="payment_method" value="gateway" id="pay_gateway" checked
@@ -1462,14 +1522,35 @@
     let currentStep = 1;
     const totalSteps = 3;
 
-    const prices = {
-        'Identity Verification & Validation': 450,
-        'Criminal Record & Background Check': 550,
-        'Credit & Financial Check': 380,
-        'Professional License Verification': 320,
-        'Global Compliance Screening': 620,
-        'Social Media & Digital Footprint': 280
-    };
+    // 🔥 DYNAMIC PRICES FROM DATABASE
+    const prices = {};
+    {% for item in pricing_settings %}
+    {% set name_lower = item.display_name | lower %}
+    {% if "qualification" not in name_lower and
+        "matric" not in name_lower and
+        "university" not in name_lower and
+        "certificate" not in name_lower and
+        "tvet" not in name_lower and
+        "tertiary" not in name_lower %}
+    prices['{{ item.display_name }}'] = {{ item.price_zar }};
+    {% endif %}
+    {% endfor %}
+
+    // 🔥 QUALIFICATION VARIANTS FROM DATABASE
+    const qualificationPrices = {};
+    {% for item in pricing_settings %}
+    {% set name_lower = item.display_name | lower %}
+    {% if "matric" in name_lower or
+        "university" in name_lower or
+        "certificate" in name_lower or
+        "tvet" in name_lower or
+        "tertiary" in name_lower %}
+    qualificationPrices['{{ item.display_name }}'] = {{ item.price_zar }};
+    {% endif %}
+    {% endfor %}
+
+    // Add Qualification Verification as a special option
+    prices['Qualification Verification'] = 0;
 
     // ── SIDEBAR NAVIGATION TRACES ───────────────────────────
     if (typeof openSidebar !== 'function') {
@@ -1535,12 +1616,47 @@
 
         const val = typeSelect.value;
         const isCriminal = val.toLowerCase().includes('criminal');
+        const isQualification = val === 'Qualification Verification';
+
+        console.log("🔄 Service changed to:", val);
+
+        // Show/hide qualification sub-select
+        const qualSubSelect = document.getElementById('qualification-sub-select');
+        if (qualSubSelect) {
+            qualSubSelect.style.display = isQualification ? 'block' : 'none';
+        }
 
         const noticeBox = document.getElementById('criminal-notice');
         if (noticeBox) noticeBox.style.display = isCriminal ? 'block' : 'none';
 
         const step2Label = document.getElementById('step2-service-label');
-        if (step2Label) step2Label.textContent = val;
+        if (step2Label) {
+            if (isQualification) {
+                const qualSelect = document.getElementById('qualification_variant');
+                step2Label.textContent = qualSelect ? qualSelect.value : 'Qualification Verification';
+            } else {
+                step2Label.textContent = val;
+            }
+        }
+
+        // Clear any previous price warning
+        clearPriceWarning();
+
+        buildPaymentSummary();
+    }
+
+    function updateQualificationPrice() {
+        const qualSelect = document.getElementById('qualification_variant');
+        if (!qualSelect) return;
+
+        console.log("🔄 Qualification variant changed to:", qualSelect.value);
+
+        // Update the step 2 label
+        const step2Label = document.getElementById('step2-service-label');
+        if (step2Label) step2Label.textContent = qualSelect.value;
+
+        // Clear any previous price warning
+        clearPriceWarning();
 
         buildPaymentSummary();
     }
@@ -1550,13 +1666,92 @@
         if (!typeSelect) return;
 
         const val = typeSelect.value;
-        const price = prices[val] || 450;
+        let price = 0;
+        let displayName = val;
+
+        console.log("🔍 Selected value:", val);
+
+        // Handle Qualification Verification
+        if (val === 'Qualification Verification') {
+            const qualSelect = document.getElementById('qualification_variant');
+            if (qualSelect) {
+                const selectedOption = qualSelect.options[qualSelect.selectedIndex];
+                // Get price from database via data attribute
+                price = parseFloat(selectedOption.getAttribute('data-price')) || 0;
+                displayName = qualSelect.value;
+                console.log("🔍 Qualification price:", price);
+            }
+        } else {
+            // 🔥 FIX: Get the selected option directly from the dropdown
+            const selectedOption = typeSelect.options[typeSelect.selectedIndex];
+            if (selectedOption) {
+                // First try to get price from data attribute (most reliable)
+                const dataPrice = selectedOption.getAttribute('data-price');
+                if (dataPrice !== null) {
+                    price = parseFloat(dataPrice) || 0;
+                    console.log("🔍 Price from data attribute:", price);
+                } else {
+                    // Fallback to prices object
+                    price = prices[val] || 0;
+                    console.log("🔍 Price from prices object:", price);
+                }
+            } else {
+                price = prices[val] || 0;
+            }
+        }
+
+        console.log("💰 Final price:", price);
+        console.log("💰 Display name:", displayName);
 
         const serviceSummaryNode = document.getElementById('pay-service');
         const totalSummaryNode = document.getElementById('pay-total');
 
-        if (serviceSummaryNode) serviceSummaryNode.textContent = val;
-        if (totalSummaryNode) totalSummaryNode.textContent = `R${parseFloat(price).toFixed(2)}`;
+        if (serviceSummaryNode) serviceSummaryNode.textContent = displayName;
+        if (totalSummaryNode) {
+            if (price > 0) {
+                totalSummaryNode.textContent = `R${parseFloat(price).toFixed(2)}`;
+            } else {
+                totalSummaryNode.textContent = 'R0.00';
+                // Show a warning if price is 0
+                showPriceWarning('Price not found for selected service. Please contact support.');
+            }
+        }
+    }
+
+    // 🔥 NEW: Function to show price warning
+    function showPriceWarning(message) {
+        let warning = document.getElementById('price-warning');
+        if (!warning) {
+            warning = document.createElement('div');
+            warning.id = 'price-warning';
+            warning.style.cssText = `
+                background: rgba(251, 191, 36, 0.1);
+                border: 1px solid rgba(251, 191, 36, 0.2);
+                color: #fbbf24;
+                padding: 8px 12px;
+                border-radius: 6px;
+                font-size: 12px;
+                margin-top: 8px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            `;
+            const totalSummaryNode = document.getElementById('pay-total');
+            if (totalSummaryNode) {
+                totalSummaryNode.parentNode.insertBefore(warning, totalSummaryNode.nextSibling);
+            }
+        }
+        warning.innerHTML = `
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <span>${message}</span>
+        `;
+        warning.style.display = 'flex';
+    }
+
+    // 🔥 NEW: Function to clear price warning
+    function clearPriceWarning() {
+        const warning = document.getElementById('price-warning');
+        if (warning) warning.remove();
     }
 
     // ── WIZARD MODAL WIDGET CONTROLLERS ─────────────────────
@@ -1565,6 +1760,13 @@
         renderStep();
         const modal = document.getElementById('requestModal');
         if (modal) modal.classList.add('open');
+
+        // 🔥 Reset price display
+        const totalSummaryNode = document.getElementById('pay-total');
+        if (totalSummaryNode) totalSummaryNode.textContent = 'R0.00';
+        
+        // Clear any warnings
+        clearPriceWarning();
 
         // Ensure default state checks execute
         const gatewayRadio = document.getElementById('pay_gateway');
@@ -1587,6 +1789,9 @@
 
         document.getElementById('doc-label').textContent = 'Click to upload your core verification documents';
         document.getElementById('pop-label').textContent = 'Click to upload bank transfer receipt';
+        
+        // Clear any warnings
+        clearPriceWarning();
     }
 
     function renderStep() {
@@ -1634,9 +1839,19 @@
         if (currentStep === 1) {
             const select = document.getElementById('verification_type');
             if (!select || !select.value) {
-                alert('Please select a verification domain module.');
+                showWizardError('mstep-1', 'Please select a verification domain module.');
                 return;
             }
+
+            if (select.value === 'Qualification Verification') {
+                const qualSelect = document.getElementById('qualification_variant');
+                if (!qualSelect || !qualSelect.value) {
+                    showWizardError('mstep-1', 'Please select a qualification/institution type from the dropdown.');
+                    return;
+                }
+            }
+
+            clearWizardErrors();
             onServiceChange();
             currentStep++;
             renderStep();
@@ -1647,15 +1862,20 @@
             const docInput = document.getElementById('doc-files');
             const docs = docInput ? docInput.files : [];
             if (!docs.length) {
-                alert('Validation Alert: Please upload at least one required verification document before continuing.');
+                showWizardError('mstep-2', 'Please upload at least one required verification document before continuing.');
                 return;
             }
+
+            // 🔥 FIX: Build payment summary before proceeding to ensure price is set
+            buildPaymentSummary();
 
             if (isGateway) {
                 if (formElement) {
                     if (nextBtn) {
                         nextBtn.disabled = true;
                         nextBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Secure Processing...`;
+                        nextBtn.style.opacity = '0.7';
+                        nextBtn.style.cursor = 'not-allowed';
                     }
                     console.log("🚀 Gateway pipeline active. Submitting directly to Flask upload routing...");
                     formElement.submit();
@@ -1663,7 +1883,6 @@
                 return;
             } else {
                 // If it's manual EFT, advance clean into step 3 for Proof of Payment submission
-                buildPaymentSummary();
                 currentStep++;
                 renderStep();
                 return;
@@ -1674,7 +1893,7 @@
             const popInput = document.getElementById('pop-upload');
             const pop = popInput ? popInput.files[0] : null;
             if (!pop) {
-                alert('Validation Alert: Please attach your manual bank transfer Proof of Payment (POP) voucher receipt before submitting.');
+                showWizardError('mstep-3', 'Please attach your manual bank transfer Proof of Payment (POP) voucher receipt before submitting.');
                 return;
             }
 
@@ -1682,12 +1901,53 @@
                 if (nextBtn) {
                     nextBtn.disabled = true;
                     nextBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Uploading EFT records...`;
+                    nextBtn.style.opacity = '0.7';
+                    nextBtn.style.cursor = 'not-allowed';
                 }
                 console.log("🚀 Submitting manual EFT payload arrays to local Flask app filesystem...");
                 formElement.submit();
             }
             return;
         }
+    }
+
+    function showWizardError(stepId, message) {
+        // Remove any existing error
+        const existingError = document.querySelector('.wizard-error-message');
+        if (existingError) existingError.remove();
+
+        const step = document.getElementById(stepId);
+        if (!step) return;
+
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'wizard-error-message';
+        errorDiv.style.cssText = `
+            background: rgba(255, 74, 74, 0.1);
+            border: 1px solid rgba(255, 74, 74, 0.3);
+            color: #ff4a4a;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            margin-top: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            animation: fadeIn 0.2s ease-out;
+        `;
+        errorDiv.innerHTML = `
+            <i class="fa-solid fa-triangle-exclamation" style="color: #ff4a4a;"></i>
+            <span>${message}</span>
+        `;
+        step.appendChild(errorDiv);
+
+        // Auto-scroll to error
+        errorDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    // Clear error messages
+    function clearWizardErrors() {
+        const errors = document.querySelectorAll('.wizard-error-message');
+        errors.forEach(error => error.remove());
     }
 
     function modalBack() {
@@ -1707,6 +1967,7 @@
         }
 
         document.getElementById('verification_type')?.addEventListener('change', onServiceChange);
+        document.getElementById('qualification_variant')?.addEventListener('change', updateQualificationPrice);
 
         document.getElementById('doc-files')?.addEventListener('change', function () {
             const count = this.files.length;
@@ -1723,86 +1984,87 @@
             }
         });
     });
+
     function enableProfileEditing(type) {
-    const editBtn = document.getElementById(`edit-${type}-btn`);
-    const saveBtn = document.getElementById(`save-${type}-btn`);
-    
-    if (!editBtn || !saveBtn) return;
+        const editBtn = document.getElementById(`edit-${type}-btn`);
+        const saveBtn = document.getElementById(`save-${type}-btn`);
 
-    editBtn.style.display = 'none';
-    saveBtn.style.display = 'inline-flex';
+        if (!editBtn || !saveBtn) return;
 
-    const fields = [
-        { id: `val-${type}-name`, name: 'individual_name', placeholder: 'Legal Name' },
-        { id: `val-${type}-email`, name: 'email', placeholder: 'Workspace Email' },
-        { id: `val-${type}-id`, name: 'individual_id', placeholder: 'Identity/Passport string' }
-    ];
+        editBtn.style.display = 'none';
+        saveBtn.style.display = 'inline-flex';
 
-    fields.forEach(field => {
-        const container = document.getElementById(field.id);
-        if (container) {
-            const rawVal = container.textContent.trim();
-            const currentVal = (rawVal === 'Not Set' || rawVal === '') ? '' : rawVal;
-            
-            container.innerHTML = `
-                <input type="text" 
-                       name="${field.name}" 
-                       value="${currentVal}" 
-                       placeholder="${field.placeholder}" 
-                       class="form-control" 
-                       required
-                       style="width: 100%; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 6px; color: var(--white); padding: 0.4rem 0.7rem; margin-top: 4px; box-sizing: border-box;">
-            `;
-        }
-    });
-}
+        const fields = [
+            { id: `val-${type}-name`, name: 'individual_name', placeholder: 'Legal Name' },
+            { id: `val-${type}-email`, name: 'email', placeholder: 'Workspace Email' },
+            { id: `val-${type}-id`, name: 'individual_id', placeholder: 'Identity/Passport string' }
+        ];
 
-/**
- * Iterates real-time password complexity scores against metrics
- */
-function checkPasswordStrength(password, indicatorId) {
-    const container = document.getElementById(indicatorId);
-    if (!container) return;
+        fields.forEach(field => {
+            const container = document.getElementById(field.id);
+            if (container) {
+                const rawVal = container.textContent.trim();
+                const currentVal = (rawVal === 'Not Set' || rawVal === '') ? '' : rawVal;
 
-    const bars = container.querySelectorAll('div');
-    bars.forEach(bar => bar.style.background = 'rgba(255,255,255,0.1)'); // Reset steps
-
-    if (!password) return;
-
-    let strengthScore = 0;
-    if (password.length >= 8) strengthScore++;
-    if (/[A-Z]/.test(password) && /[0-9]/.test(password)) strengthScore++;
-    if (/[^A-Za-z0-9]/.test(password)) strengthScore++;
-
-    const statusColors = ['#f87171', '#fbbf24', '#4eb637']; // Weak, Medium, Strong
-    const tint = statusColors[strengthScore - 1] || '#f87171';
-
-    for (let i = 0; i < strengthScore; i++) {
-        if (bars[i]) bars[i].style.background = tint;
+                container.innerHTML = `
+                    <input type="text" 
+                           name="${field.name}" 
+                           value="${currentVal}" 
+                           placeholder="${field.placeholder}" 
+                           class="form-control" 
+                           required
+                           style="width: 100%; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 6px; color: var(--white); padding: 0.4rem 0.7rem; margin-top: 4px; box-sizing: border-box;">
+                `;
+            }
+        });
     }
-}
 
-/**
- * Defensive safety interception prompt for permanent database wipes
- */
-function confirmAccountDeletion(type) {
-    const warningText = "CRITICAL WARNING:\n\nAre you completely sure you want to proceed? Terminating your structural account node immediately expunges all background screening instances, compliance logs, database mappings, and validation credentials permanently from active system environments. This process cannot be reversed.";
-    if (confirm(warningText)) {
-        window.location.href = `/account/terminate/${type}`;
-    }
-}
+    /**
+     * Iterates real-time password complexity scores against metrics
+     */
+    function checkPasswordStrength(password, indicatorId) {
+        const container = document.getElementById(indicatorId);
+        if (!container) return;
 
-// Intercept security hash updates to confirm values match perfectly
-document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('indiv-password-form')?.addEventListener('submit', function(e) {
-        const newPass = document.getElementById('indiv-new-password').value;
-        const confirmPass = document.getElementById('indiv-confirm-password').value;
+        const bars = container.querySelectorAll('div');
+        bars.forEach(bar => bar.style.background = 'rgba(255,255,255,0.1)'); // Reset steps
 
-        if (newPass !== confirmPass) {
-            e.preventDefault();
-            alert("Security validation fault: New password entry parameters do not match verification confirmation values.");
+        if (!password) return;
+
+        let strengthScore = 0;
+        if (password.length >= 8) strengthScore++;
+        if (/[A-Z]/.test(password) && /[0-9]/.test(password)) strengthScore++;
+        if (/[^A-Za-z0-9]/.test(password)) strengthScore++;
+
+        const statusColors = ['#f87171', '#fbbf24', '#4eb637']; // Weak, Medium, Strong
+        const tint = statusColors[strengthScore - 1] || '#f87171';
+
+        for (let i = 0; i < strengthScore; i++) {
+            if (bars[i]) bars[i].style.background = tint;
         }
+    }
+
+    /**
+     * Defensive safety interception prompt for permanent database wipes
+     */
+    function confirmAccountDeletion(type) {
+        const warningText = "CRITICAL WARNING:\n\nAre you completely sure you want to proceed? Terminating your structural account node immediately expunges all background screening instances, compliance logs, database mappings, and validation credentials permanently from active system environments. This process cannot be reversed.";
+        if (confirm(warningText)) {
+            window.location.href = `/account/terminate/${type}`;
+        }
+    }
+
+    // Intercept security hash updates to confirm values match perfectly
+    document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('indiv-password-form')?.addEventListener('submit', function (e) {
+            const newPass = document.getElementById('indiv-new-password').value;
+            const confirmPass = document.getElementById('indiv-confirm-password').value;
+
+            if (newPass !== confirmPass) {
+                e.preventDefault();
+                alert("Security validation fault: New password entry parameters do not match verification confirmation values.");
+            }
+        });
     });
-});
 </script>
 {%endblock%}

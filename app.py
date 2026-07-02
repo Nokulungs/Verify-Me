@@ -105,7 +105,20 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 def calculate_individual_cost(verification_type):
-    prices = {
+    """Get price from database, fallback to default if not found."""
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT price_zar FROM pricing_settings WHERE display_name = %s", (verification_type,))
+            result = cursor.fetchone()
+            cursor.close()
+            if result:
+                return float(result[0])
+    except Exception as e:
+        print(f"Price lookup error: {e}")
+    
+    # Fallback to default
+    default_prices = {
         'Identity Verification & Validation': 450.00,
         'Criminal Record & Background Check': 550.00,
         'Credit & Financial Check': 380.00,
@@ -113,7 +126,7 @@ def calculate_individual_cost(verification_type):
         'Global Compliance Screening': 620.00,
         'Social Media & Digital Footprint': 280.00
     }
-    return prices.get(verification_type, 450.00)
+    return default_prices.get(verification_type, 450.00)
 
 # --- DATABASE MANAGEMENT ARCHITECTURE ---
 DATABASE_URL = os.environ.get('DATABASE_URL')
@@ -433,7 +446,7 @@ def submit_screening():
 
     try:
         # 1. Fetch current dynamic pricing records directly from PostgreSQL
-        cursor.execute("SELECT key_name, price_zar FROM pricing_settings")
+        cursor.execute("SELECT display_name, price_zar FROM pricing_settings")
         price_map = {row[0]: float(row[1]) for row in cursor.fetchall()}
 
         # 2. Loop through selections, match keys, and aggregate the true total cost
@@ -928,8 +941,8 @@ def initiate_screening():
         cursor = conn.cursor(cursor_factory=RealDictCursor)
         
         # Pull live rate parameters out of the DB pricing matrix
-        cursor.execute("SELECT key_name, price_zar FROM pricing_settings")
-        live_prices = {row['key_name']: float(row['price_zar']) for row in cursor.fetchall()}
+        cursor.execute("SELECT display_name, price_zar FROM pricing_settings")
+        live_prices = {row['display_name']: float(row['price_zar']) for row in cursor.fetchall()}
         
         for c_name, c_email, c_variant in staged_rows:
             # Rule A: Cross-check distinct compound unique configurations
@@ -1101,6 +1114,8 @@ def dashboard_individual():
             WHERE id = %s
         ''', (session['user_id'],))
         user_profile = cursor.fetchone()
+        cursor.execute("SELECT display_name, price_zar FROM pricing_settings ORDER BY id ASC")
+        pricing_settings = cursor.fetchall()
         cursor.close()
 
     return render_template(
@@ -1109,6 +1124,7 @@ def dashboard_individual():
         requests=db_rows,    
         audits=db_rows,      
         user_profile=user_profile, 
+        pricing_settings=pricing_settings, 
         hide_navbar=True, 
         hide_footer=True
     )
@@ -1122,8 +1138,17 @@ def initiate_individual_payment():
 
     verification_type = request.form.get('verification_type')
     payment_method = request.form.get('payment_method', 'manual_eft')
+    qualification_variant = request.form.get('qualification_variant')
+    
+    if verification_type == 'Qualification Verification':
+        if not qualification_variant or qualification_variant == '':
+            flash('Please select a qualification/institution type from the dropdown.', 'error')
+            return redirect(url_for('dashboard_individual'))
+        verification_type = qualification_variant
+
     payment_ref = "VFY-IND-" + str(os.urandom(3).hex().upper())
 
+    
     uploaded_docs = request.files.getlist('verification_documents')
     proof_of_payment = request.files.get('proof_of_payment')
 
@@ -1175,13 +1200,14 @@ def initiate_individual_payment():
 
     if payment_method == 'gateway':
         total_bill = calculate_individual_cost(verification_type)
+        print(f"💰 PayFast amount: R{total_bill:.2f} for {verification_type}") 
+
         return redirect(url_for('payfast_checkout', record_id=generated_id, custom_ref=payment_ref, custom_amt=total_bill))
 
     flash(f'Successfully initialized your {verification_type} audit pipeline. Awaiting manual bank clearance checking.', 'success')
     return redirect(url_for('dashboard_individual'))
 
-# --- ONLINE CHECKOUT LINKAGE PIPELINE ---
-# --- ONLINE CHECKOUT LINKAGE PIPELINE ---
+
 @app.route('/payfast-checkout')
 def payfast_checkout():
     if 'user_id' not in session:
@@ -2370,5 +2396,177 @@ def download_template():
         headers={"Content-Disposition": "attachment; filename=verify_me_template.csv"}
     )
 
+@app.route('/admin/download-all-individual-packages')
+@role_required(['admin'])
+def download_all_individual_packages():
+    """
+    Generates a ZIP archive containing all individual audit records and documents for ALL users.
+    Each user gets their own subfolder.
+    """
+    import os
+    import zipfile
+    import io
+    from datetime import datetime
+    
+    # Fetch all individual users with their audits
+    with get_db_connection() as conn:
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        cursor.execute("""
+            SELECT u.id, u.email, u.individual_name, u.individual_id,
+                   a.*
+            FROM users u
+            LEFT JOIN individual_audits a ON u.id = a.user_id
+            WHERE u.applicant_type = 'individual'
+            ORDER BY u.id, a.created_at DESC
+        """)
+        results = cursor.fetchall()
+        cursor.close()
+    
+    if not results:
+        flash("No individual users or audits found.", "error")
+        return redirect(url_for('admin_dashboard', tab='individual'))
+    
+    # Group results by user
+    users_data = {}
+    for row in results:
+        user_id = row['id']
+        if user_id not in users_data:
+            users_data[user_id] = {
+                'email': row['email'],
+                'individual_name': row['individual_name'],
+                'audits': []
+            }
+        if row['verification_type']:  # Only add if there's an audit
+            users_data[user_id]['audits'].append({
+                'id': row['id'],
+                'verification_type': row['verification_type'],
+                'status': row['status'],
+                'payment_status': row['payment_status'],
+                'payment_method': row['payment_method'],
+                'payment_ref': row['payment_ref'],
+                'created_at': row['created_at'],
+                'rejection_reason': row.get('rejection_reason', ''),
+                'id_file_path': row.get('id_file_path', ''),
+                'qualification_file_path': row.get('qualification_file_path', '')
+            })
+    
+    # Create ZIP file
+    zip_buffer = io.BytesIO()
+    doc_folder = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'static', 'uploads', 'credentials')
+    
+    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+        # Master summary CSV
+        master_csv = io.StringIO()
+        master_writer = csv.writer(master_csv)
+        master_writer.writerow([
+            'User ID', 'User Email', 'User Name', 'Audit ID', 'Verification Type',
+            'Status', 'Payment Status', 'Created At', 'Rejection Reason'
+        ])
+        
+        for user_id, user_data in users_data.items():
+            user_name = user_data['individual_name'] or user_data['email'].split('@')[0]
+            user_folder = f"{user_name}_{user_id}"
+            
+            # Create user-specific summary CSV
+            user_csv = io.StringIO()
+            user_writer = csv.writer(user_csv)
+            user_writer.writerow([
+                'Audit ID', 'Verification Type', 'Status', 'Payment Status',
+                'Payment Method', 'Payment Reference', 'Created At', 'Rejection Reason'
+            ])
+            
+            for audit in user_data['audits']:
+                # Add to master CSV
+                master_writer.writerow([
+                    user_id, user_data['email'], user_name,
+                    audit['id'], audit['verification_type'],
+                    audit['status'], audit['payment_status'],
+                    audit['created_at'], audit.get('rejection_reason', '')
+                ])
+                
+                # Add to user CSV
+                user_writer.writerow([
+                    audit['id'], audit['verification_type'],
+                    audit['status'], audit['payment_status'],
+                    audit['payment_method'], audit['payment_ref'],
+                    audit['created_at'], audit.get('rejection_reason', '')
+                ])
+                
+                # Add documents
+                def add_doc(file_path, prefix):
+                    if not file_path:
+                        return
+                    if file_path.startswith('http://') or file_path.startswith('https://'):
+                        try:
+                            import requests
+                            response = requests.get(file_path, timeout=30)
+                            if response.status_code == 200:
+                                file_name = file_path.split('/')[-1] or f"{prefix}_{audit['id']}.pdf"
+                                zip_file.writestr(
+                                    f"{user_folder}/documents/{prefix}_{audit['id']}_{file_name}",
+                                    response.content
+                                )
+                        except Exception as e:
+                            print(f"⚠️ Failed to download: {e}")
+                    else:
+                        clean_filename = os.path.basename(file_path)
+                        full_path = os.path.join(doc_folder, clean_filename)
+                        if os.path.exists(full_path):
+                            zip_file.write(
+                                full_path,
+                                f"{user_folder}/documents/{prefix}_{audit['id']}_{clean_filename}"
+                            )
+                
+                add_doc(audit.get('id_file_path'), 'ID')
+                add_doc(audit.get('qualification_file_path'), 'QUAL')
+            
+            # Add user CSV to zip
+            zip_file.writestr(f"{user_folder}/audits_summary.csv", user_csv.getvalue())
+            
+            # Add user info file
+            user_info = f"""
+INDIVIDUAL AUDITS - {user_name}
+===============================
+User ID: #{user_id}
+Email: {user_data['email']}
+Name: {user_name}
+Total Audits: {len(user_data['audits'])}
+Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+
+This package contains:
+1. audits_summary.csv - All audits for this individual
+2. documents/ - All uploaded documents organized by audit
+            """
+            zip_file.writestr(f"{user_folder}/user_info.txt", user_info)
+        
+        # Add master CSV
+        zip_file.writestr('MASTER_SUMMARY.csv', master_csv.getvalue())
+        
+        # Add README
+        readme = f"""
+VERIFYME INDIVIDUAL AUDITS - MASTER PACKAGE
+===========================================
+Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+Total Users: {len(users_data)}
+Total Audits: {sum(len(u['audits']) for u in users_data.values())}
+
+This package contains:
+1. MASTER_SUMMARY.csv - All audits across all users
+2. [user_name]_[user_id]/ - Each user's folder with their audits and documents
+
+For any questions, please contact the VerifyMe support team.
+        """
+        zip_file.writestr('README.txt', readme)
+    
+    zip_buffer.seek(0)
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    filename = f"all_individual_audit_packages_{timestamp}.zip"
+    
+    return send_file(
+        zip_buffer,
+        mimetype='application/zip',
+        as_attachment=True,
+        download_name=filename
+    )
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
